@@ -1,7 +1,7 @@
 /**
  * 《风华年代：沧海沉浮录》字节跳动 / 抖音小游戏自动化构建产物
  * 由 scripts/build_douyin.js 从 wechat-minigame 单一真源自动生成
- * 生成时间: 2026-10-24T14:35:30.369Z
+ * 生成时间: 2026-10-24T16:48:48.507Z
  */
 /**
  * 《风华年代：沧海沉浮录》微信小游戏 (Game Core Edition)
@@ -6735,10 +6735,10 @@ function ensureClanProfileForCurrentRun(allowTestFallback = true) {
 
   const sName = (state.name && state.name.length > 0) ? state.name[0] : ((state.creation && state.creation.surname) ? state.creation.surname : '陈');
   const prov = (state.birthProfile && state.birthProfile.region && typeof BIRTH_REGIONS !== 'undefined' && BIRTH_REGIONS.find(r => r.id === state.birthProfile.region)) ? '河南' : '河南';
-  let hall = '聚德堂';
+  let hall = '颍川长社房';
   if (_familySystemMod && _familySystemMod.FAMOUS_HALL_MAPPING && _familySystemMod.FAMOUS_HALL_MAPPING[sName]) {
     const rawH = _familySystemMod.FAMOUS_HALL_MAPPING[sName];
-    hall = Array.isArray(rawH) ? (rawH[0] || '聚德堂') : (typeof rawH === 'string' ? rawH : '聚德堂');
+    hall = Array.isArray(rawH) ? (rawH[0] || '颍川长社房') : (typeof rawH === 'string' ? rawH : '颍川长社房');
   }
   const openid = (_clanCloudMod && typeof _clanCloudMod.getUserOpenId === 'function')
     ? _clanCloudMod.getUserOpenId()
@@ -31052,12 +31052,12 @@ function drawClanEstablishmentModal() {
     });
   }
 
-  // 4. 传世堂号推荐
+  // 4. 传世郡望房支推荐
   curY += 34;
   ctx.textAlign = 'left';
   ctx.font = 'bold 12px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#fef08a';
-  ctx.fillText(`三、传世堂号：【${curHall}】`, cardX + 14, curY);
+  ctx.fillText(`三、传世堂号与郡望房支：【${curHall}】`, cardX + 14, curY);
 
   curY += 20;
   const hChips = famousHalls.length;
@@ -31079,7 +31079,7 @@ function drawClanEstablishmentModal() {
       border: isSelected ? '#f59e0b' : '#5c4538',
       borderWidth: isSelected ? 1.5 : 1,
       text: hText,
-      font: 'bold 11.5px ' + FONT_CHRONICLE,
+      font: 'bold 11px ' + FONT_CHRONICLE,
       textColor: isSelected ? '#fef08a' : '#cbd5e1',
       priority: 105,
       onClick: () => {
@@ -31150,24 +31150,32 @@ function drawClanEstablishmentModal() {
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.font = 'bold 12.5px ' + FONT_CHRONICLE;
+  ctx.font = 'bold 12px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#fef08a';
-  ctx.fillText(`【${curProvince}·${curSurname}氏·${curHall}】`, cardX + cardW / 2, curY + 6);
+  const titleChoronym = (lineage && lineage.choronym) ? lineage.choronym : curProvince;
+  ctx.fillText(`【${titleChoronym}·${curSurname}氏·${curHall}】`, cardX + cardW / 2, curY + 5);
 
-  ctx.font = '10.5px ' + FONT_CHRONICLE;
+  ctx.font = '10px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#e2e8f0';
-  const ancText = lineage ? `先祖：${fitText(lineage.historicalAncestors.replace(/➔/g, '→'), cardW - 44, '10.5px ' + FONT_CHRONICLE)}` : '两汉名贤之后';
-  ctx.fillText(ancText, cardX + cardW / 2, curY + 24);
+  const ancText = lineage ? `先祖：${fitText(lineage.historicalAncestors.replace(/➔/g, '→'), cardW - 44, '10px ' + FONT_CHRONICLE)}` : '两汉名贤之后';
+  ctx.fillText(ancText, cardX + cardW / 2, curY + 22);
 
-  ctx.font = 'italic 10px ' + FONT_CHRONICLE;
-  ctx.fillStyle = '#fbbf24';
-  const mottoText = lineage ? `祖训：“${lineage.motto}”` : '诗书传家，百代不迁。';
-  ctx.fillText(fitText(mottoText, cardW - 36, 'italic 10px ' + FONT_CHRONICLE), cardX + cardW / 2, curY + 40);
+  if (lineage && lineage.clanPerk) {
+    ctx.font = 'bold 9.5px ' + FONT_CHRONICLE;
+    ctx.fillStyle = '#6ee7b7';
+    const perkText = `特权：【${lineage.clanPerk.name}】${fitText(lineage.clanPerk.desc, cardW - 84, '9.5px ' + FONT_CHRONICLE)}`;
+    ctx.fillText(perkText, cardX + cardW / 2, curY + 38);
+  } else {
+    ctx.font = 'italic 10px ' + FONT_CHRONICLE;
+    ctx.fillStyle = '#fbbf24';
+    const mottoText = lineage ? `祖训：“${fitText(lineage.motto, cardW - 44, 'italic 10px ' + FONT_CHRONICLE)}”` : '诗书传家，百代不迁。';
+    ctx.fillText(mottoText, cardX + cardW / 2, curY + 38);
+  }
 
-  ctx.font = '9.5px ' + FONT_UI;
+  ctx.font = '9px ' + FONT_UI;
   ctx.fillStyle = '#a89988';
   const srcText = lineage ? `史考：${lineage.historicalSource.split('《')[1] ? '《' + lineage.historicalSource.split('《')[1].split('》')[0] + '》' : lineage.historicalSource}` : '《元和姓纂》';
-  ctx.fillText(fitText(srcText, cardW - 36, '9.5px ' + FONT_UI), cardX + cardW / 2, curY + 56);
+  ctx.fillText(fitText(srcText, cardW - 36, '9px ' + FONT_UI), cardX + cardW / 2, curY + 54);
 
   // 7. 提交按钮
   curY += overviewH + 8;
@@ -46997,6 +47005,7 @@ if (typeof global !== 'undefined' && __DEV__) {
   global.HAN_WEI_PROCEDURAL_ENCOUNTER_POOL = _historicalMilieuMod && _historicalMilieuMod.HAN_WEI_PROCEDURAL_ENCOUNTER_POOL;
   global.HAN_WEI_CHRONICLE_ENCYCLOPEDIA = _historicalMilieuMod && _historicalMilieuMod.HAN_WEI_CHRONICLE_ENCYCLOPEDIA;
   global.HAN_WEI_INSTITUTIONAL_COMPENDIUM = _historicalMilieuMod && _historicalMilieuMod.HAN_WEI_INSTITUTIONAL_COMPENDIUM;
+  global.HAN_WEI_HISTORICAL_CLANS_REGISTRY = _historicalMilieuMod && _historicalMilieuMod.HAN_WEI_HISTORICAL_CLANS_REGISTRY;
   global.HAN_WEI_PROMINENT_CLANS = _historicalMilieuMod && _historicalMilieuMod.HAN_WEI_PROMINENT_CLANS;
   global.TRACK_INCOME_BONUS_SCALE = TRACK_INCOME_BONUS_SCALE;
   global.TEXT_OVERRIDES = TEXT_OVERRIDES;

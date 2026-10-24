@@ -1,11 +1,15 @@
 // 华夏三千年世家大系 · 家族建制与宗族底蕴管理系统 (FamilySystem)
-// 规范：真实姓氏 + 省份 + 堂号 + 家业底色（不可更改，严格合规，脱敏防沉迷）
+// 规范：真实姓氏 + 省份 + 郡望房支 + 家业底色（不可更改，严格合规，脱敏防沉迷）
 
 let HAN_WEI_PROMINENT_CLANS = [];
+let HAN_WEI_HISTORICAL_CLANS_REGISTRY = {};
 try {
   const milieu = require('./historicalMilieuHanWei');
   if (milieu && Array.isArray(milieu.HAN_WEI_PROMINENT_CLANS)) {
     HAN_WEI_PROMINENT_CLANS = milieu.HAN_WEI_PROMINENT_CLANS;
+  }
+  if (milieu && milieu.HAN_WEI_HISTORICAL_CLANS_REGISTRY) {
+    HAN_WEI_HISTORICAL_CLANS_REGISTRY = milieu.HAN_WEI_HISTORICAL_CLANS_REGISTRY;
   }
 } catch (e) {}
 
@@ -28,11 +32,12 @@ const PROVINCE_LIST = [
 ];
 
 // 经典百家姓先祖渊源与得姓谱系正史考据库 (Ancient Surname Lineage Compendium)
+// 严格依循两汉魏晋正史，宗祠堂号全面规整为汉魏【郡望房支】
 const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '刘': {
     ancientOrigin: '帝尧陶唐氏祁姓之后，裔孙刘累受封夏代御龙氏 ➔ 周宣王封大夫杜伯，其子隰叔奔晋为士氏 ➔ 晋大夫士会食邑于随与刘，后以为氏。',
     historicalAncestors: '西汉高祖刘邦定鼎中原 ➔ 汉文帝、汉景帝休养生息 ➔ 光武帝刘秀中兴汉室 ➔ 东汉河间献王刘德（立五经学士，整理古籍，实事求是）。',
-    hallName: '彭城堂 / 藜照堂 / 中山堂',
+    hallName: '彭城楚王房 / 中山靖王房 / 河间献王房',
     motto: '德业相劝，过失相规；礼俗相交，患难相恤。',
     historicalSource: '《史记·卷八·高祖本纪》《汉书·卷三十六·楚元王传》《新唐书·宰相世系表》',
     historicalFeature: '汉家天子宗室血脉，累世封侯，门生故吏遍及两京十三州，宗族凝聚力称冠神州。'
@@ -40,7 +45,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '王': {
     ancientOrigin: '出自姬姓，周灵王太子姬晋（字子乔）直谏被废为庶人，其子宗敬为司徒，时人谓之王家，因以为氏 ➔ 秦武成侯王翦、王贲将门之后。',
     historicalAncestors: '西汉成帝朝博士王吉（字子阳，崇经学好礼）➔ 汉末司徒王允（诛董卓定乱安汉）➔ 曹魏司空王昶 ➔ 晋太保王祥（卧冰至孝）、大司马王浑。',
-    hallName: '三槐堂 / 琅琊堂 / 太原堂',
+    hallName: '琅琊临沂房 / 太原晋阳房 / 睢陵太保房',
     motto: '夫君子之行，静以修身，俭以养德。非淡泊无以明志，非宁静无以致远。',
     historicalSource: '《汉书·卷七十二·王吉传》《三国志·卷二十四·王昶传》《晋书·卷三十三·王祥传》',
     historicalFeature: '天下名门之冠，出将入相，魏晋门阀中枢，王与马共天下之基石。'
@@ -48,7 +53,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '李': {
     ancientOrigin: '出自赢姓皋陶（帝舜大理官，以官命族为理氏）➔ 商末理利贞避难食木子得全，遂改李氏 ➔ 东周老子李耳著《道德经》开道家道统。',
     historicalAncestors: '战国名将李牧 ➔ 西汉飞将军李广（威震匈奴）➔ 东汉司空李固（抗击外戚梁冀，士人风骨）➔ 曹魏破贼校尉李通。',
-    hallName: '陇西堂 / 赵郡堂 / 敦睦堂',
+    hallName: '陇西狄道房 / 赵郡柏人房 / 飞将破贼房',
     motto: '行不苟合，言不苟容。修身谨饬，居仁由义。',
     historicalSource: '《史记·卷六十三·老子列传》《史记·卷一百九·李将军列传》《后汉书·卷六十三·李固列传》',
     historicalFeature: '将门雄风与道家玄风并峙，雄镇凉州陇右丝路关隘，深壁固垒，部曲天下莫敌。'
@@ -56,7 +61,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '张': {
     ancientOrigin: '出自上古黄帝之孙挥公，观弧星而创弓矢，主祀孤星，世袭弓正之官，因赐姓张氏 ➔ 春秋晋大夫张老、张侯传家。',
     historicalAncestors: '西汉留侯张良（运筹帷幄，决胜千里）➔ 东汉天文学家张衡（造候风地动仪与浑天仪）➔ 医圣张仲景（著《伤寒杂病论》）➔ 大儒张俭。',
-    hallName: '清河堂 / 金鉴堂 / 百忍堂',
+    hallName: '清河东武房 / 留侯世德房 / 浑天太史房',
     motto: '笃学尚行，止于至善。宽以济猛，忍以成德。',
     historicalSource: '《史记·卷五十五·留侯世家》《后汉书·卷五十九·张衡列传》《后汉书·卷六十七·党锢列传》',
     historicalFeature: '才兼文武，格物致知，既有汉家帝师之奇谋，又有格物救民之百工仁术。'
@@ -64,7 +69,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '陈': {
     ancientOrigin: '出自妫姓，虞舜后裔周武王封妫满于陈（国都宛丘），建陈国，谥号陈胡公 ➔ 春秋陈完奔齐为田氏 ➔ 秦末汉初高陵侯陈婴。',
     historicalAncestors: '东汉太丘长陈寔（字仲弓，海内士宗，梁上君子折服之至德）➔ 陈纪（大鸿胪）、陈谌 ➔ 曹魏司空陈群（创九品官人法）➔ 晋名将陈泰。',
-    hallName: '德星堂 / 颍川堂 / 义门堂',
+    hallName: '颍川长社房 / 太丘德星房 / 司空文长房',
     motto: '梁上化德，清白持身；遗子黄金，不如一经。',
     historicalSource: '《后汉书·卷六十二·陈寔列传》《三国志·卷二十二·陈群传》《晋书·卷三十五·陈泰传》',
     historicalFeature: '以太丘长至德闻名海内，奠定九品中正官制，曹魏西晋台阁核心中枢。'
@@ -72,7 +77,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '荀': {
     ancientOrigin: '出自姬姓，周文王之子受封于荀国 ➔ 春秋晋国大夫荀息守节尽忠 ➔ 战国大儒荀子（荀卿）著书立说，集先秦儒法经学之大成。',
     historicalAncestors: '战国荀子 ➔ 东汉荀淑（当世号‘神君’，生八龙聚秀）➔ 荀爽（司空，白衣登台）➔ 曹魏尚书令荀彧（王佐之才）、军师荀攸。',
-    hallName: '德星堂 / 颍阴堂 / 无二堂',
+    hallName: '颍阴神君房 / 慈明司空房 / 文若令君房',
     motto: '德星聚秀，王佐济世；秉忠贞之节，守经世之务。',
     historicalSource: '《后汉书·卷六十二·荀淑列传》《三国志·卷十·荀彧荀攸传》',
     historicalFeature: '颍川名族之首，主盟天下清议，汉魏更迭文官柱石，王佐之才代出。'
@@ -80,7 +85,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '袁': {
     ancientOrigin: '出自妫姓陈氏之后，陈胡公裔孙诸字伯爰，其孙涛涂以王父字为氏为袁氏 ➔ 秦汉之际迁于汝南汝阳。',
     historicalAncestors: '东汉司徒袁安（‘袁安卧雪’，抗击外戚窦宪）➔ 袁敞（司空）➔ 袁汤（太尉）➔ 袁逢（司空）、袁隗（太傅）➔ 袁绍、袁术。',
-    hallName: '汝南堂 / 卧雪堂 / 崇德堂',
+    hallName: '汝南汝阳房 / 卧雪安国房 / 司徒公房',
     motto: '门生故吏，布于天下；清霜傲雪，居正不阿。',
     historicalSource: '《后汉书·卷四十五·袁安列传》《三国志·卷六·袁绍传》',
     historicalFeature: '四世三公门阀巨室，汉魏门生故吏遍布海内，号召力与政治号召无与伦比。'
@@ -88,7 +93,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '杨': {
     ancientOrigin: '出自姬姓周宣王之少子尚父封于杨国 ➔ 晋国羊舌肸（叔向）之后避乱以邑为氏 ➔ 战国杨朱 ➔ 西汉昭帝丞相杨敞（封安平侯）。',
     historicalAncestors: '东汉太尉杨震（‘关西孔子’，拒金留‘四知’清白风骨）➔ 太尉杨秉 ➔ 太尉杨赐 ➔ 太尉杨彪（直斥曹操）➔ 曹魏主簿杨修。',
-    hallName: '弘农堂 / 四知堂 / 清白堂',
+    hallName: '弘农华阴房 / 四知太尉房 / 关西孔子房',
     motto: '天知地知你知我知，何谓无知；清白传家，历世不坠。',
     historicalSource: '《后汉书·卷五十四·杨震列传》《三国志·卷十九·任城陈萧王传引续汉书》',
     historicalFeature: '四世太尉门第，以清白廉吏和经学博闻世守家门，关陇世家冠冕。'
@@ -96,7 +101,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '谢': {
     ancientOrigin: '出自姜姓炎帝申伯之后，周宣王改封申伯于谢国，后以国为氏 ➔ 春秋战国迁居陈郡阳夏。',
     historicalAncestors: '曹魏典农中郎将谢缵 ➔ 西晋国子祭酒谢衡 ➔ 东晋太保谢安（东山再起，淝水拒苻坚）、名将谢玄（北府兵统帅）。',
-    hallName: '陈郡堂 / 东山堂 / 宝树堂',
+    hallName: '陈郡阳夏房 / 典农中郎房 / 国子祭酒房',
     motto: '雅量高致，处变不惊；芝兰玉树，欲使其生于庭阶。',
     historicalSource: '《三国志·卷十六·任嘏传注》《晋书·卷七十九·谢安列传》',
     historicalFeature: '江左风流宰辅，雅量宏深，北府将略与林下清风并耀千秋。'
@@ -104,7 +109,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '崔': {
     ancientOrigin: '出自姜姓炎帝之后，齐太公吕尚之长子丁公及让位其弟，食采邑于崔邑，遂以崔为氏 ➔ 战国秦汉迁居清河东武城。',
     historicalAncestors: '东汉崔瑗（大书法家）、崔寔（作《四民月令》）➔ 曹魏尚书崔琰（威仪严整，高风亮节，公议第一）➔ 西晋吏部侍郎崔洪。',
-    hallName: '清河堂 / 博陵堂 / 德星堂',
+    hallName: '清河武城房 / 季珪公议房 / 子真政论房',
     motto: '重礼崇让，敦厚履正；端本清源，士林表率。',
     historicalSource: '《后汉书·卷五十二·崔骃列传》《三国志·卷十二·崔琰传》',
     historicalFeature: '北朝华胄七姓十家之冠，经学法度谨严，士风峻拔，文章典则。'
@@ -112,7 +117,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '卢': {
     ancientOrigin: '出自姜姓齐文公之后，其子高傒食采于卢邑，因以为氏 ➔ 秦末汉初卢绾 ➔ 迁居涿郡涿县（范阳）。',
     historicalAncestors: '东汉北中郎将卢植（海内大儒兼名将，刘备、公孙瓒之座师，拒董卓抗强暴）➔ 曹魏司空卢毓（典选官吏，重实干核名实）➔ 西晋卢珽。',
-    hallName: '范阳堂 / 专经堂 / 崇礼堂',
+    hallName: '涿郡范阳房 / 北中郎将房 / 司空典选房',
     motto: '崇儒敦经，学以经世；武御疆埸，文匡社稷。',
     historicalSource: '《后汉书·卷六十四·卢植列传》《三国志·卷二十二·卢毓传》',
     historicalFeature: '范阳名宿，文武兼资，北国经学与儒宗柱石，学子门生云集。'
@@ -120,7 +125,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '曹': {
     ancientOrigin: '出自姬姓周文王之子曹叔振铎封于曹国 ➔ 汉相国曹参之后封平阳侯 ➔ 沛国谯县名宗。',
     historicalAncestors: '西汉平阳侯相国曹参（萧规曹随）➔ 东汉太尉曹嵩 ➔ 魏武帝曹操（拨乱反正，开创建安风骨）➔ 魏文帝曹丕。',
-    hallName: '谯国堂 / 留余堂 / 敦叙堂',
+    hallName: '沛国谯县房 / 平阳相国房 / 魏武王侯房',
     motto: '周公吐哺，天下归心；唯才是举，经纬四海。',
     historicalSource: '《史记·卷五十四·曹相国世家》《三国志·卷一·魏书·武帝纪》',
     historicalFeature: '将略雄风冠绝当世，尚才任勇，求贤若渴，建安风骨之领袖。'
@@ -128,7 +133,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '郑': {
     ancientOrigin: '出自姬姓周宣王之弟姬友受封于郑国（郑桓公）➔ 春秋郑庄公小霸 ➔ 汉初迁入北海高密、荥阳。',
     historicalAncestors: '西汉大司农郑当时 ➔ 东汉经学大师郑玄（字康成，注遍群经，天下郑学宗奉）➔ 曹魏安仆射郑冲。',
-    hallName: '荥阳堂 / 通德堂 / 博经堂',
+    hallName: '北海高密房 / 荥阳开封房 / 五经通德房',
     motto: '通晓群经，无偏无颇；淡泊名利，实事求是。',
     historicalSource: '《后汉书·卷三十五·郑玄列传》《三国志·卷四·三少帝纪注》',
     historicalFeature: '汉代通儒冠冕，集两汉经学之大成，士子无不知高密郑公。'
@@ -136,7 +141,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '孙': {
     ancientOrigin: '出自姬姓卫康叔之后孙武子，或出自妫姓齐田书赐姓孙氏 ➔ 吴郡富春世家。',
     historicalAncestors: '春秋兵圣孙武（著《孙子兵法》）➔ 战国孙膑 ➔ 汉末破虏将军孙坚、讨逆将军孙策 ➔ 吴大帝孙权。',
-    hallName: '富春堂 / 乐安堂 / 兵家堂',
+    hallName: '吴郡富春房 / 乐安兵圣房 / 破虏乌程房',
     motto: '知己知彼，百战不殆；保民安境，拓业江南。',
     historicalSource: '《史记·卷六十五·孙子吴起列传》《三国志·卷四十六·孙破虏讨逆传》',
     historicalFeature: '江东霸业奠基之主，勇烈开疆，兵法家风世守，拓土东南。'
@@ -144,7 +149,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '周': {
     ancientOrigin: '出自姬姓，周武王克商后，周公旦分封同姓，后代以国号为氏 ➔ 战国秦汉迁居汝南、庐江。',
     historicalAncestors: '西汉太尉绛侯周勃、周亚夫（细柳营军纪严整，平定七国之乱）➔ 东汉司空周荣 ➔ 汉末庐江名将周瑜（总督江东水军，火烧赤壁）。',
-    hallName: '汝南堂 / 爱莲堂 / 细柳堂',
+    hallName: '汝南安成房 / 庐江舒县房 / 细柳督军房',
     motto: '严谨治军，持法不阿；雅量风流，立功塞外。',
     historicalSource: '《史记·卷五十七·降侯周勃世家》《三国志·卷五十四·周瑜传》',
     historicalFeature: '将门肃穆，文武并隆，既有细柳营军威之烈，又有火烧赤壁江左之风流。'
@@ -152,7 +157,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '赵': {
     ancientOrigin: '出自赢姓造父，善御马助周穆王平徐偃王，赐封赵城，因以为氏 ➔ 战国七雄赵国宗族 ➔ 迁入天水、涿郡。',
     historicalAncestors: '西汉营平侯赵充国（屯田戍边，沉勇良将）➔ 东汉名将赵熹（太傅，为人严整忠贞）➔ 蜀汉顺平侯赵云（常山真定人，单骑救主）。',
-    hallName: '天水堂 / 半部堂 / 琴鹤堂',
+    hallName: '天水陇西房 / 营平屯田房 / 常山顺平房',
     motto: '沉勇笃定，屯田自足；一身是胆，忠义不渝。',
     historicalSource: '《汉书·卷六十九·赵充国传》《后汉书·卷二十六·赵熹列传》《三国志·卷三十六·赵云传》',
     historicalFeature: '戍边良将忠勇传家，屯田抚民，忠贞义烈贯穿两汉魏晋。'
@@ -160,7 +165,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '黄': {
     ancientOrigin: '出自赢姓伯益之后，虞夏之际封于黄国（今河南潢川），后以国为氏 ➔ 迁居江夏安陆。',
     historicalAncestors: '西汉丞相黄霸（治民良吏第一）➔ 东汉太尉黄琼（名世清流）➔ 汉末大儒黄琬（抗董卓殉汉节）➔ 蜀汉五虎将黄忠。',
-    hallName: '江夏堂 / 宽和堂 / 双井堂',
+    hallName: '江夏安陆房 / 循吏丞相房 / 太尉清流房',
     motto: '为官廉正，宽严相济；居仁履德，忠节凛然。',
     historicalSource: '《汉书·卷八十九·循吏传·黄霸》《后汉书·卷六十一·黄琼黄琬列传》',
     historicalFeature: '江夏名门清望，良吏抚民名扬海内，秉性清严刚劲。'
@@ -168,7 +173,7 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
   '朱': {
     ancientOrigin: '出自邾国曹姓，周武王封曹挟于邾，后为楚所灭，子孙去邑为朱氏 ➔ 西汉迁居沛国相县、吴郡。',
     historicalAncestors: '西汉大司农朱买臣 ➔ 东汉右车骑将军朱儁（与卢植皇甫嵩齐名平定黄巾）➔ 汉末吴郡世家朱治、朱然。',
-    hallName: '沛国堂 / 敦睦堂 / 紫阳堂',
+    hallName: '沛国相县房 / 吴郡吴县房 / 右车骑将房',
     motto: '自强不息，耕读励志；安危托付，受任于败军。',
     historicalSource: '《汉书·卷六十四·朱买臣传》《后汉书·卷七十一·朱儁列传》《三国志·卷五十六·朱治朱然传》',
     historicalFeature: '勇略刚毅，战功卓著，吴郡四大望族柱石。'
@@ -178,63 +183,77 @@ const COMMON_SURNAME_ANCIENT_ORIGINS = {
 /**
  * 依据姓氏与指定家族标识，生成结构化先祖源流与正史考据档案
  * @param {string} surname 姓氏 (单字或复字)
- * @param {string} clanKey 汉魏名门标识 (可选，如 yingchuan_chen, yingchuan_xun 等)
+ * @param {string} clanKey 汉魏名门标识 (可选，如 chen_yingchuan, xun_yingchuan 等)
  * @param {string} province 省份 (可选)
- * @param {string} hallName 堂号 (可选)
+ * @param {string} hallName 郡望房支/堂号 (可选)
  */
 function getClanLineageDocket(surname = '王', clanKey = null, province = '河南', hallName = '') {
-  // 1. 优先从汉魏名门库匹配 (Prominent Han-Wei Clans)
-  if (clanKey && Array.isArray(HAN_WEI_PROMINENT_CLANS)) {
-    const prominent = HAN_WEI_PROMINENT_CLANS.find(c => c.clanKey === clanKey);
-    if (prominent) {
-      return {
-        isProminentClan: true,
-        clanKey: prominent.clanKey,
-        clanName: prominent.clanName,
-        region: prominent.region,
-        hallName: hallName || prominent.hallName,
-        ancientOrigin: prominent.ancientOrigin || `周秦三代圣贤之后，迁居${prominent.region}，累世显贵。`,
-        historicalAncestors: prominent.ancestors,
-        motto: prominent.motto,
-        historicalSource: prominent.historicalSource,
-        historicalFeature: prominent.historicalFeature
-      };
+  // 1. 优先从汉魏正史十二大氏族注册库匹配 (Historical Han-Wei Clans Registry)
+  let prominent = null;
+  if (clanKey) {
+    if (HAN_WEI_HISTORICAL_CLANS_REGISTRY && HAN_WEI_HISTORICAL_CLANS_REGISTRY[clanKey]) {
+      prominent = HAN_WEI_HISTORICAL_CLANS_REGISTRY[clanKey];
+    } else if (Array.isArray(HAN_WEI_PROMINENT_CLANS)) {
+      prominent = HAN_WEI_PROMINENT_CLANS.find(c => c.clanKey === clanKey);
     }
   }
 
-  // 若未指定 clanKey，但姓氏命中名门库中的唯一氏族
-  if (Array.isArray(HAN_WEI_PROMINENT_CLANS)) {
-    const matchedClan = HAN_WEI_PROMINENT_CLANS.find(c => {
+  // 若未指定 clanKey，依据姓氏与省份地缘匹配真实名门
+  if (!prominent && HAN_WEI_HISTORICAL_CLANS_REGISTRY && typeof HAN_WEI_HISTORICAL_CLANS_REGISTRY === 'object') {
+    const regList = Object.values(HAN_WEI_HISTORICAL_CLANS_REGISTRY);
+    // 优先匹配姓氏与省份
+    prominent = regList.find(c => {
+      const matchSur = c.surname === surname || c.clanName.includes(surname);
+      const matchReg = province ? (c.region.includes(province) || c.choronym.includes(province)) : true;
+      return matchSur && matchReg;
+    }) || regList.find(c => c.surname === surname || c.clanName.includes(surname));
+  } else if (!prominent && Array.isArray(HAN_WEI_PROMINENT_CLANS)) {
+    prominent = HAN_WEI_PROMINENT_CLANS.find(c => {
       const matchName = c.clanName.includes(surname);
       const matchReg = province ? c.region.includes(province) : true;
       return matchName && matchReg;
-    });
-    if (matchedClan) {
-      return {
-        isProminentClan: true,
-        clanKey: matchedClan.clanKey,
-        clanName: matchedClan.clanName,
-        region: matchedClan.region,
-        hallName: hallName || matchedClan.hallName,
-        ancientOrigin: matchedClan.ancientOrigin || `周秦三代圣贤之后，立基中原，传世数百载。`,
-        historicalAncestors: matchedClan.ancestors,
-        motto: matchedClan.motto,
-        historicalSource: matchedClan.historicalSource,
-        historicalFeature: matchedClan.historicalFeature
-      };
-    }
+    }) || HAN_WEI_PROMINENT_CLANS.find(c => c.clanName.includes(surname));
+  }
+
+  if (prominent) {
+    const defaultBranch = (prominent.branchCadets && prominent.branchCadets[0]) || (prominent.hallName ? prominent.hallName.split('/')[0].trim() : `${prominent.clanName}房`);
+    return {
+      isProminentClan: true,
+      clanKey: prominent.clanKey,
+      clanName: prominent.clanName,
+      choronym: prominent.choronym || prominent.region,
+      region: prominent.region,
+      hallName: hallName || defaultBranch,
+      emblem: prominent.emblem || '',
+      founder: prominent.founder || '',
+      classicsTradition: prominent.classicsTradition || '',
+      clanPerk: prominent.clanPerk || null,
+      branchCadets: prominent.branchCadets || [],
+      ancientOrigin: prominent.ancientOrigin || `周秦三代圣贤之后，迁居${prominent.region}，累世冠冕。`,
+      historicalAncestors: prominent.ancestors,
+      motto: prominent.motto,
+      historicalSource: prominent.historicalSource,
+      historicalFeature: prominent.historicalFeature
+    };
   }
 
   // 2. 从百家姓先祖渊源考据库匹配
   const cleanSur = (surname || '王').slice(0, 2);
   const foundOrigin = COMMON_SURNAME_ANCIENT_ORIGINS[cleanSur];
   if (foundOrigin) {
+    const defaultBranch = foundOrigin.hallName.split('/')[0].trim();
     return {
       isProminentClan: false,
       clanKey: `custom_${cleanSur}`,
       clanName: `${province}·${cleanSur}氏`,
+      choronym: `${province}${cleanSur}望`,
       region: `${province}`,
-      hallName: hallName || foundOrigin.hallName.split('/')[0].trim(),
+      hallName: hallName || defaultBranch,
+      emblem: '耕读传家 · 积善余庆',
+      founder: '两汉名贤之后',
+      classicsTradition: '通习乡党儒术章句，恪守清白家范。',
+      clanPerk: null,
+      branchCadets: foundOrigin.hallName.split('/').map(s => s.trim()),
       ancientOrigin: foundOrigin.ancientOrigin,
       historicalAncestors: foundOrigin.historicalAncestors,
       motto: foundOrigin.motto,
@@ -248,8 +267,14 @@ function getClanLineageDocket(surname = '王', clanKey = null, province = '河�
     isProminentClan: false,
     clanKey: `custom_${cleanSur}`,
     clanName: `${province}·${cleanSur}氏`,
+    choronym: `${province}${cleanSur}望`,
     region: `${province}`,
-    hallName: hallName || `${cleanSur}氏堂`,
+    hallName: hallName || `${cleanSur}氏房`,
+    emblem: '耕读立业 · 坞垒屏藩',
+    founder: '汉家立业始祖',
+    classicsTradition: '修身齐家，诵习经传，抚恤族党。',
+    clanPerk: null,
+    branchCadets: [`${cleanSur}氏长房`, `${cleanSur}氏二房`, `${cleanSur}氏义门房`],
     ancientOrigin: `出自上古圣王后裔，历春秋战国分封各方，因邑为氏，秦汉之际繁衍于${province}。`,
     historicalAncestors: `两汉名贤之后 ➔ 勤耕苦读开基立业 ➔ 今朝受命立族，传祧百代。`,
     motto: '行不苟合，言不苟容；积善传家，以义统利。',
@@ -258,22 +283,36 @@ function getClanLineageDocket(surname = '王', clanKey = null, province = '河�
   };
 }
 
-// 经典传世郡望堂号推荐表（亦支持合法自定义堂号）
+// 汉魏传世郡望与房支推荐表 (兼融传世堂号与汉魏真实郡望房支)
 const FAMOUS_HALL_MAPPING = {
-  '王': ['三槐堂', '琅琊堂', '太原堂'],
-  '李': ['陇西堂', '赵郡堂', '青莲堂'],
-  '张': ['清河堂', '百忍堂', '金鉴堂'],
-  '刘': ['彭城堂', '中山堂', '藜照堂'],
-  '陈': ['颍川堂', '义门堂', '德星堂'],
-  '周': ['爱莲堂', '汝南堂', '敦睦堂'],
-  '蒋': ['乐安堂', '三径堂', '钟山堂'],
-  '罗': ['豫章堂', '尊尧堂', '琳琅堂'],
-  '邓': ['南阳堂', '宜和堂', '平寿堂'],
-  '林': ['西河堂', '九龙堂', '问礼堂'],
-  '黄': ['江夏堂', '双井堂', '紫云堂'],
-  '万': ['扶风堂', '九思堂', '崇敬堂'],
-  '钟': ['颍川堂', '知音堂', '舞鹤堂'],
-  '任': ['乐安堂', '九思堂', '玉局堂']
+  '陈': ['颍川堂', '颍川长社房', '太丘德星房', '司空文长房', '玄伯征西公房'],
+  '荀': ['颍阴堂', '颍阴神君房', '慈明司空房', '文若令君房', '公达谋主房'],
+  '杨': ['弘农堂', '弘农华阴房', '四知太尉房', '关西孔子房', '三不惑公房'],
+  '袁': ['汝南堂', '汝南汝阳房', '安国司徒房', '卧雪公房', '本初大将军房'],
+  '王': ['琅琊堂', '琅琊临沂房', '太原晋阳房', '睢陵太保房', '武子名士房'],
+  '司马': ['河内堂', '河内温县房', '京兆尹达房', '宣王军机房', '太宰纯臣房'],
+  '崔': ['清河堂', '清河武城房', '季珪公议房', '子真政论房', '德儒司空房'],
+  '卢': ['范阳堂', '涿郡范阳房', '北中郎将房', '司空典选房', '子干文庄房'],
+  '谢': ['陈郡堂', '陈郡阳夏房', '典农中郎房', '国子祭酒房', '东山太保房'],
+  '裴': ['河东堂', '河东闻喜房', '光禄大夫房', '司空地形房', '兖州刺史房'],
+  '顾': ['吴郡吴县房', '丞相雍肃房', '江东顾陆房', '水军都督房'],
+  '李': ['陇西堂', '陇西狄道房', '赵郡柏人房', '飞将破贼房'],
+  '张': ['清河东武房', '留侯世德房', '浑天太史房'],
+  '刘': ['彭城楚王房', '中山靖王房', '河间献王房'],
+  '曹': ['沛国谯县房', '平阳相国房', '魏武王侯房'],
+  '孙': ['吴郡富春房', '乐安兵圣房', '破虏乌程房'],
+  '周': ['爱莲堂', '汝南安成房', '庐江舒县房', '细柳督军房'],
+  '赵': ['天水陇西房', '营平屯田房', '常山顺平房'],
+  '黄': ['江夏安陆房', '循吏丞相房', '太尉清流房'],
+  '朱': ['沛国相县房', '吴郡吴县房', '右车骑将房'],
+  '郑': ['北海高密房', '荥阳开封房', '五经通德房'],
+  '蒋': ['乐安堂', '钟山堂', '乐安博昌房', '杜陵侯将房', '平阿义门房'],
+  '罗': ['豫章堂', '尊尧堂', '豫章南昌房', '长沙罗县房', '汉昌义门房'],
+  '邓': ['南阳新野房', '高密太傅房', '平寿恭侯房'],
+  '林': ['济南西河房', '九龙十德房', '闽中开基房'],
+  '万': ['扶风茂陵房', '右扶风房', '平陵名阀房'],
+  '钟': ['颍川堂', '知音堂', '颍川长社房', '侍御史皓房', '太傅书法房'],
+  '任': ['乐安堂', '玉局堂', '乐安博昌房', '御史大夫房', '任延循吏房']
 };
 
 // 严禁恶意冒用名门与现代敏感人物黑名单（合规防线）
@@ -358,10 +397,11 @@ function createFamilyProfile(paramsOrSurname, maybeProvince, maybeHall, maybeVoc
   }
 
   const cleanSurname = rawSurname.slice(0, 2); // 规范为单姓或复姓
-  const cleanHall = rawHall.slice(0, 8);
+  const cleanHall = rawHall.slice(0, 16);
 
   // 4. 家业底色校验
   const vocation = VOCATION_ORIGIN_PROFILES[vocationId] || VOCATION_ORIGIN_PROFILES['study_scholar'];
+  const docket = getClanLineageDocket(cleanSurname, null, province, cleanHall);
 
   const familyProfile = {
     familyId: openid ? `fam_${openid.slice(-8)}_${cleanSurname}_${Date.now().toString(36)}` : `fam_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
@@ -370,13 +410,18 @@ function createFamilyProfile(paramsOrSurname, maybeProvince, maybeHall, maybeVoc
     province: province,
     hallName: cleanHall,
     fullName: `${province}·${cleanSurname}氏·${cleanHall}`,
+    choronym: docket.choronym || `${province}${cleanSurname}望`,
+    branchCadet: cleanHall,
+    clanPerk: docket.clanPerk || null,
+    emblem: docket.emblem || '',
+    classicsTradition: docket.classicsTradition || '',
     vocationId: vocation.id,
     vocationName: vocation.name,
     createdAt: Date.now(),
     isImmutable: true, // 核心标记：不可更改
 
     // 先祖源流与正史考据卷轴 (随宗族世代永存，随时可查)
-    lineageDocket: getClanLineageDocket(cleanSurname, null, province, cleanHall),
+    lineageDocket: docket,
 
     currentSeasonId: 'season_1_han_wei',
     // 时代推进进度 (默认始于公元100年汉末)
@@ -637,6 +682,8 @@ if (typeof module !== 'undefined' && module.exports) {
     VOCATION_ORIGIN_PROFILES,
     ANCESTRAL_TEMPLE_TIERS,
     HISTORICAL_CLAN_HOUSES,
+    HAN_WEI_HISTORICAL_CLANS_REGISTRY,
+    HAN_WEI_PROMINENT_CLANS,
     createFamilyProfile,
     recordAncestorToGenealogy,
     upgradeAncestralTemple,

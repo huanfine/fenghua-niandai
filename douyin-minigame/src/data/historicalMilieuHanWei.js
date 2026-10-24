@@ -3156,110 +3156,301 @@ const HAN_WEI_INSTITUTIONAL_COMPENDIUM = {
 };
 
 // ====================================================================
-// 6. 汉魏十大著名门阀世家谱系与郡望堂号考释 (Prominent Clans)
+// 6. 汉魏正史十二大核心门阀氏族考据谱系注册表 (Historical Clans Registry)
+// 依据《后汉书》《三国志》《晋书》《世说新语》正史考据
+// 汉魏门阀核心标识为【郡望 (Choronym)】与【房支 (Cadet Branches)】，严禁宋明宗祠堂号
 // ====================================================================
-const HAN_WEI_PROMINENT_CLANS = [
-  {
-    clanKey: 'yingchuan_xun',
-    clanName: '颍川荀氏',
-    region: '河南颍川颍阴',
-    hallName: '德星堂',
-    historicalSource: '《后汉书·卷六十二·荀韩钟陈列传》《三国志·卷十·荀彧传》',
-    motto: '德星聚秀，王佐济世',
-    ancestors: '战国荀子 ➔ 东汉荀淑（号‘神君’，生八龙）➔ 荀爽（司空）➔ 曹魏荀彧（尚书令）、荀攸',
-    historicalFeature: '颍川名族之冠，经学传家，主盟天下清议。曹魏政权的核心文官柱石。'
-  },
-  {
-    clanKey: 'yingchuan_chen',
+const HAN_WEI_HISTORICAL_CLANS_REGISTRY = {
+  chen_yingchuan: {
+    clanKey: 'chen_yingchuan',
+    surname: '陈',
+    choronym: '颍川郡长社县',
+    region: '河南颍川长社',
     clanName: '颍川陈氏',
-    region: '河南颍川许县',
-    hallName: '颍川堂 / 德星堂',
-    historicalSource: '《后汉书·卷六十二·陈寔传》《三国志·卷二十二·陈群传》',
-    motto: '梁上化德，清白持身',
+    emblem: '德星照曜 · 太丘德范',
+    founder: '陈寔 (东汉太丘长)',
+    historicalSource: '《后汉书·卷六十二·陈寔传》《三国志·卷二十二·魏书·陈群传》《晋书·卷三十五·陈泰传》',
+    classicsTradition: '通古文经学与历代刑律法制，兼擅乡闾德化与朝堂折中。',
+    motto: '梁上化德，清白持身；行不苟合，言不苟容。',
+    clanPerk: {
+      id: 'perk_jiupin_origin',
+      name: '九品法祖',
+      desc: '始祖陈群创九品官人法，本族子弟成年察举/中正评品时直升上品阶品+1，全国声望获取+20%。'
+    },
+    defaultRegion: 'yingchuan',
+    hallName: '颍川长社房 / 太丘德星房 / 司空文长房',
+    branchCadets: ['长房太丘公房', '元方侍郎房', '季方司空房', '玄伯征西公房'],
     ancestors: '东汉陈寔（太丘长，海内士宗）➔ 陈纪（大鸿胪）、陈谌 ➔ 曹魏陈群（司空，创制九品官人法）➔ 晋陈泰',
     historicalFeature: '以太丘长至德闻名天下，创设九品官人法，奠定魏晋门阀政治制度基石。'
   },
-  {
-    clanKey: 'runan_yuan',
-    clanName: '汝南袁氏',
-    region: '汝南汝阳',
-    hallName: '汝南堂 / 卧雪堂',
-    historicalSource: '《后汉书·卷四十五·袁张韩周列传》《三国志·卷六·袁绍传》',
-    motto: '四世三公，门生遍野',
-    ancestors: '袁安（司徒，‘袁安卧雪’）➔ 袁敞（司空）➔ 袁汤（太尉）➔ 袁逢（司空）、袁隗（太傅）➔ 袁绍、袁术',
-    historicalFeature: '东汉门第鼎盛之极，四世五公，门生故吏遍及神州，为汉末讨董义军盟主。'
+  xun_yingchuan: {
+    clanKey: 'xun_yingchuan',
+    surname: '荀',
+    choronym: '颍川郡颍阴县',
+    region: '河南颍川颍阴',
+    clanName: '颍川荀氏',
+    emblem: '八龙腾骧 · 王佐无双',
+    founder: '荀淑 (东汉朗陵侯相)',
+    historicalSource: '《后汉书·卷六十二·荀淑列传》《三国志·卷十·魏书·荀彧传》《三国志·卷十·荀攸传》',
+    classicsTradition: '累代专精《春秋左氏传》与荀氏《易传》，擅天下大势长策与人才拔擢。',
+    motto: '德星聚秀，王佐济世；温润雅正，秉忠守正。',
+    clanPerk: {
+      id: 'perk_wangzuo_mind',
+      name: '王佐之才',
+      desc: '本族子弟初始智谋+15，案头政绩签批考课收益+25%，朝野名士好感获取翻倍。'
+    },
+    defaultRegion: 'yingchuan',
+    hallName: '颍阴神君房 / 慈明司空房 / 文若令君房',
+    branchCadets: ['神君郎陵房', '慈明司空房', '文若令君房', '公达谋主房'],
+    ancestors: '战国荀子 ➔ 东汉荀淑（号‘神君’，生八龙）➔ 荀爽（司空）➔ 曹魏荀彧（尚书令）、荀攸',
+    historicalFeature: '颍川名族之冠，经学传家，主盟天下清议。曹魏政权的核心文官柱石。'
   },
-  {
-    clanKey: 'hongnong_yang',
-    clanName: '弘农杨氏',
+  yang_hongnong: {
+    clanKey: 'yang_hongnong',
+    surname: '杨',
+    choronym: '弘农郡华阴县',
     region: '司隶弘农华阴',
-    hallName: '四知堂 / 关西堂',
-    historicalSource: '《后汉书·卷五十四·杨震列传第四十四》《三国志·卷十九·杨修传》',
-    motto: '天知地知，清白传家',
+    clanName: '弘农杨氏',
+    emblem: '关西孔子 · 四知清白',
+    founder: '杨震 (东汉太尉)',
+    historicalSource: '《后汉书·卷五十四·杨震列传第四十四》《三国志·卷十九·任城陈萧王传引续汉书》《晋书·卷四十·杨骏传》',
+    classicsTradition: '累世专传《欧阳尚书》，家法峭峻，门规肃然，以三不惑（不贪财、不近色、不饮酒）自励。',
+    motto: '天知神知我知子知，何谓无知！清白传家，历世不坠。',
+    clanPerk: {
+      id: 'perk_sizhi_integrity',
+      name: '四知清白',
+      desc: '本族子弟清廉操守上限提升至100，免疫一切政敌诬劾与酷吏抄检，清誉流传万代。'
+    },
+    defaultRegion: 'hongnong',
+    hallName: '弘农华阴房 / 四知太尉房 / 关西孔子房',
+    branchCadets: ['四知太尉房', '三不惑公房', '太师文烈房', '德祖主簿房'],
     ancestors: '杨震（‘关西孔子’，太尉，留‘四知’清白家风）➔ 杨秉（太尉）➔ 杨赐（太尉）➔ 杨彪（太尉）➔ 杨修',
     historicalFeature: '四世太尉，风宪清峻，与汝南袁氏并称海内两大冠冕顶门。'
   },
-  {
-    clanKey: 'langya_wang',
-    clanName: '琅琊王氏',
+  yuan_runan: {
+    clanKey: 'yuan_runan',
+    surname: '袁',
+    choronym: '汝南郡汝阳县',
+    region: '豫州汝南汝阳',
+    clanName: '汝南袁氏',
+    emblem: '四世五公 · 门生四海',
+    founder: '袁安 (东汉司徒)',
+    historicalSource: '《后汉书·卷四十五·袁安列传第三十五》《三国志·卷六·魏书·袁绍传》',
+    classicsTradition: '世传《孟氏易》，明阴阳灾异之变，深谙察举恩府门生故吏之道。',
+    motto: '四世三公，门生遍野；清霜傲雪，居正不阿。',
+    clanPerk: {
+      id: 'perk_mensheng_network',
+      name: '门生四海',
+      desc: '起家初始宗族声望+400，各州郡举荐入仕门槛大幅降低，门生故吏来投几率提升50%。'
+    },
+    defaultRegion: 'runan',
+    hallName: '汝南汝阳房 / 卧雪安国房 / 司徒公房',
+    branchCadets: ['安国司徒房', '汝阳司空房', '本初大将军房', '公路后将军房'],
+    ancestors: '袁安（司徒，‘袁安卧雪’）➔ 袁敞（司空）➔ 袁汤（太尉）➔ 袁逢（司空）、袁隗（太傅）➔ 袁绍、袁术',
+    historicalFeature: '东汉门第鼎盛之极，四世五公，门生故吏遍及神州，为汉末讨董义军盟主。'
+  },
+  wang_langya: {
+    clanKey: 'wang_langya',
+    surname: '王',
+    choronym: '琅琊国临沂县',
     region: '徐州琅琊临沂',
-    hallName: '三槐堂 / 德化堂',
-    historicalSource: '《三国志·卷二十四·王祥传》《晋书·卷三十三·王祥传》《世说新语》',
-    motto: '孝悌纯笃，道德传家',
+    clanName: '琅琊王氏',
+    emblem: '卧冰格天 · 江左冠冕',
+    founder: '王祥 (西晋太保/睢陵公)',
+    historicalSource: '《汉书·卷八十五·王吉传》《三国志·卷二十四·魏书·王祥传》《晋书·卷三十三·王祥传》《世说新语·德行》',
+    classicsTradition: '以笃孝友悌为本，外圆内方，兼修书道丹青与玄远哲思。',
+    motto: '海岳钟灵，孝悌纯笃；夫唯不争，故天下莫能与之争。',
+    clanPerk: {
+      id: 'perk_xiaoyou_harmony',
+      name: '孝友流芳',
+      desc: '宗族内部绝不发生分家夺产争端，每代可继承宗族遗产比例提升至40%，家族寿命上限丰厚。'
+    },
+    defaultRegion: 'langya',
+    hallName: '琅琊临沂房 / 睢陵太保房 / 光禄大夫房',
+    branchCadets: ['睢陵太保房', '光禄争鸩房', '长沙茂弘房', '大将军处仲房'],
     ancestors: '西汉王吉 ➔ 曹魏西晋王祥（太保，二十四孝卧冰求鲤）、王览 ➔ 东晋王导、王敦（‘王与马共天下’）、王羲之',
     historicalFeature: '以孝悌醇厚起家，魏晋易代元勋，后世南渡成为六朝江左第一甲姓。'
   },
-  {
-    clanKey: 'chenjun_xie',
-    clanName: '陈郡谢氏',
-    region: '豫州陈郡阳夏',
-    hallName: '宝树堂 / 乌衣堂',
-    historicalSource: '《三国志·卷二十三·魏书·和常杨杜赵裴传·注引谢氏谱》《晋书·卷七十九·谢安传》',
-    motto: '芝兰玉树，雅量风流',
-    ancestors: '曹魏谢缵（典农中郎将）➔ 西晋谢衡（国子祭酒）➔ 东晋谢安（太保，淝水破苻坚）、谢玄',
-    historicalFeature: '自汉末起家农官，魏晋崇儒修雅，后世与琅琊王氏并称，号‘乌衣门第’。'
-  },
-  {
-    clanKey: 'qinghe_cui',
-    clanName: '清河崔氏',
-    region: '冀州清河东武城',
-    hallName: '清河堂 / 德星堂',
-    historicalSource: '《三国志·卷十二·魏书·崔琰传第十二》《晋书·卷四十二·崔洪传》',
-    motto: '骨鲠清烈，经学名家',
-    ancestors: '东汉崔瑗、崔寔（作《四民月令》）➔ 曹魏崔琰（尚书，威仪严整，高风亮节）➔ 西晋崔洪',
-    historicalFeature: '大河之北经术巨族，文武兼资，家风严正肃然，后世列隋唐五姓七望之首。'
-  },
-  {
-    clanKey: 'taiyuan_wang',
-    clanName: '太原王氏',
+  wang_taiyuan: {
+    clanKey: 'wang_taiyuan',
+    surname: '王',
+    choronym: '太原郡晋阳县/祁县',
     region: '并州太原晋阳',
-    hallName: '太原堂 / 晋阳堂',
-    historicalSource: '《三国志·卷二十六·魏书·田豫王昶等传》《晋书·卷三十三·王浑传》',
-    motto: '出将入相，表里山河',
+    clanName: '太原王氏',
+    emblem: '并州健者 · 出将入相',
+    founder: '王允 (东汉司徒)',
+    historicalSource: '《后汉书·卷六十六·王允列传》《三国志·卷二十八·魏书·王凌传》《晋书·卷四十二·王浑传》',
+    classicsTradition: '并州雄劲之气，经生儒术与边塞弓马韬略并重，善大谋断。',
+    motto: '出将入相，表里山河；刚烈忠勇，社稷栋梁。',
+    clanPerk: {
+      id: 'perk_bingmen_iron_cavalry',
+      name: '并门铁骑',
+      desc: '坞壁部曲与战马招募成本降低30%，将领统御武勋获取翻倍，在北方边塞据点防御力大幅上升。'
+    },
+    defaultRegion: 'taiyuan',
+    hallName: '太原晋阳房 / 祁县司徒房 / 征东将军房',
+    branchCadets: ['子师司徒房', '祁县司徒房', '晋阳司空房', '武子名士房'],
     ancestors: '东汉王允（司徒，诛董卓安汉社稷）➔ 曹魏王昶（司空）➔ 西晋王浑（司徒，灭吴名将）、王济',
     historicalFeature: '并汾雄镇名门，世代出将入相，深具北疆豪迈与经世经略之风。'
   },
-  {
-    clanKey: 'fanyang_lu',
-    clanName: '范阳卢氏',
+  sima_henei: {
+    clanKey: 'sima_henei',
+    surname: '司马',
+    choronym: '河内郡温县',
+    region: '司隶河内温县',
+    clanName: '河内司马氏',
+    emblem: '河内八达 · 鼎定晋基',
+    founder: '司马防 (东汉京兆尹)',
+    historicalSource: '《三国志·卷十五·司马朗传》《晋书·卷一·帝纪第一·宣帝纪》《晋书·卷三十七·宗室传》',
+    classicsTradition: '精研战策韬略、农战度支与帝王权变之道，家规威严整肃。',
+    motto: '厚积薄发，深沉隐忍；受国临难，克定大局。',
+    clanPerk: {
+      id: 'perk_yinren_ambition',
+      name: '深沉克定',
+      desc: '庄园部曲生产效率提升30%，面对天下动乱抉择大事件成功率增加20%。'
+    },
+    defaultRegion: 'yingchuan',
+    hallName: '河内温县房 / 京兆尹达房 / 宣王军机房',
+    branchCadets: ['京兆尹达房', '宣王军机房', '太宰纯臣房', '安平王室房'],
+    ancestors: '汉京兆尹司马防（育八达）➔ 魏太傅宣帝司马懿、司马朗 ➔ 司马师、司马昭 ➔ 晋武帝司马炎',
+    historicalFeature: '累代深谋大略，出将入相，高平陵之变夺取政柄，终代魏平吴建西晋大一统。'
+  },
+  cui_qinghe: {
+    clanKey: 'cui_qinghe',
+    surname: '崔',
+    choronym: '清河国东武城县',
+    region: '冀州清河东武城',
+    clanName: '清河崔氏',
+    emblem: '清规自远 · 骨鲠儒宗',
+    founder: '崔寔 / 崔琰 (汉魏名臣)',
+    historicalSource: '《后汉书·卷五十二·崔骃列传》《三国志·卷十二·魏书·崔琰传》《晋书·卷四十二·崔洪传》',
+    classicsTradition: '大河之北经术巨族，修辞严明，著《四民月令》《政论》，兼擅古文书道。',
+    motto: '骨鲠清烈，经学名家；端本清源，士林表率。',
+    clanPerk: {
+      id: 'perk_qinggui_integrity',
+      name: '清规骨鲠',
+      desc: '主持选拔官吏与典试考课时公正值满格，家族声望清流抗灾指数大幅增强。'
+    },
+    defaultRegion: 'qinghe',
+    hallName: '清河武城房 / 季珪公议房 / 子真政论房',
+    branchCadets: ['子玉经术房', '子真政论房', '季珪中尉房', '德儒司空房'],
+    ancestors: '东汉崔瑗、崔寔（作《四民月令》）➔ 曹魏崔琰（尚书，威仪严整，高风亮节）➔ 西晋崔洪',
+    historicalFeature: '大河之北经术巨族，文武兼资，家风严正肃然，后世列隋唐五姓七望之首。'
+  },
+  lu_fanyang: {
+    clanKey: 'lu_fanyang',
+    surname: '卢',
+    choronym: '幽州涿郡范阳县',
     region: '幽州涿郡范阳',
-    hallName: '范阳堂',
-    historicalSource: '《后汉书·卷六十四·卢植列传第五十四》《三国志·卷三十二·蜀书·先主传》',
-    motto: '博古通今，儒将忠义',
+    clanName: '范阳卢氏',
+    emblem: '儒宗帅首 · 燕赵节义',
+    founder: '卢植 (东汉北中郎将)',
+    historicalSource: '《后汉书·卷六十四·卢植列传第五十四》《三国志·卷二十二·魏书·卢毓传》',
+    classicsTradition: '传习马融经学，通《尚书章句》《三礼解诂》，文武兼备，重实干核名实。',
+    motto: '崇儒敦经，学以经世；武御疆埸，文匡社稷。',
+    clanPerk: {
+      id: 'perk_ruzong_commander',
+      name: '儒宗督将',
+      desc: '子弟智谋与武略双修成长+20%，在幽冀北方招募精锐义勇士卒战力倍增。'
+    },
+    defaultRegion: 'longxi',
+    hallName: '涿郡范阳房 / 北中郎将房 / 司空典选房',
+    branchCadets: ['北中郎将房', '司空典选房', '涿郡大儒房', '子干文庄房'],
     ancestors: '东汉卢植（北中郎将，大儒兼名将，刘备公孙瓒之师）➔ 曹魏卢毓（司空）➔ 西晋卢珽',
     historicalFeature: '文能注疏群经，武能统军荡平流寇，名播燕赵，后世历隋唐而不衰。'
   },
-  {
+  xie_chenjun: {
+    clanKey: 'xie_chenjun',
+    surname: '谢',
+    choronym: '陈郡阳夏县',
+    region: '豫州陈郡阳夏',
+    clanName: '陈郡谢氏',
+    emblem: '芝兰玉树 · 雅量高致',
+    founder: '谢缵 (曹魏典农中郎将)',
+    historicalSource: '《三国志·卷十六·魏书·仓慈传注引谢氏谱》《晋书·卷七十九·谢衡谢安传》',
+    classicsTradition: '崇儒修雅，精通度支屯田与林泉清谈，雅量弘深，处变不惊。',
+    motto: '芝兰玉树，雅量风流；厚积薄发，欲使其生于庭阶。',
+    clanPerk: {
+      id: 'perk_zhilan_elegance',
+      name: '芝兰雅量',
+      desc: '心性修养与玄学论辩初始悟性+20，水碓庄园开荒效率提升25%，蓄力至两晋爆发。'
+    },
+    defaultRegion: 'chenjun',
+    hallName: '陈郡阳夏房 / 典农中郎房 / 国子祭酒房',
+    branchCadets: ['典农中郎房', '国子祭酒房', '东山太保房', '北府都督房'],
+    ancestors: '曹魏谢缵（典农中郎将）➔ 西晋谢衡（国子祭酒）➔ 东晋谢安（太保，淝水破苻坚）、谢玄',
+    historicalFeature: '自汉末起家农官，魏晋崇儒修雅，后世与琅琊王氏并称，号‘乌衣门第’。'
+  },
+  pei_hedong: {
+    clanKey: 'pei_hedong',
+    surname: '裴',
+    choronym: '河东郡闻喜县',
+    region: '司隶河内温县',
+    clanName: '河东裴氏',
+    emblem: '制图六体 · 经邦纬地',
+    founder: '裴潜 / 裴秀 (魏晋名臣)',
+    historicalSource: '《三国志·卷二十三·魏书·裴潜传》《晋书·卷三十五·列传第五·裴秀传》',
+    classicsTradition: '专攻舆地制图、治水理财、律历与均输法度，累代为名臣国相。',
+    motto: '经世致用，图纬天下；敦本务实，清俭传家。',
+    clanPerk: {
+      id: 'perk_yutu_governance',
+      name: '方丈舆图',
+      desc: '山川险要洞若观火，庄园连环水碓水磨建造消耗减少25%，巡察郡县治水收益提升35%。'
+    },
+    defaultRegion: 'taiyuan',
+    hallName: '河东闻喜房 / 光禄大夫房 / 司空地形房',
+    branchCadets: ['光禄大夫房', '兖州刺史房', '司空地形房', '闻喜东眷房'],
+    ancestors: '东汉裴茂 ➔ 曹魏裴潜（兖州刺史）➔ 西晋裴秀（司空，创制图六体）➔ 裴頠',
+    historicalFeature: '河东闻喜冠族，魏晋世为名族，裴杜齐名，开创华夏制图学与水利农战典范。'
+  },
+  wujun_four: {
+    clanKey: 'wujun_four',
+    surname: '顾',
+    choronym: '吴郡吴县',
+    region: '扬州吴郡吴县',
+    clanName: '吴郡顾氏',
+    emblem: '保民安境 · 江东柱石',
+    founder: '顾雍 (孙吴丞相)',
+    historicalSource: '《三国志·卷五十二·吴书·顾雍传》《三国志·卷五十八·吴书·陆逊传》',
+    classicsTradition: '通晓江南水战兵法、水利垦殖与乡闾抚民，寡言威重。',
+    motto: '保民安境，江表巨室；沉毅方正，寡言守中。',
+    clanPerk: {
+      id: 'perk_jiangdong_pillar',
+      name: '江东柱石',
+      desc: '江南粮熟与水路商贾收益增加30%，在江南水乡遭遇兵乱时坞堡稳固度翻倍。'
+    },
+    defaultRegion: 'langya',
+    hallName: '吴郡吴县房 / 丞相雍肃房 / 江东名宗房',
+    branchCadets: ['丞相雍肃房', '吴郡顾氏房', '水军都督房', '江表儒林房'],
+    ancestors: '顾雍（孙吴丞相，受封醴陵侯）➔ 顾邵 ➔ 顾谭 ➔ 西晋顾荣（江东士族首领）',
+    historicalFeature: '江东四大家族之冠，深植江南吴越沃土，掌控水运商道与部曲私兵，历孙吴两晋而不拔。'
+  },
+  longxi_li: {
     clanKey: 'longxi_li',
-    clanName: '陇西李氏',
+    surname: '李',
+    choronym: '凉州陇西郡狄道县',
     region: '凉州陇西狄道',
-    hallName: '陇西堂',
-    historicalSource: '《三国志·卷十八·魏书·李通传》《晋书·卷三十六·卫瓘传·引李氏世系》',
-    motto: '西陲雄镇，将门世家',
+    clanName: '陇西李氏',
+    emblem: '飞将遗风 · 西陲雄镇',
+    founder: '李通 / 李广之后',
+    historicalSource: '《后汉书·卷六十三·李固传》《三国志·卷十八·魏书·李通传》《晋书·卷三十六·卫瓘传》',
+    classicsTradition: '将门雄风与道家玄风并峙，通晓弓马骑射与深壁固垒。',
+    motto: '西陲雄镇，将门世家；修身谨饬，居仁由义。',
+    clanPerk: {
+      id: 'perk_xichui_fortress',
+      name: '西陲雄镇',
+      desc: '丝路行商关卡减免税负30%，坞壁边防巡更防御战死率降低50%。'
+    },
+    defaultRegion: 'longxi',
+    hallName: '陇西狄道房 / 赵郡柏人房 / 飞将破贼房',
+    branchCadets: ['陇西狄道房', '赵郡柏人房', '飞将后裔房', '破贼都尉房'],
     ancestors: '汉飞将军李广之后 ➔ 曹魏李通（破贼校尉）➔ 西晋陇西豪族将领',
     historicalFeature: '雄镇陇右丝路关隘，深壁固垒，部曲弓马天下莫敌，为西北屏藩重室。'
   }
-];
+};
+
+// 保持原数组兼容性，直接由 REGISTRY 生成
+const HAN_WEI_PROMINENT_CLANS = Object.values(HAN_WEI_HISTORICAL_CLANS_REGISTRY);
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -3273,6 +3464,7 @@ if (typeof module !== 'undefined' && module.exports) {
     HAN_WEI_DESK_DOCUMENTS,
     HAN_WEI_CHRONICLE_ENCYCLOPEDIA,
     HAN_WEI_INSTITUTIONAL_COMPENDIUM,
+    HAN_WEI_HISTORICAL_CLANS_REGISTRY,
     HAN_WEI_PROMINENT_CLANS
   };
 }
