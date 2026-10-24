@@ -406,6 +406,15 @@ function createFamilyProfile(paramsOrSurname, maybeProvince, maybeHall, maybeVoc
     // 族谱世系长卷 (不可篡改的墨印档案)
     genealogyList: [],
 
+    // 宗族五柱功德册 (Five Clan Pillars: 多房多脉长线协同机制)
+    clanPillars: {
+      official: { maxRank: 0, maxTitle: '白衣门生', totalRuns: 0, perkDesc: '门阀政治庇护与官阶起步加成' },
+      scholar: { maxRank: 0, maxTitle: '太学诸生', totalRuns: 0, perkDesc: '经学太学启蒙与悟性书香加成' },
+      merchant: { maxRank: 0, maxTitle: '货殖商客', totalRuns: 0, perkDesc: '水碓庄园兴造与资财分红加成' },
+      military: { maxRank: 0, maxTitle: '部曲武卒', totalRuns: 0, perkDesc: '坞壁防备坚固与部曲募兵加成' },
+      recluse: { maxRank: 0, maxTitle: '名岳处士', totalRuns: 0, perkDesc: '大医避疫方术与延年天元加成' }
+    },
+
     // 社交同盟网络
     alliances: []
   };
@@ -478,6 +487,29 @@ function recordAncestorToGenealogy(family, ancestorRecord) {
   }
   if (ancestorRecord.passedRelic) {
     family.clanTrust.relics.push(ancestorRecord.passedRelic);
+  }
+
+  // 宗族五柱功德沉淀 (Five Clan Pillars: 多房协同)
+  if (ancestorRecord.track) {
+    if (!family.clanPillars) {
+      family.clanPillars = {
+        official: { maxRank: 0, maxTitle: '白衣门生', totalRuns: 0, perkDesc: '门阀政治庇护与官阶起步加成' },
+        scholar: { maxRank: 0, maxTitle: '太学诸生', totalRuns: 0, perkDesc: '经学太学启蒙与悟性书香加成' },
+        merchant: { maxRank: 0, maxTitle: '货殖商客', totalRuns: 0, perkDesc: '水碓庄园兴造与资财分红加成' },
+        military: { maxRank: 0, maxTitle: '部曲武卒', totalRuns: 0, perkDesc: '坞壁防备坚固与部曲募兵加成' },
+        recluse: { maxRank: 0, maxTitle: '名岳处士', totalRuns: 0, perkDesc: '大医避疫方术与延年天元加成' }
+      };
+    }
+    const pKey = ancestorRecord.track;
+    if (family.clanPillars[pKey]) {
+      const pillar = family.clanPillars[pKey];
+      pillar.totalRuns = (pillar.totalRuns || 0) + 1;
+      const rankLvl = ancestorRecord.rankLevel || 0;
+      if (rankLvl >= pillar.maxRank) {
+        pillar.maxRank = rankLvl;
+        if (ancestorRecord.officialTitle) pillar.maxTitle = ancestorRecord.officialTitle;
+      }
+    }
   }
 
   // 严格锁定在第一赛季（汉魏风骨），绝不自动将 currentEpochIndex 递增至 2（六朝烟雨）

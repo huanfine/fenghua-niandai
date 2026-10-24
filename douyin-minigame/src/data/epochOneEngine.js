@@ -24,13 +24,14 @@ const ALL_SEASON_ONE_CHRONO_EVENTS = EPOCH_ONE_HISTORICAL_EVENTS;
  */
 function initManor(vocationId = 'agri_land', inheritedManor = null) {
   if (inheritedManor && typeof inheritedManor === 'object') {
+    // 世家多脉沙盒核心机制：祖业坞壁田庄代代相继，100% 完整继承，彻底消除衰减挫败感
     return {
-      farmlandAcres: Math.max(30, Math.round((inheritedManor.farmlandAcres || 50) * 0.85)),
-      watermills: Math.max(0, (inheritedManor.watermills || 1)),
-      fortressLevel: Math.max(1, (inheritedManor.fortressLevel || 1)),
-      armedRetainers: Math.max(15, Math.round((inheritedManor.armedRetainers || 30) * 0.8)),
-      granaryStoredGrain: Math.max(200, Math.round((inheritedManor.granaryStoredGrain || 500) * 0.7)),
-      libraryTiers: Math.max(1, (inheritedManor.libraryTiers || 1)),
+      farmlandAcres: Math.max(30, inheritedManor.farmlandAcres || 50),
+      watermills: Math.max(0, inheritedManor.watermills || 1),
+      fortressLevel: Math.max(1, inheritedManor.fortressLevel || 1),
+      armedRetainers: Math.max(15, inheritedManor.armedRetainers || 30),
+      granaryStoredGrain: Math.max(200, Math.round((inheritedManor.granaryStoredGrain || 500) * 0.9)),
+      libraryTiers: Math.max(1, inheritedManor.libraryTiers || 1),
       repairedYear: 100
     };
   }

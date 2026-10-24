@@ -1,7 +1,7 @@
 /**
  * 《风华年代：沧海沉浮录》字节跳动 / 抖音小游戏自动化构建产物
  * 由 scripts/build_douyin.js 从 wechat-minigame 单一真源自动生成
- * 生成时间: 2026-10-24T13:48:23.353Z
+ * 生成时间: 2026-10-24T14:35:30.369Z
  */
 /**
  * 《风华年代：沧海沉浮录》微信小游戏 (Game Core Edition)
@@ -6877,6 +6877,8 @@ function inscribePlayerToClanGenealogy(s, arch) {
     ],
     bequeathedMoney: s.capital || 0,
     prestigeGain: prestigeAddition,
+    track: s.track,
+    rankLevel: s.rankLevel || s.govLevel || 1,
     newMotto: {
       era: `第${curGen}世家训`,
       text: newMottoText,
@@ -8499,6 +8501,26 @@ function startCharacterCreation(isSuccession = false) {
       if (fam.clanTrust.mottoList && fam.clanTrust.mottoList.length > 0) {
         state.activeClanMotto = fam.clanTrust.mottoList[fam.clanTrust.mottoList.length - 1];
       }
+    }
+  }
+
+  // 🌟 宗族五柱多房协同底蕴赋能 (Five Clan Pillars Synergy: 长房仕途/二房经商/三房统兵/四房治经/五房修道)
+  if (fam && fam.clanPillars) {
+    const cp = fam.clanPillars;
+    if (cp.official && cp.official.maxRank >= 2) {
+      state.rep = (state.rep || 50) + Math.min(10, cp.official.maxRank * 2);
+    }
+    if (cp.scholar && cp.scholar.maxRank >= 2) {
+      state.iq = (state.iq || 70) + Math.min(8, cp.scholar.maxRank * 2);
+    }
+    if (cp.merchant && cp.merchant.maxRank >= 2) {
+      state.capital = (state.capital || 20000) + Math.min(15000, cp.merchant.maxRank * 2500);
+    }
+    if (cp.military && cp.military.maxRank >= 2) {
+      state.courage = (state.courage || 70) + Math.min(8, cp.military.maxRank * 2);
+    }
+    if (cp.recluse && cp.recluse.maxRank >= 2) {
+      state.health = Math.min(100, (state.health || 85) + Math.min(8, cp.recluse.maxRank * 2));
     }
   }
 
@@ -37486,7 +37508,17 @@ function drawFamilyEstateModal() {
 
 // 名仕知己茶室夜话与煮酒论道交互系统 (Tea-House Banquets & Oath of Brotherhood)
 function openTeaBanquetsModal(contact) {
-  state.activeTeaContact = contact || (state.contacts && state.contacts[0]) || ENSEMBLE_CHARACTERS[0];
+  const isHanWei = (state.year && state.year <= 500) || (typeof isDynasticEra === 'function' && isDynasticEra(state.year));
+  const contactsList = Array.isArray(state.contacts) ? state.contacts : [];
+  let chosen = contact;
+  if (!chosen) {
+    if (isHanWei) {
+      chosen = contactsList.find(c => c.lifespan && state.year >= c.lifespan[0] && state.year <= c.lifespan[1]) || contactsList[0];
+    } else {
+      chosen = contactsList[0] || ENSEMBLE_CHARACTERS[0];
+    }
+  }
+  state.activeTeaContact = chosen;
   state.activeModal = 'tea_banquet';
   playSoundEffect('bell');
   triggerHaptic('medium');
@@ -37499,6 +37531,8 @@ function drawTeaBanquetsModal() {
   const cardX = 14;
   const cardY = Math.max(20, Math.round((screenHeight - cardH) / 2));
   const contact = state.activeTeaContact || ENSEMBLE_CHARACTERS[0];
+  const isHanWei = (state.year && state.year <= 500) || (typeof isDynasticEra === 'function' && isDynasticEra(state.year));
+  const isDeceased = isHanWei && contact.lifespan && state.year > contact.lifespan[1];
 
   ctx.fillStyle = '#16111f';
   roundRect(ctx, cardX, cardY, cardW, cardH, 12, true, true, '#d97706', 2);
@@ -37508,11 +37542,11 @@ function drawTeaBanquetsModal() {
   ctx.textBaseline = 'top';
   ctx.font = 'bold 17px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#fef08a';
-  ctx.fillText("🏮 茶室夜话 · 煮酒论道", screenWidth / 2, cardY + 16);
+  ctx.fillText(isDeceased ? "🕯️ 先贤灵案 · 凭吊追怀" : "🏮 茶室夜话 · 煮酒论道", screenWidth / 2, cardY + 16);
 
   ctx.font = '13.5px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#cbd5e1';
-  ctx.fillText(`客座名仕：【${contact.name}】· ${contact.role}`, screenWidth / 2, cardY + 42);
+  ctx.fillText(isDeceased ? `先贤名宿：【${contact.name}】· 仙逝于公元${contact.lifespan[1]}年` : `客座名仕：【${contact.name}】· ${contact.role}`, screenWidth / 2, cardY + 42);
 
   // 茶案环境卡片
   const envH = 74;
@@ -37523,22 +37557,103 @@ function drawTeaBanquetsModal() {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
   ctx.font = '28px sans-serif';
-  ctx.fillText(contact.avatar || '🍵', cardX + 26, envY + 16);
+  ctx.fillText(contact.avatar || (isDeceased ? '🕯️' : '🍵'), cardX + 26, envY + 16);
 
   ctx.font = 'bold 14px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#fef08a';
-  ctx.fillText(`${contact.name} (${contact.isSwornGuardian ? '🛡️ 莫逆同盟' : '友好名仕'})`, cardX + 70, envY + 14);
+  ctx.fillText(`${contact.name} (${isDeceased ? '🕯️ 先贤遗泽' : (contact.isSwornGuardian ? '🛡️ 莫逆同盟' : '友好名仕')})`, cardX + 70, envY + 14);
 
   ctx.font = '13.5px ' + FONT_UI;
   ctx.fillStyle = '#94a3b8';
-  ctx.fillText(fitText(`“月朗泉清，推杯品茗。天下大势与机要玄机，尽付杯盏之中。”`, cardW - 96, '13.5px ' + FONT_UI), cardX + 70, envY + 34);
+  const quoteStr = isDeceased
+    ? `“音容犹在，遗泽绵长。焚香煮茶感怀先贤行止，如沐春风。”`
+    : `“月朗泉清，推杯品茗。天下大势与机要玄机，尽付杯盏之中。”`;
+  ctx.fillText(fitText(quoteStr, cardW - 96, '13.5px ' + FONT_UI), cardX + 70, envY + 34);
   ctx.fillStyle = '#fbbf24';
-  ctx.fillText(`当前默契交情：${contact.affinity || 45}/100`, cardX + 70, envY + 52);
+  ctx.fillText(isDeceased ? `遗泽感念度：${contact.affinity || 45}/100` : `当前默契交情：${contact.affinity || 45}/100`, cardX + 70, envY + 52);
 
   // 3 大茶室交互选项
   const optH = 64;
   const optStartY = envY + envH + 12;
-  const teaOptions = [
+  const teaOptions = isDeceased ? [
+    {
+      key: 'tea_insight',
+      title: '🍵 斟茶追思 (消耗 1 ⚡ 精力)',
+      desc: '感念先贤风骨，砥砺心志。心性+4，悟性+3，家风底蕴+2。',
+      action: () => {
+        if (contact.lastTeaYear === state.year) {
+          showToast(`今年已向【${contact.name}】先贤追思行礼，请明年再祭！`, "info");
+          return;
+        }
+        if (state.ap < 1) {
+          showToast("今年精力已耗尽，请先迈入下一年！", "alert");
+          playSoundEffect('alert');
+          return;
+        }
+        state.ap--;
+        contact.lastTeaYear = state.year;
+        addStat("resilience", 4, 0);
+        addStat("iq", 3, 0);
+        playSoundEffect('bell');
+        showToast("清茶奉先贤，心性澄澈！悟性+3，心性+4！", "good");
+        addChronicleItem(state.age, state.year, `【追怀先贤】于茶室设案凭吊先贤【${contact.name}】，感念高风亮节，受益匪浅。`, "先贤遗泽", "promo");
+        requestRender();
+      }
+    },
+    {
+      key: 'tea_brotherhood',
+      title: '📜 研读手泽 (消耗 1 ⚡ 精力)',
+      desc: '闭门精研先贤遗留经卷笔记。智谋+5，声誉+3。',
+      action: () => {
+        if (contact.lastTeaYear === state.year) {
+          showToast(`今年已研读过【${contact.name}】先生遗墨，请明年再研！`, "info");
+          return;
+        }
+        if (state.ap < 1) {
+          showToast("今年精力已耗尽，请先迈入下一年！", "alert");
+          playSoundEffect('alert');
+          return;
+        }
+        state.ap--;
+        contact.lastTeaYear = state.year;
+        addStat("iq", 5, 0);
+        addStat("rep", 3, 0);
+        playSoundEffect('fanfare');
+        showToast("研读先贤手札，豁然开朗！智谋+5，声誉+3！", "gold");
+        addChronicleItem(state.age, state.year, `【研习遗墨】精读已故先贤【${contact.name}】之传世手书，治学格局大开。`, "先贤遗泽", "promo");
+        requestRender();
+      }
+    },
+    {
+      key: 'tea_joint_venture',
+      title: '🕯️ 敬奉宗祠 (消耗 1 ⚡ · 投入 20,000五铢钱)',
+      desc: '为先贤在宗祠偏殿设位供奉，永享香火。宗族声望+15，族产公积增益。',
+      action: () => {
+        if (contact.lastTeaYear === state.year) {
+          showToast(`今年已为【${contact.name}】先贤供奉祭扫，请明年再行！`, "info");
+          return;
+        }
+        if (state.ap < 1) {
+          showToast("今年精力已耗尽，请先迈入下一年！", "alert");
+          playSoundEffect('alert');
+          return;
+        }
+        if ((state.capital || 0) < 20000) {
+          showToast("资金储备不足 20,000五铢钱！", "alert");
+          playSoundEffect('alert');
+          return;
+        }
+        state.ap--;
+        contact.lastTeaYear = state.year;
+        state.capital -= 20000;
+        addStat("rep", 15, 0);
+        playSoundEffect('fanfare');
+        showToast("隆祀先贤，名扬四海！门第声望+15！", "gold");
+        addChronicleItem(state.age, state.year, `【宗祠隆祀】以二万钱于宗祠偏殿隆重迎奉已故名士【${contact.name}】灵位，海内士林交口称颂！`, "宗祠荣光", "promo");
+        requestRender();
+      }
+    }
+  ] : [
     {
       key: 'tea_insight',
       title: '🍵 品茗探风 (消耗 1 ⚡ 精力)',
@@ -37599,7 +37714,7 @@ function drawTeaBanquetsModal() {
     },
     {
       key: 'tea_joint_venture',
-      title: '🤝 联合课题与产业协作 (消耗 1 ⚡ · 投入 ¥20,000)',
+      title: isHanWei ? '🤝 互通庄园产业与经世协作 (消耗 1 ⚡ · 投入 20,000五铢钱)' : '🤝 联合课题与产业协作 (消耗 1 ⚡ · 投入 ¥20,000)',
       desc: '共同出资推进技术攻关或实业协作。成败取决于双方智谋与市场周期。',
       action: () => {
         if (contact.lastTeaYear === state.year) {
@@ -37611,8 +37726,8 @@ function drawTeaBanquetsModal() {
           playSoundEffect('alert');
           return;
         }
-        if (state.capital < 20000) {
-          showToast("资金储备不足 ¥20,000！", "alert");
+        if ((state.capital || 0) < 20000) {
+          showToast(isHanWei ? "资金储备不足 20,000五铢钱！" : "资金储备不足 ¥20,000！", "alert");
           playSoundEffect('alert');
           return;
         }
