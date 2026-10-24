@@ -69,7 +69,8 @@ const APPROVED_WHITELIST = new Set([
   '公元100',  // 赛季年份
   '公元1',    // 100~300 年代
   '公元2',    // 200~300 年代
-  '公元300'   // 赛季结卷年份
+  '公元300',  // 赛季结卷年份
+  '建康元年'  // 东汉顺帝公元144年正史年号（非南京地名建康）
 ]);
 
 // 违禁词表分类模式
@@ -90,6 +91,15 @@ const FORBIDDEN_PATTERNS = [
     }
     return /\d+\s*米(?!\s*粮|\s*粟)/.test(window);
   }, desc: '现代公制度量单位 米' },
+
+  // 汉魏纯净性专属拦截 (穿透式审计新增)
+  { category: '汉魏古风符号', regex: /¥/g, desc: '现代人民币符号 ¥' },
+  { category: '汉魏古风符号', regex: /实业报国/g, desc: '现代家训口号“实业报国”穿帮' },
+  { category: '汉魏道途英文字符', regex: /(?:投身|赛道|道途)\s*official/g, desc: '汉魏赛道未映射英文字符 official' },
+  { category: '汉魏地名与官制超前', regex: /建康(?!元年)/g, filter: (match, fullText) => {
+    // 东晋以前（<=300）不得出现地名“建康”（排除正史年号“建康元年”）
+    return fullText.includes('建康') && !fullText.includes('建康元年');
+  }, desc: '东晋前早期年代误用地名“建康”（应为建业/建邺）' },
 
   // 现代科技
   { category: '现代科技', regex: /(电脑|手机|互联网|软件|算法|芯片|人工智能|半导体|航模|微机|代码|程序猿|网购|充电|电池)/g, desc: '现代电子与信息技术' },
@@ -120,10 +130,12 @@ const FORBIDDEN_PATTERNS = [
 // 年份违规检测：文中出现 > 300 且不是已登记特殊ID的年份
 function checkYearOutOfBounds(text) {
   const violations = [];
-  const yrRegex = /(?:公元|西元)?([1-9]\d{2,3})年?/g;
+  const yrRegex = /(?:(?:公元|西元)\s*([1-9]\d{2,3})|(?<![0-9\+\-])([1-9]\d{2,3})\s*年)(?![0-9])/g;
   let match;
   while ((match = yrRegex.exec(text)) !== null) {
-    const yr = parseInt(match[1], 10);
+    const yrStr = match[1] || match[2];
+    if (!yrStr) continue;
+    const yr = parseInt(yrStr, 10);
     // 忽略白名单与合理范围（100~300年）
     if (yr > 300 && yr < 1000) {
       violations.push({ text: match[0], year: yr });
@@ -164,7 +176,10 @@ function runAudit() {
     { name: 'epochOneEngine.js', path: path.join(__dirname, 'wechat-minigame/src/data/epochOneEngine.js') },
     { name: 'childhood.js (Han-Wei packages)', path: path.join(__dirname, 'wechat-minigame/src/data/childhood.js'), filterS1Only: true },
     { name: 'familySystem.js', path: path.join(__dirname, 'wechat-minigame/src/data/familySystem.js') },
-    { name: 'game.js (HAN_WEI_RIVALS_DATABASE)', path: path.join(__dirname, 'wechat-minigame/game.js'), extractRivals: true }
+    { name: 'game.js (HAN_WEI_RIVALS_DATABASE)', path: path.join(__dirname, 'wechat-minigame/game.js'), extractRivals: true },
+    { name: 'game.js (ENDGAME_ARCHETYPES_HAN_WEI)', path: path.join(__dirname, 'wechat-minigame/game.js'), extractHanWeiArchetypes: true },
+    { name: 'season_1_han_wei/figureEvents.js', path: path.join(__dirname, 'wechat-minigame/src/seasons/season_1_han_wei/figureEvents.js') },
+    { name: 'season_1_han_wei/dynamicEventPool.js', path: path.join(__dirname, 'wechat-minigame/src/seasons/season_1_han_wei/dynamicEventPool.js') }
   ];
 
   let totalViolations = 0;
@@ -192,6 +207,21 @@ function runAudit() {
         }
       } else {
         console.error('[ERROR] 未能在 game.js 中匹配到 HAN_WEI_RIVALS_DATABASE');
+        return;
+      }
+    } else if (fileInfo.extractHanWeiArchetypes) {
+      const code = fs.readFileSync(fileInfo.path, 'utf8');
+      const match = code.match(/const ENDGAME_ARCHETYPES_HAN_WEI = (\[[\s\S]*?\]);\n\nconst ENDGAME_ARCHETYPES_16/);
+      if (match) {
+        try {
+          const evalFn = new Function(`return ${match[1]};`);
+          dataToAudit = evalFn();
+        } catch (e) {
+          console.error('[ERROR] 解析 ENDGAME_ARCHETYPES_HAN_WEI 失败:', e);
+          return;
+        }
+      } else {
+        console.error('[ERROR] 未能在 game.js 中匹配到 ENDGAME_ARCHETYPES_HAN_WEI');
         return;
       }
     } else {

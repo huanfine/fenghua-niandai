@@ -115,17 +115,19 @@ console.log('  ✅ 旧档安全归档隔离验证通过！');
 // ---------------------------------------------------------------------
 // 测试 2: T3 & C3 五种接班模式配置与加成/代价检验
 // ---------------------------------------------------------------------
-console.log('\n👉 [测试 2] 校验五种接班模式（4.3 规划规格）参数与代价...');
+console.log('\n👉 [测试 2] 校验接班模式（4.3 规划与六脉多房继承）参数与代价...');
 const candidates = global.generateSuccessorCandidates();
-assert.strictEqual(candidates.length, 5, '必须生成 5 种接班人模式候选');
+assert.ok(candidates.length >= 5, '必须生成 5 种以上接班人模式候选');
 
 const heirMode = candidates.find(c => c.mode === 'lineage_heir');
+const brotherMode = candidates.find(c => c.mode === 'same_gen_brother');
 const adoptedMode = candidates.find(c => c.mode === 'adopted_clan');
 const fosterMode = candidates.find(c => c.mode === 'foster_son');
 const retainerMode = candidates.find(c => c.mode === 'retainer');
 const managerMode = candidates.find(c => c.mode === 'virtuous_manager');
 
 assert.ok(heirMode && heirMode.startingAge === 18, '宗门嫡长起步年龄必须为 18 岁');
+assert.ok(!brotherMode || brotherMode.startingAge === 18, '同宗昆仲起步年龄必须为 18 岁');
 assert.ok(adoptedMode && adoptedMode.startingAge === 20, '过继立嗣起步年龄必须为 20 岁');
 assert.ok(fosterMode && fosterMode.startingAge === 20, '收养义子起步年龄必须为 20 岁');
 assert.ok(retainerMode && retainerMode.startingAge === 28, '家臣辅弼起步年龄必须为 28 岁');
@@ -277,7 +279,7 @@ global.tickOneYear();
 assert.ok(global.state.isRetired || global.state.endgameSettled, '健康濒危时必须提前触发卸任交接');
 
 const handoverYear = global.state.year;
-const nextCand = global.generateSuccessorCandidates()[3]; // 家臣辅弼 (28岁)
+const nextCand = global.generateSuccessorCandidates().find(c => c.mode === 'retainer'); // 家臣辅弼 (28岁)
 global.successionToNextGeneration(nextCand);
 global.finishCharacterCreation();
 

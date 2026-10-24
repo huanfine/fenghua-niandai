@@ -608,7 +608,12 @@ function getLayoutMetrics() {
   const scaleX = isNarrowScreen ? Math.max(0.88, screenWidth / 375) : (screenWidth <= 385 ? 1.0 : (screenWidth <= 415 ? 1.04 : 1.08));
 
   const baseDashboardH = (state && state.age < 18) ? 156 : ((state && state.dashboardExpanded) ? 186 : 122);
-  const curDashboardH = isShortScreen ? Math.round(baseDashboardH * scaleY) : baseDashboardH;
+  // 短屏下，折叠态基础高度 122px 为包容内部 2 行属性条（by2-2+18=113px）的刚性下限，杜绝压线穿模
+  const curDashboardH = (state && state.dashboardExpanded)
+    ? (isShortScreen ? Math.max(140, Math.round(baseDashboardH * scaleY)) : baseDashboardH)
+    : ((state && state.age < 18)
+      ? (isShortScreen ? Math.max(136, Math.round(baseDashboardH * scaleY)) : baseDashboardH)
+      : (isShortScreen ? Math.max(122, Math.round(baseDashboardH * scaleY)) : 122));
   const curDockNavH = isShortScreen ? Math.round(52 * scaleY) : 52;
   const curActionBarH = isShortScreen ? Math.round(46 * scaleY) : 46;
 
@@ -5461,14 +5466,15 @@ for (let i = 0; i < 28; i++) {
 }
 
 const SEASONAL_PREFIX_COLORS = [
-  'rgba(251, 113, 133, ', // 春·粉桃
-  'rgba(250, 204, 21, ',  // 夏·金萤
-  'rgba(245, 158, 11, ',  // 秋·银杏
-  'rgba(255, 255, 255, '  // 冬·白雪
+  'rgba(225, 112, 85, ',  // 春·落英微红
+  'rgba(217, 119, 6, ',   // 夏·暗金流萤
+  'rgba(180, 83, 9, ',    // 秋·金屑银杏
+  'rgba(243, 237, 226, '  // 冬·宣纸细雪
 ];
 
 function updateAndRenderSeasonalParticles(ctx) {
   if (!ctx || !state.isStarted || state.activeModal) return;
+  const isHanWeiEra = (state.year && state.year <= 500) || (typeof isDynasticEra === 'function' && isDynasticEra(state.year));
   const sIdx = Math.abs((state.year || 1980) % 4);
   const prefix = SEASONAL_PREFIX_COLORS[sIdx];
   const nowTime = Date.now();
@@ -5489,39 +5495,42 @@ function updateAndRenderSeasonalParticles(ctx) {
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.rot);
-    ctx.fillStyle = prefix + (p.alpha * 0.7) + ')';
+    // 汉魏古风下降低粒子饱和度与尺寸，杜绝彩色几何礼花违和感
+    const particleAlpha = isHanWeiEra ? (p.alpha * 0.28) : (p.alpha * 0.55);
+    const particleSize = isHanWeiEra ? (p.size * 0.65) : p.size;
+    ctx.fillStyle = prefix + particleAlpha + ')';
 
     if (sIdx === 0) {
-      // 桃花瓣
+      // 桃花瓣 / 落英
       ctx.beginPath();
       if (typeof ctx.ellipse === 'function') {
-        ctx.ellipse(0, 0, p.size * 1.4, p.size * 0.7, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, particleSize * 1.2, particleSize * 0.6, 0, 0, Math.PI * 2);
       } else {
         ctx.save();
-        ctx.scale(p.size * 1.4, p.size * 0.7);
+        ctx.scale(particleSize * 1.2, particleSize * 0.6);
         ctx.arc(0, 0, 1, 0, Math.PI * 2);
         ctx.restore();
       }
       ctx.fill();
     } else if (sIdx === 1) {
-      // 夏夜金萤
-      const pulse = 0.5 + Math.sin(nowTime * 0.005 + i) * 0.5;
-      ctx.fillStyle = prefix + (p.alpha * pulse * 0.85) + ')';
+      // 夏夜金萤 / 暗金微尘
+      const pulse = 0.4 + Math.sin(nowTime * 0.004 + i) * 0.4;
+      ctx.fillStyle = prefix + (particleAlpha * pulse) + ')';
       ctx.beginPath();
-      ctx.arc(0, 0, p.size * 1.1, 0, Math.PI * 2);
+      ctx.arc(0, 0, particleSize * 0.85, 0, Math.PI * 2);
       ctx.fill();
     } else if (sIdx === 2) {
-      // 银杏叶
+      // 银杏叶 / 金屑
       ctx.beginPath();
-      ctx.arc(0, 0, p.size * 1.2, -0.3, Math.PI + 0.3);
+      ctx.arc(0, 0, particleSize, -0.3, Math.PI + 0.3);
       ctx.fill();
     } else {
-      // 飘雪花
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = prefix + (p.alpha * 0.8) + ')';
+      // 飘雪花 / 细雪
+      ctx.lineWidth = 0.8;
+      ctx.strokeStyle = prefix + (particleAlpha * 0.85) + ')';
       ctx.beginPath();
-      ctx.moveTo(-p.size, 0); ctx.lineTo(p.size, 0);
-      ctx.moveTo(0, -p.size); ctx.lineTo(0, p.size);
+      ctx.moveTo(-particleSize, 0); ctx.lineTo(particleSize, 0);
+      ctx.moveTo(0, -particleSize); ctx.lineTo(0, particleSize);
       ctx.stroke();
     }
     ctx.restore();
@@ -6822,17 +6831,30 @@ function inscribePlayerToClanGenealogy(s, arch) {
   const seasonObj = (typeof _seasonConfigMod !== 'undefined' && _seasonConfigMod.getSeasonByYear)
     ? _seasonConfigMod.getSeasonByYear(s.year || 100)
     : ((typeof getSeasonByYear === 'function') ? getSeasonByYear(s.year || 100) : null);
-  const calcEraIndex = seasonObj ? Math.min(15, seasonObj.seasonIndex) : Math.min(15, Math.max(1, Math.floor(((s.year || 100) - 100) / 200) + 1));
-  const eraLabel = seasonObj ? seasonObj.name : getDynastyEraName(s.year || 2026);
+  const y = s.year || 100;
+  const isS1HanWei = (fam.currentSeasonId === 'season_1_han_wei' || !fam.currentSeasonId || y <= 300);
+  const calcEraIndex = isS1HanWei ? 1 : (seasonObj ? Math.min(15, seasonObj.seasonIndex) : Math.min(15, Math.max(1, Math.floor((y - 100) / 200) + 1)));
+  let eraLabel = '汉魏风骨';
+  if (isS1HanWei) {
+    if (y <= 145) eraLabel = '永元筑基';
+    else if (y <= 190) eraLabel = '党锢黄巾';
+    else if (y <= 235) eraLabel = '建安风骨';
+    else eraLabel = '正始太康';
+  } else {
+    eraLabel = seasonObj ? seasonObj.name : getDynastyEraName(y);
+  }
 
-  const succOrigin = (s.dynasticInheritance && s.dynasticInheritance.successorOrigin) || 'lineage_child';
+  const succOrigin = (s.dynasticInheritance && s.dynasticInheritance.successorOrigin) || 'lineage_heir';
   const succRole = (s.dynasticInheritance && s.dynasticInheritance.successorRole) || '宗门嫡长';
+  const succBranch = (s.dynasticInheritance && s.dynasticInheritance.branchName) || s.clanBranch || '长房嫡脉';
 
   const runRecordId = `run_${Date.now()}_${s.name || 'anc'}_${curGen}`;
   const ancestorRecord = {
     recordId: runRecordId,
     isGenerationalRun: true,
-    generation: curGen,
+    generation: s.lineageGeneration || curGen,
+    playOrder: curGen,
+    branchName: succBranch,
     eraIndex: calcEraIndex,
     eraName: eraLabel,
     successorOrigin: succOrigin,
@@ -6845,7 +6867,7 @@ function inscribePlayerToClanGenealogy(s, arch) {
     epitaph: (arch && arch.summary) ? arch.summary : '躬耕立世，勤勉为本，德泽后昆。',
     finalDeeds: [
       `【${arch ? arch.title : '勤勉立业'}】（${succRole}）享寿 ${s.age || 60} 岁`,
-      `为宗族积淀公积 ¥${capContribution.toLocaleString()} · 增添声望 ${prestigeAddition} 分`,
+      `为宗族积淀公积 ${formatCurrency(capContribution, s.year)} · 增添声望 ${prestigeAddition} 分`,
       `传世家规：“${newMottoText}”`
     ],
     bequeathedMoney: s.capital || 0,
@@ -6984,9 +7006,11 @@ function drawTactileButton(contextOrOpts, maybeOpts) {
     );
   }
 
-  const rawBorder = borderColor || border || '#785d45';
+  // 严谨区分“显式声明无边框(null/none/transparent)”与“缺省默认值”
+  const hasExplicitNoBorder = border === null || borderColor === null || border === 'none' || border === 'transparent' || borderColor === 'none' || borderColor === 'transparent';
+  const rawBorder = hasExplicitNoBorder ? null : (borderColor !== undefined ? borderColor : (border !== undefined ? border : '#785d45'));
   let finalBorder = rawBorder;
-  if (isPressed) {
+  if (isPressed && finalBorder) {
     finalBorder = pressedBorder || (
       rawBorder === '#785d45' || rawBorder === '#856447' ? '#d97706' :
       (rawBorder === '#475569' ? '#856447' :
@@ -7237,25 +7261,45 @@ function drawCinnabarSeal(ctx, text, cx, cy, radius = 34, angle = -0.08, scale =
   ctx.rotate(angle);
   ctx.scale(scale, scale);
 
-  ctx.strokeStyle = 'rgba(194, 58, 43, 0.88)';
-  ctx.fillStyle = 'rgba(194, 58, 43, 0.88)';
+  const sealColor = 'rgba(185, 28, 28, 0.95)';
+  const sealInnerColor = 'rgba(185, 28, 28, 0.08)';
+  const side = Math.round(radius * 1.8);
+  const half = side / 2;
+
+  // 汉魏正统方印外廓 (Square Seal with Han Cinnabar Ink)
+  ctx.fillStyle = sealInnerColor;
+  roundRect(ctx, -half, -half, side, side, 3, true, false);
+
+  // 外重粗边框与内重细回线 (Double Inscription Borders)
+  ctx.strokeStyle = sealColor;
   ctx.lineWidth = 2.5;
+  roundRect(ctx, -half, -half, side, side, 3, false, true, sealColor, 2.5);
 
-  ctx.beginPath();
-  ctx.arc(0, 0, radius, 0, Math.PI * 2);
-  ctx.stroke();
+  const innerInset = 3.5;
+  ctx.lineWidth = 0.8;
+  roundRect(ctx, -half + innerInset, -half + innerInset, side - innerInset * 2, side - innerInset * 2, 1.5, false, true, sealColor, 0.8);
 
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(0, 0, radius - 4, 0, Math.PI * 2);
-  ctx.stroke();
-
-  drawStar(ctx, 0, -radius * 0.28, 5, radius * 0.25, radius * 0.12, 'rgba(194, 58, 43, 0.88)');
-
-  ctx.font = 'bold 14px ' + FONT_CHRONICLE;
+  // 汉印篆文四字经典排版 (右上一、右下一、左上一、左下一；汉魏金石古韵)
+  const cleanStr = String(text || '平生无愧').replace(/[★☆\s]/g, '');
+  ctx.fillStyle = sealColor;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(text, 0, radius * 0.32);
+
+  if (cleanStr.length === 4) {
+    const sealFont = `bold ${Math.round(side * 0.34)}px ` + FONT_CHRONICLE;
+    ctx.font = sealFont;
+    const offX = side * 0.22;
+    const offY = side * 0.22;
+    // 传统右向排版：右上 -> 右下 -> 左上 -> 左下
+    ctx.fillText(cleanStr[0], offX, -offY);
+    ctx.fillText(cleanStr[1], offX, offY);
+    ctx.fillText(cleanStr[2], -offX, -offY);
+    ctx.fillText(cleanStr[3], -offX, offY);
+  } else {
+    const sealFont = `bold ${Math.round(side * 0.28)}px ` + FONT_CHRONICLE;
+    ctx.font = sealFont;
+    ctx.fillText(cleanStr, 0, 0);
+  }
 
   ctx.restore();
 }
@@ -7457,9 +7501,19 @@ const FIVE_ELEMENTS_DESTINY = {
   gold: { name: '金命·刚毅果决', color: '#f59e0b', desc: '清廉审查抗性+50%，魄力+12，果敢刚强', statKey: 'courage', bonusVal: 12 },
   wood: { name: '木命·生机延绵', color: '#10b981', desc: '基础健康上限+15，家族寿元+5岁，仁厚笃实', statKey: 'health', bonusVal: 15 },
   water: { name: '水命·上善若水', color: '#38bdf8', desc: '智谋+15，市道行情敏锐度+30%，通达圆融', statKey: 'iq', bonusVal: 15 },
-  fire: { name: '火命·敢为人先', color: '#ef4444', desc: '破格提拔概率翻倍，初期资本+¥30,000', statKey: 'capital', bonusVal: 30000 },
+  fire: { name: '火命·敢为人先', color: '#ef4444', desc: '破格提拔概率翻倍，初期资本+30,000钱', statKey: 'capital', bonusVal: 30000 },
   earth: { name: '土命·厚德载物', color: '#d97706', desc: '门第人脉初始好感+20，防黑天鹅玄武盾生效', statKey: 'eq', bonusVal: 15 }
 };
+
+const HAN_WEI_GENERATION_CHARS = ['元', '德', '文', '光', '昌', '永', '泰', '安'];
+const CLAN_BRANCH_NAMES = ['长房嫡脉', '二房东院', '三房西院', '四房南院', '五房北院', '宗祠义门', '内堂执事'];
+
+function getHanWeiChapterEraTag(year) {
+  if (year <= 145) return '东汉永元';
+  if (year <= 190) return '桓灵党锢';
+  if (year <= 235) return '建安风骨';
+  return '正始太康';
+}
 
 function generateRandomChineseName(gender = 'male') {
   const surname = CHINESE_SURNAMES[Math.floor(seededRandom() * CHINESE_SURNAMES.length)];
@@ -7468,92 +7522,128 @@ function generateRandomChineseName(gender = 'male') {
   return { surname, givenName: given, fullName: surname + given };
 }
 
-// 宗族多元接棒人选发生器 (Section 4.3 五种接班模式规范)
+// 宗族多元接棒人选发生器 (Section 4.3 六脉接班模式规范)
 function generateSuccessorCandidates() {
   const fam = (typeof state !== 'undefined' && state && state.familyProfile) || ensureClanProfileForCurrentRun();
   const sName = fam ? fam.surname : (state.name ? state.name[0] : '陈');
   const child = (state.family && state.family.childName) ? state.family.childName : null;
+  const curLineageGen = (state && state.lineageGeneration) || 1;
+  const nextLineageGen = Math.min(8, curLineageGen + 1);
+  const sameGenChar = HAN_WEI_GENERATION_CHARS[(curLineageGen - 1) % HAN_WEI_GENERATION_CHARS.length];
+  const nextGenChar = HAN_WEI_GENERATION_CHARS[(nextLineageGen - 1) % HAN_WEI_GENERATION_CHARS.length];
 
   const candidates = [];
 
-  // 1. 宗门嫡长 (18岁，声望继承+10%，宗亲认同；起点平庸，无外援)
+  // 1. 宗门嫡长 (18岁，下一代正统，辈分 +1)
+  const heirSuffix = ['修', '达', '宗', '安', '先'][Math.floor(seededRandom() * 5)];
   const lineageGiven = child
     ? (child.startsWith(sName) ? child.slice(sName.length) : child)
-    : (['伯修', '仲达', '延宗', '承安', '绍先'][Math.floor(seededRandom() * 5)]);
+    : (nextGenChar + heirSuffix);
   candidates.push({
     mode: 'lineage_heir',
     origin: 'lineage_heir',
     role: '宗门嫡长',
+    branchName: '长房嫡脉',
+    generationDelta: 1,
     fullName: sName + lineageGiven,
     surname: sName,
     givenName: lineageGiven,
     gender: (state.family && state.family.childGender) ? state.family.childGender : (seededRandom() < 0.5 ? 'male' : 'female'),
     startingAge: 18,
-    desc: '宗族正室嫡系血脉传人，深孚宗望。起步年方十八，虽起点平庸无外援，然宗亲高度拥戴。',
+    desc: '宗族正室嫡系血脉传人，深孚宗望。承袭父祖余荫，宗亲高度拥戴。',
     bonusText: '声望继承 +10%，宗亲认同',
     costText: '起点平庸，无外援',
     statBonus: { repBonusRate: 0.10 }
   });
 
-  // 2. 过继立嗣 (20岁，族产+5%；触发1个“宗亲分歧”事件)
-  const adoptedGiven = ['子敬', '公义', '孝先', '允诚', '德祖'][Math.floor(seededRandom() * 5)];
+  // 2. 同宗昆仲 · 堂房兄弟（平辈同代，时间线平行切入，辈分 +0）
+  const broSuffix = ['朗', '休', '谌', '纪', '群', '泰', '忠', '恕'][Math.floor(seededRandom() * 8)];
+  candidates.push({
+    mode: 'same_gen_brother',
+    origin: 'same_gen_brother',
+    role: '同宗昆仲',
+    branchName: '二房支脉',
+    generationDelta: 0,
+    fullName: sName + sameGenChar + broSuffix,
+    surname: sName,
+    givenName: sameGenChar + broSuffix,
+    gender: 'male',
+    startingAge: 18,
+    desc: '同宗同辈之堂房兄弟。与先兄生于同一时期，分掌宗门另一条赛道，兄弟同心其利断金。',
+    bonusText: '同代并进（回溯同辈年份），起始能略 +8',
+    costText: '需独立开辟新赛道功名',
+    statBonus: { iq: 8, eq: 8, courage: 8 }
+  });
+
+  // 3. 旁系过继 · 别房开支 (20岁，族产公积 +5%，辈分 +1)
+  const branchSuffix = ['敬', '义', '先', '诚', '祖'][Math.floor(seededRandom() * 5)];
+  const adoptedGiven = nextGenChar + branchSuffix;
   candidates.push({
     mode: 'adopted_clan',
     origin: 'adopted_clan',
-    role: '过继立嗣',
+    role: '旁系支脉',
+    branchName: '三房支脉',
+    generationDelta: 1,
+    allowChapterReset: true,
     fullName: sName + adoptedGiven,
     surname: sName,
     givenName: adoptedGiven,
     gender: 'male',
     startingAge: 20,
-    desc: '从宗族近支胞房依古礼兼祧过继。带入旁房族产公积，然不免招致部分宗亲非议。',
-    bonusText: '族产公积 +5%',
+    desc: '宗族近支旁房才俊。可承续当前岁月，若岁至季末亦可回溯汉魏关键节点另辟新房。',
+    bonusText: '族产公积 +5%，可择汉魏篇章开支',
     costText: '触发“宗亲分歧”事件',
     statBonus: { capitalBonusRate: 0.05 },
     disputeEvent: 'hw_dispute_adopted_clan'
   });
 
-  // 3. 收养义子 (20岁，随机才能+1项；触发“谱牒之议”，声望-5)
+  // 4. 收养义子 (20岁，随机才能 +1 项，乱世奇才，辈分 +1)
   const fosterGiven = ['幼度', '士元', '奉先', '叔宝', '怀英'][Math.floor(seededRandom() * 5)];
   candidates.push({
     mode: 'foster_son',
     origin: 'foster_son',
     role: '收养义子',
+    branchName: '宗祠义门',
+    generationDelta: 1,
     fullName: sName + fosterGiven,
     surname: sName,
     givenName: fosterGiven,
     gender: seededRandom() < 0.5 ? 'male' : 'female',
     startingAge: 20,
-    desc: '先祖自幼收养之义子贤才，天资卓异聪颖。自带一项专属天赋，然引起郡中月旦谱牒之议。',
-    bonusText: '随机才能 +1 项',
+    desc: '乱世收养之义子奇才，赐姓入谱。自带专属天资，然易惹郡中月旦清议。',
+    bonusText: '随机才能 +1 项，魄力 +12',
     costText: '触发“谱牒之议”，声望 -5',
-    statBonus: { extraTalentCount: 1, repDelta: -5 },
+    statBonus: { extraTalentCount: 1, courage: 12, repDelta: -5 },
     disputeEvent: 'hw_dispute_foster_son'
   });
 
-  // 4. 家臣辅弼 (28岁，起步职级+1；与旁支关系较弱)
+  // 5. 家臣辅弼 / 掌事 (28岁，起步职级 +1 阶，辈分不变)
   const retainerGiven = ['广平', '思齐', '长孺', '辅国', '守约'][Math.floor(seededRandom() * 5)];
   candidates.push({
     mode: 'retainer',
     origin: 'retainer',
     role: '家臣辅弼',
+    branchName: '内堂执事',
+    generationDelta: 0,
     fullName: sName + retainerGiven,
     surname: sName,
     givenName: retainerGiven,
     gender: 'male',
     startingAge: 28,
-    desc: '宗族宿老家臣提拔执掌。年富力强深谙政略，起步职级高一阶，但与远支旁族交游稍浅。',
-    bonusText: '起步职级 +1 阶',
+    desc: '宗族宿老家臣提拔执掌。年富力强深谙政略，起步职级高一阶，深孚各房信任。',
+    bonusText: '起步职级 +1 阶，智谋/情商 +10',
     costText: '与旁支关系较弱',
-    statBonus: { startingRankBonus: 1 }
+    statBonus: { startingRankBonus: 1, iq: 10, eq: 10 }
   });
 
-  // 5. 贤良掌事 (30岁，才能最高；宗亲信任低，需立信)
+  // 6. 贤良掌事 (30岁，全族公举外聘之贤良掌事，辈分不变)
   const managerGiven = ['叔度', '文若', '公明', '奉孝', '元常'][Math.floor(seededRandom() * 5)];
   candidates.push({
     mode: 'virtuous_manager',
     origin: 'virtuous_manager',
     role: '贤良掌事',
+    branchName: '客卿外事',
+    generationDelta: 0,
     fullName: sName + managerGiven,
     surname: sName,
     givenName: managerGiven,
@@ -7579,14 +7669,35 @@ function successionToNextGeneration(selectedCandidate = null) {
   const candidates = generateSuccessorCandidates();
   const candidate = selectedCandidate || candidates[0];
 
-  // 核心公式：下一世出生年 = 交接年 − 继任者起步年龄
+  // 核心公式：计算下一世出生年份（严格约束在第一赛季汉魏 100~240 出生窗口内，确保走完一生仍在 300 年内）
+  const prevBirthYear = state.birthYear || 100;
   const handoverYear = state.year || (fam && fam.timeline ? fam.timeline.currentYear : 168);
   const startingAge = candidate.startingAge || 18;
-  const nextBirthYear = Math.max(100, handoverYear - startingAge);
+  let nextBirthYear;
+
+  if (candidate.mode === 'same_gen_brother') {
+    // 同宗昆仲：与上一世平行时代（相差 0~8 年）
+    const offset = Math.floor(seededRandom() * 9);
+    nextBirthYear = Math.max(100, Math.min(235, prevBirthYear + offset));
+  } else if (handoverYear - startingAge <= 255) {
+    // 正常纵向接班：仍在汉魏时间窗内
+    nextBirthYear = Math.max(100, handoverYear - startingAge);
+  } else {
+    // 当家族已推进至汉魏尾声（如 > 273 年），新开旁支自动切入汉魏四大篇章起始窗口（100 / 146 / 191 / 220），实现单赛季千百世循环
+    const chapterWindows = [100, 146, 191, 220];
+    const playCount = (fam && fam.genealogyList) ? fam.genealogyList.length : 1;
+    nextBirthYear = chapterWindows[playCount % chapterWindows.length];
+  }
+
   state.selectedBirthYear = nextBirthYear;
+  state.lineageGeneration = (candidate.generationDelta === 0)
+    ? (state.lineageGeneration || 1)
+    : Math.min(8, Math.floor((nextBirthYear - 100) / 25) + 1);
+  state.clanBranch = candidate.branchName || '长房嫡脉';
 
   if (fam && fam.timeline) {
-    fam.timeline.currentYear = handoverYear;
+    fam.timeline.currentYear = Math.min(300, Math.max(100, handoverYear <= 300 ? handoverYear : (nextBirthYear + startingAge)));
+    fam.timeline.currentEpochIndex = 1;
     fam.currentSeasonId = 'season_1_han_wei';
     saveClanProfile(fam);
   }
@@ -7601,7 +7712,7 @@ function successionToNextGeneration(selectedCandidate = null) {
   const inheritedWealth = Math.round(rawWealth * wealthMultiplier);
   const carriedForwardTrust = Math.round((state.familyPerpetualTrust || 0) * 0.85);
 
-  // 族产公积增益 (过继立嗣模式)
+  // 族产公积增益 (过继立嗣 / 旁系支脉)
   if (candidate.mode === 'adopted_clan' && fam && fam.clanTrust) {
     fam.clanTrust.trustFundMoney = Math.round((fam.clanTrust.trustFundMoney || 0) * 1.05);
   }
@@ -7615,16 +7726,18 @@ function successionToNextGeneration(selectedCandidate = null) {
   // 3. 祖先入谱（同时兼容旧版 state.ancestralShrine）
   if (!state.ancestralShrine) state.ancestralShrine = [];
   state.ancestralShrine.push({
-    generation: currentGen,
+    generation: state.lineageGeneration || currentGen,
+    playOrder: currentGen,
+    branchName: state.clanBranch,
     name: state.name,
     jobTitle: state.jobTitle,
     rankName: state.rankName,
     capital: state.capital,
     rep: state.rep,
     yearEnd: state.year,
-    aura: state.track === 'biz' ? '【巨贾门第】：商业谈判成功率+25%，免交易佣金' :
-          state.track === 'med' ? '【大医遗泽】：全家族免疫突发重疾，基础寿命+5' :
-          state.track === 'tech' ? '【国之重器】：自研卡脖子攻关成功率翻倍' : '【德门望族】：家族声誉加成+20，德泽后世'
+    aura: state.track === 'merchant' ? '【计通万方】：商业谈判成功率+25%，市道行商无碍' :
+          state.track === 'recluse' ? '【大医遗泽】：全家族免疫突发重疾，基础寿命+5' :
+          state.track === 'military' ? '【百战严整】：坞堡部曲士气高涨，平抑流民兵燹' : '【德门望族】：家族声誉加成+20，德泽后世'
   });
 
   // 4. 声望继承与接班模式加成结算
@@ -7660,6 +7773,8 @@ function successionToNextGeneration(selectedCandidate = null) {
     successorOrigin: candidate.origin,
     successorRole: candidate.role,
     successorMode: candidate.mode,
+    branchName: candidate.branchName,
+    generationDelta: candidate.generationDelta,
     successorCandidate: candidate,
     handoverYear: handoverYear,
     startingAge: startingAge,
@@ -7676,8 +7791,8 @@ function successionToNextGeneration(selectedCandidate = null) {
 
   // 启动新一代创角
   startCharacterCreation(true);
-  const curUnit = (state.year && state.year <= 300) ? '五铢钱 ' : '¥';
-  showToast(`👑 【${fam.fullName}】第 ${nextGen} 世传人（${candidate.role}）接掌门户！时年 ${startingAge} 岁（公元 ${handoverYear} 年），承领祖荫公积金 ${curUnit}${inheritedWealth.toLocaleString()}！`, 'gold');
+  const curUnit = (state.year && state.year <= 300) ? '五铢钱 ' : '钱 ';
+  showToast(`第 ${currentGen} 代宗主功德圆满！新任【${candidate.role}】承袭祖荫大纛（初始家资 ${formatCurrency(inheritedWealth, nextBirthYear)}）！`, "gold");
   playSoundEffect('fanfare');
 }
 
@@ -8012,7 +8127,8 @@ function cycleBirthEra() {
 function generateProceduralBirth(forcedSurname = null, forcedGender = null) {
   const gender = forcedGender || (seededRandom() < 0.5 ? 'male' : 'female');
   const generated = generateRandomChineseName(gender);
-  const surname = forcedSurname || generated.surname;
+  const clanSurname = (state && state.familyProfile && state.familyProfile.surname) ? state.familyProfile.surname : null;
+  const surname = forcedSurname || clanSurname || generated.surname;
 
   // 出生年份：默认第一赛季 100 AD（东汉中晚期）
   let birthYear = 100;
@@ -8249,6 +8365,7 @@ function getChildhoodEventForAge(age) {
 function startCharacterCreation(isSuccession = false) {
   state.gameScene = 'game';
   state.endgameSettled = false;
+  state.lastInscribedAncestor = null;
   state.runStartTime = typeof getEffectiveTimestampMs === 'function' ? getEffectiveTimestampMs() : Date.now();
   state.gameStartTimestamp = state.runStartTime;
   state.lifetimeRunCount = (state.lifetimeRunCount || 0) + 1;
@@ -8583,12 +8700,15 @@ function unlockStageContactsForTrack(trackKey, count = 3) {
 function finishCharacterCreation(opts = {}) {
   const keepFateModal = !!(opts && opts.keepFateModal);
   const profile = state.birthProfile || generateProceduralBirth();
-  const defaultSurname = profile.surname || '陈';
+  const clanSurname = (state && state.familyProfile && state.familyProfile.surname) ? state.familyProfile.surname : null;
+  const defaultSurname = clanSurname || profile.surname || '陈';
   const defaultGiven = profile.givenName || '守正';
   const defaultSafeFullName = defaultSurname + defaultGiven;
   if (state.creation && state.creation.surname) {
     const cleanSur = sanitizeUserInput(state.creation.surname);
     profile.surname = (cleanSur && !cleanSur.includes('***')) ? cleanSur : defaultSurname;
+  } else if (clanSurname) {
+    profile.surname = clanSurname;
   }
   if (state.creation && state.creation.givenName) {
     const cleanGiv = sanitizeUserInput(state.creation.givenName);
@@ -9184,7 +9304,12 @@ function skipChildhoodToAdulthood() {
     if (isNoblePerk && state.rankLevel >= 3) {
       addChronicleItem(18, state.year, `【门阀出仕】承继前朝世家上品门阀余荫，直接保送【${state.rankName}】，执掌膏腴庄园！`, '名门余荫', 'promo');
     } else {
-      addChronicleItem(18, state.year, '【弱冠及岁】束发加冠，登堂立志。受郡守察举辟召，正式开启两百年世家仕途！', '立身起步', 'promo');
+      const isFemale = (state.gender === 'female' || state.gender === '女');
+      const adultTitle = isFemale ? '【及笄及岁】' : '【弱冠及岁】';
+      const adultDesc = isFemale
+        ? '挽发插笄，登堂立志。受宗族长辈礼聘举荐，正式开启两百年世家道途！'
+        : '束发加冠，登堂立志。受郡守察举辟召，正式开启两百年世家仕途！';
+      addChronicleItem(18, state.year, `${adultTitle}${adultDesc}`, '立身起步', 'promo');
       const s1Rank = getHistoricalRankTitle(state.track, 0, state.year);
       if (s1Rank) {
         state.rankName = s1Rank.title;
@@ -9195,13 +9320,15 @@ function skipChildhoodToAdulthood() {
     addChronicleItem(1, state.birthYear + 1, '【抓周定志】于周岁大典取物寄托凌云之志，家慈含笑期许。', '童年际遇', 'normal');
     addChronicleItem(7, state.birthYear + 7, '【发蒙启智】入塾求学，书声琅琅，日诵经义，打下扎实文化功底。', '童年历练', 'normal');
     addChronicleItem(15, state.birthYear + 15, '【少年立志】初中毕业直面人生关口，笃定心志，刻苦自励备战高考。', '少年分流', 'normal');
-    addChronicleItem(18, state.year, '【弱冠及岁】白驹过隙，少年长成。年满十八，弱冠立世，立志投身大国履职宏业！', '立身起步', 'promo');
+    addChronicleItem(18, state.year, '【弱冠及岁】白驹过隙，少年长成。年满十八，立世起步，立志投身大国履职宏业！', '立身起步', 'promo');
   }
 
+  ensureAdultRankAndTitle(state);
   clampCoreStats(state);
   playSoundEffect('fanfare');
   triggerHaptic('heavy');
-  showToast(isDynasticChild ? "⚡ 已跳过童年，以世家子弟之资直步弱冠及冠！" : "⚡ 已跳过童年，以均衡出身直接步入18岁成年立世！", "gold");
+  const isFemale = (state.gender === 'female' || state.gender === '女');
+  showToast(isDynasticChild ? (isFemale ? "⚡ 已跳过童年，以世家千金之资直步及笄成礼！" : "⚡ 已跳过童年，以世家子弟之资直步弱冠及冠！") : "⚡ 已跳过童年，以均衡出身直接步入18岁成年立世！", "gold");
 
   saveGameState(true);
   requestRender();
@@ -9692,8 +9819,8 @@ function openFamilyEvent() {
       state.activeFamilyEvent = {
         title: `🏛️ 终身大事：${state.age}岁两姓合好与联姻定盟`,
         context: isLiuChao
-          ? `及冠成丁，门第婚宦乃六朝立身之根本。族中尊长与中正官为你相看议婚，三桩姻缘各系宗族气运与后庭风气：`
-          : `弱冠之年，婚姻者将合二姓之好，上以事宗庙，下以继后世。父母亲友为你在乡闾名门中选定三桩良缘：`,
+          ? `${(state.gender === 'female' || state.gender === '女') ? '及笄之年' : '及冠成丁'}，门第婚宦乃六朝立身之根本。族中尊长与中正官为你相看议婚，三桩姻缘各系宗族气运与后庭风气：`
+          : `${(state.gender === 'female' || state.gender === '女') ? '及笄之年' : '弱冠之年'}，婚姻者将合二姓之好，上以事宗庙，下以继后世。父母亲友为你在乡闾名门中选定三桩良缘：`,
         choices: [
           {
             title: `与相知相惜的寒素/书香知己【${cand1}】结发连理 (相濡以沫)`,
@@ -11374,6 +11501,15 @@ function getHistoricalRankTitle(track, rankIndex, year) {
   return null;
 }
 
+function ensureAdultRankAndTitle(s = state) {
+  if (!s || s.age < 18) return;
+  if (s.jobTitle === '襁褓婴儿' || s.rankName === '初临人间' || !s.jobTitle || !s.rankName) {
+    const s1Rank = (typeof getHistoricalRankTitle === 'function') ? getHistoricalRankTitle(s.track, s.rankLevel || 0, s.year) : null;
+    s.rankName = s1Rank ? s1Rank.title : '宗门子弟';
+    s.jobTitle = s1Rank ? s1Rank.title : '举孝廉 · 州郡治中';
+  }
+}
+
 function startPromotionProcess(promo) {
   if (state.activeModal || state.pendingPhoneCrisis) {
     enqueueModalAction(() => startPromotionProcess(promo));
@@ -12065,14 +12201,22 @@ function triggerAdultCeremonyModal() {
     }
     const isNoblePerk = state.tags && (state.tags['perk_nandu_manor'] || state.tags['perk_high_aristocracy']);
     if (isNoblePerk && state.rankLevel >= 3) {
-      const regName = (state.birthProfile && state.birthProfile.region && state.birthProfile.region.name) || '江南侨郡';
-      state.gaokaoSchool = regName + ' · 尚书台国学';
-      state.noticeTitle = '🏰 门 阀 南 渡 · 中 正 保 送 辟 召 📯';
-      state.noticeSubtitle = '📜 六朝门阀 · 承前朝世家上品余荫直膺上品';
-      state.noticeSeal = '中正上品';
+      const isS1HanWei = state.year <= 300;
+      const regName = (state.birthProfile && state.birthProfile.region && state.birthProfile.region.name) || (isS1HanWei ? '中原郡国' : '江南侨郡');
+      state.gaokaoSchool = regName + (isS1HanWei ? ' · 尚书台国学' : ' · 尚书台国学');
+      state.noticeTitle = isS1HanWei ? '🏰 门 阀 累 世 · 公 卿 辟 召 直 授 📯' : '🏰 门 阀 南 渡 · 中 正 保 送 辟 召 📯';
+      state.noticeSubtitle = isS1HanWei ? '📜 汉魏门第 · 承累世三公余荫辟召台阁' : '📜 六朝门阀 · 承前朝世家上品余荫直膺上品';
+      state.noticeSeal = isS1HanWei ? '汉魏门第' : '中正上品';
       state.noticeSound = 'fanfare';
-      state.noticeBtnText = '👑 拜领门阀辟书 · 直掌台阁 ➔';
-      state.noticeLines = [
+      state.noticeBtnText = isS1HanWei ? '👑 拜领公卿辟书 · 直掌台阁 ➔' : '👑 拜领门阀辟书 · 直掌台阁 ➔';
+      state.noticeLines = isS1HanWei ? [
+        '世家望族【' + state.name + '】，门阀品第：【累世名门】',
+        '门阀特权：【承三公九卿之绪，直入尚书台省】',
+        '辟召官署：【洛阳尚书台 · 门阀机枢】',
+        '初授阶品：【' + state.rankName + '】',
+        '出仕职任：【' + state.jobTitle + '】',
+        '“白发公卿，累世经学！”名门冠冕，代代簪缨！'
+      ] : [
         '世家望族【' + state.name + '】，门阀品第：【上品门第】',
         '门阀特权：【获赐南渡庄园，直膺中正上品】',
         '辟召官署：【建康尚书台 · 门阀机枢】',
@@ -12080,8 +12224,8 @@ function triggerAdultCeremonyModal() {
         '出仕职任：【' + state.jobTitle + '】',
         '“上品无寒门，下品无势族！”名门冠冕，代代簪缨！'
       ];
-      showToast(`🏰 承袭上品门阀光环：免试直膺【${state.rankName}】，开启两百年鼎盛门风！`, 'gold');
-      addChronicleItem(18, state.year, `【门阀南渡】承继世家祖荫，直接保送【${state.rankName}】，执掌南渡庄园千顷！`, '门阀出仕', 'promo');
+      showToast(`🏰 承袭${isS1HanWei ? '累世' : '上品'}门阀光环：免试直膺【${state.rankName}】，开启两百年鼎盛门风！`, 'gold');
+      addChronicleItem(18, state.year, `【${isS1HanWei ? '门阀公卿' : '门阀南渡'}】承继世家祖荫，直接保送【${state.rankName}】，${isS1HanWei ? '入值台阁枢要！' : '执掌南渡庄园千顷！'}`, '门阀出仕', 'promo');
     } else {
       const s1Rank = getHistoricalRankTitle(state.track, 0, state.year);
       state.rankName = s1Rank ? s1Rank.title : '白衣门生';
@@ -12103,7 +12247,9 @@ function triggerAdultCeremonyModal() {
         '“九层之台，起于累土！”自白衣入仕，修身齐家，光大门楣！'
       ];
       showToast(`🏛️【${state.year <= 300 ? '州郡辟举' : '中正定品'}】获荐举为【${state.rankName}】，开启世家立业！`, 'gold');
-      addChronicleItem(18, state.year, `【${state.year <= 300 ? '州郡察举' : '中正定品'}】弱冠之年，以行洁经明受郡守察举辟召，初授【${state.rankName}】，正式开辟两百年世家仕途！`, '察举出仕', 'promo');
+      const isFem = (state.gender === 'female' || state.gender === '女');
+      const adultPhaseName = isFem ? '及笄之年' : '弱冠之年';
+      addChronicleItem(18, state.year, `【${state.year <= 300 ? '州郡察举' : '中正定品'}】${adultPhaseName}，以行洁经明受郡守察举辟召，初授【${state.rankName}】，正式开辟两百年世家仕途！`, '察举出仕', 'promo');
     }
 
     unlockStageContactsForTrack(state.track, 4);
@@ -12840,11 +12986,14 @@ function tickChildhoodYear() {
     state.handledEvents['gaokao_done'] = true;
     if (!state._unlockedDeskAnnounced) {
       state._unlockedDeskAnnounced = true;
-      const titleToast = isHanWei ? '📜 弱冠成丁！【案头】州郡经世主事自此启程！' : '📜 弱冠立世！【案头】经世主事自此启程！';
+      const isFemChar = (state.gender === 'female' || state.gender === '女');
+      const titleToast = isHanWei
+        ? (isFemChar ? '📜 及笄成礼！【案头】州郡经世主事自此启程！' : '📜 弱冠成丁！【案头】州郡经世主事自此启程！')
+        : (isFemChar ? '📜 及笄立世！【案头】经世主事自此启程！' : '📜 弱冠立世！【案头】经世主事自此启程！');
       showToast(titleToast, 'gold');
       const chronicleDesc = isHanWei
-        ? '【及冠成丁】年满十八行冠礼，字号初定！案头主事已定，一生汉魏风骨功业自此徐徐铺展。'
-        : '【束发及冠】弱冠立世，昂首步入红尘风华！案头主事已定，一生勋业自此徐徐铺展。';
+        ? (isFemChar ? '【及笄及岁】年满十八行笄礼，闺仪初成！案头主事已定，一生汉魏风骨功业自此徐徐铺展。' : '【及冠成丁】年满十八行冠礼，字号初定！案头主事已定，一生汉魏风骨功业自此徐徐铺展。')
+        : (isFemChar ? '【挽发及笄】及笄立世，长发绾就步入红尘风华！案头主事已定，一生勋业自此徐徐铺展。' : '【束发及冠】弱冠立世，昂首步入红尘风华！案头主事已定，一生勋业自此徐徐铺展。');
       addChronicleItem(age, yr, chronicleDesc, '立身起步', 'promo');
     }
     saveGameState();
@@ -15614,6 +15763,7 @@ function settleAnnualCoreProgression() {
   }
   if (state.age >= 18 && !state.isRetired && !state.endgameSettled) {
     state.careerTenureYears = (state.careerTenureYears || 0) + 1;
+    ensureAdultRankAndTitle(state);
   }
 
   if ([18, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70].includes(state.age)) {
@@ -17715,6 +17865,35 @@ const LIFE_AMBITION_TARGETS = {
     desc: '智谋≥84、声望≥85、清廉≥80，且心性≥75',
     check: (s) => getStat('iq', 0, s) >= 84 && getStat('rep', 0, s) >= 85 && getStat('clean', 0, s) >= 80 && getStat('resilience', 0, s) >= 75,
     progress: (s) => Math.min(100, Math.round((Math.min(84, getStat('iq', 0, s)) / 84) * 35 + (Math.min(85, getStat('rep', 0, s)) / 85) * 35 + (Math.min(80, getStat('clean', 0, s)) / 80) * 30))
+  },
+  // 华夏世家大系 · 汉魏五大道途专属抱负
+  official: {
+    id: 'ambition_hw_official',
+    title: '赞襄庙堂 · 辅国柱石',
+    desc: '声望≥86、清廉≥82、智谋≥80，且心性≥75',
+    check: (s) => getStat('rep', 0, s) >= 86 && getStat('clean', 0, s) >= 82 && getStat('iq', 0, s) >= 80 && getStat('resilience', 0, s) >= 75,
+    progress: (s) => Math.min(100, Math.round((Math.min(86, getStat('rep', 0, s)) / 86) * 35 + (Math.min(82, getStat('clean', 0, s)) / 82) * 35 + (Math.min(80, getStat('iq', 0, s)) / 80) * 30))
+  },
+  scholar: {
+    id: 'ambition_hw_scholar',
+    title: '主盟清议 · 文脉宗匠',
+    desc: '智谋≥88、声望≥86、清廉≥80，经学著述名动神州',
+    check: (s) => getStat('iq', 0, s) >= 88 && getStat('rep', 0, s) >= 86 && getStat('clean', 0, s) >= 80,
+    progress: (s) => Math.min(100, Math.round((Math.min(88, getStat('iq', 0, s)) / 88) * 40 + (Math.min(86, getStat('rep', 0, s)) / 86) * 35 + (Math.min(80, getStat('clean', 0, s)) / 80) * 25))
+  },
+  merchant: {
+    id: 'ambition_hw_merchant',
+    title: '陶朱富民 · 万石安家',
+    desc: '资本≥15万钱、声望≥82、情商≥76，膏腴庄园基业鼎盛',
+    check: (s) => (s.capital || 0) >= 150000 && getStat('rep', 0, s) >= 82 && getStat('eq', 0, s) >= 76,
+    progress: (s) => Math.min(100, Math.round((Math.min(150000, Math.max(0, s.capital || 0)) / 150000) * 40 + (Math.min(82, getStat('rep', 0, s)) / 82) * 35 + (Math.min(76, getStat('eq', 0, s)) / 76) * 25))
+  },
+  recluse: {
+    id: 'ambition_hw_recluse',
+    title: '高尚其志 · 仙风道骨',
+    desc: '清廉≥88、心性≥85、体魄≥60，超脱名缰利锁',
+    check: (s) => getStat('clean', 0, s) >= 88 && getStat('resilience', 0, s) >= 85 && getStat('health', 0, s) >= 60,
+    progress: (s) => Math.min(100, Math.round((Math.min(88, getStat('clean', 0, s)) / 88) * 40 + (Math.min(85, getStat('resilience', 0, s)) / 85) * 35 + (Math.min(60, getStat('health', 0, s)) / 60) * 25))
   }
 };
 
@@ -17764,6 +17943,170 @@ function isEligibleForSGradeCrises(s) {
   if (['gov', 'law'].includes(s.track) && (s.auditCrisisCount || 0) > 0) return false;
   return true;
 }
+
+// ==========================================
+// 🏛️ 第一赛季（汉魏·公元100—300年）专属门阀终局判定表
+// ==========================================
+const ENDGAME_ARCHETYPES_HAN_WEI = [
+  // 1. C 级红线结局
+  {
+    id: 'end_c_hw_disgraced',
+    grade: 'C',
+    title: '失节获罪 · 宗门除名',
+    desc: '未能恪守家训清白底线，党争贪墨或违宪遭法纪追究，削籍除名，晚景凄凉。',
+    hint: '【失节获罪】清廉值低于60或发生2次以上重大审计/清议危机未化解。',
+    cond: (s) => getStat('clean', 50, s) < 60 || ((s.auditCrisisCount || 0) >= 2) || (s.unresolvedCrisis && getStat('clean', 50, s) < 68)
+  },
+  {
+    id: 'end_c_hw_bankrupt',
+    grade: 'C',
+    title: '田产散尽 · 门楣零落',
+    desc: '乱世盲目豪赌，部曲逃散，坞壁庄园资不抵债，百年宗脉沦为流寓寒门。',
+    hint: '【坞壁崩析】资本低于 5,000 五铢钱或连续遭遇破产/债务危机。',
+    cond: (s) => (s.capital || 0) < 5000 || ((s.debtCrisisCount || 0) >= 2)
+  },
+
+  // 2. 汉魏五大道途专属 S 级巅峰结局
+  // 1. 门阀仕途 (official)
+  {
+    id: 'end_s_hw_chancellor',
+    grade: 'S',
+    title: '台阁柱石 · 赞襄鼎运',
+    desc: '身居三公九卿之显，主盟朝政数十年。清廉持宪，匡正风俗，配享庙庭，勋名昭垂汉晋青史。',
+    hint: '【门阀仕途】仕途职级≥4，声望≥88、清廉≥84、智谋≥80，生平零未解危机，决策胜率卓异。',
+    cond: (s) => (s.track === 'official' || s.track === 'gov')
+      && Math.max(s.rankIndex || 0, s.lifetimeMaxRank || 0) >= 4
+      && getStat('rep', 0, s) >= 88
+      && getStat('clean', 0, s) >= 84
+      && getStat('iq', 0, s) >= 80
+      && isEligibleForSGradeCrises(s)
+      && (s.decisionSuccessCount || 0) >= Math.max(20, (s.decisionFailCount || 0) * 4.2)
+  },
+  // 2. 儒林太学 (scholar)
+  {
+    id: 'end_s_hw_grand_scholar',
+    grade: 'S',
+    title: '海内人望 · 经学泰斗',
+    desc: '折衷今古经训，校定开阳门外熹平石经。注疏行于天下，门生故吏冠绝海内，一代儒宗。',
+    hint: '【儒林太学】学品达高阶，智谋≥88、声望≥88、清廉≥82，经学底蕴极深，决策胜率卓异。',
+    cond: (s) => (s.track === 'scholar' || s.track === 'tech' || s.track === 'edu')
+      && Math.max(s.rankIndex || 0, s.lifetimeMaxRank || 0) >= 4
+      && getStat('iq', 0, s) >= 88
+      && getStat('rep', 0, s) >= 88
+      && getStat('clean', 0, s) >= 82
+      && isEligibleForSGradeCrises(s)
+      && (s.decisionSuccessCount || 0) >= Math.max(20, (s.decisionFailCount || 0) * 4.2)
+  },
+  // 3. 豪强坞壁 (merchant)
+  {
+    id: 'end_s_hw_manor_lord',
+    grade: 'S',
+    title: '富民实边 · 坞壁开基',
+    desc: '修水碓水磨数十座，转运南北千万斛。置义田、活饥黎，富埒王侯而仁心兼济，天下商贾仰止。',
+    hint: '【豪强坞壁】职阶≥4，资本≥25万钱、声望≥85、清廉≥72，无未化解危机，决策胜率卓异。',
+    cond: (s) => (s.track === 'merchant' || s.track === 'biz' || s.track === 'trade')
+      && Math.max(s.rankIndex || 0, s.lifetimeMaxRank || 0) >= 4
+      && (s.capital || 0) >= 250000
+      && getStat('rep', 0, s) >= 85
+      && getStat('clean', 0, s) >= 72
+      && isEligibleForSGradeCrises(s)
+      && (s.decisionSuccessCount || 0) >= Math.max(20, (s.decisionFailCount || 0) * 4.2)
+  },
+  // 4. 行伍戎马 (military)
+  {
+    id: 'end_s_hw_peerless_general',
+    grade: 'S',
+    title: '授符持节 · 威震华夏',
+    desc: '都督荆扬关陕，治军秋毫无犯。连营破敌，授符节制诸州，勒石记功，名列一代名将。',
+    hint: '【行伍戎马】军职≥4，胆识≥88、声望≥86、体魄保持≥55，生平零未解危机，决胜千里。',
+    cond: (s) => s.track === 'military'
+      && Math.max(s.rankIndex || 0, s.lifetimeMaxRank || 0) >= 4
+      && getStat('courage', 0, s) >= 88
+      && getStat('rep', 0, s) >= 86
+      && getStat('health', 0, s) >= 55
+      && isEligibleForSGradeCrises(s)
+      && (s.decisionSuccessCount || 0) >= Math.max(20, (s.decisionFailCount || 0) * 4.2)
+  },
+  // 5. 林泉隐逸 (recluse)
+  {
+    id: 'end_s_hw_immortal_hermit',
+    grade: 'S',
+    title: '竹林风骨 · 绝尘高士',
+    desc: '抚琴赋诗啸傲林泉，著书立说活人无算。朝廷累征不起，名士争相折节相访，名节高照千古。',
+    hint: '【林泉隐逸】隐逸职阶≥4，清廉≥90、心性≥86、声望≥85，体魄≥60，超脱名缰利锁。',
+    cond: (s) => (s.track === 'recluse' || s.track === 'art' || s.track === 'med')
+      && Math.max(s.rankIndex || 0, s.lifetimeMaxRank || 0) >= 4
+      && getStat('clean', 0, s) >= 90
+      && getStat('resilience', 0, s) >= 86
+      && getStat('rep', 0, s) >= 85
+      && getStat('health', 0, s) >= 60
+      && isEligibleForSGradeCrises(s)
+      && (s.decisionSuccessCount || 0) >= Math.max(20, (s.decisionFailCount || 0) * 4.2)
+  },
+
+  // 3. 汉魏五大道途专属 A 级名望结局
+  {
+    id: 'end_a_hw_official',
+    grade: 'A',
+    title: '清德郡守 · 州闾遗爱',
+    desc: '抚民清肃，察举得人。历主一州一郡，政绩考课卓异，黎民感念其恩德，立生祠称颂。',
+    cond: (s) => (s.track === 'official' || s.track === 'gov')
+      && Math.max(s.rankIndex || 0, s.lifetimeMaxRank || 0) >= 3
+      && getStat('clean', 0, s) >= 78
+      && getStat('rep', 0, s) >= 80
+      && (s.auditCrisisCount || 0) === 0
+  },
+  {
+    id: 'end_a_hw_scholar',
+    grade: 'A',
+    title: '博通经纬 · 乡邦大儒',
+    desc: '沉潜经史，阐发微言大义。设帐授徒数百人，著述传抄于洛阳长安，乡邦奉为蓍龟。',
+    cond: (s) => (s.track === 'scholar' || s.track === 'tech' || s.track === 'edu')
+      && Math.max(s.rankIndex || 0, s.lifetimeMaxRank || 0) >= 3
+      && getStat('iq', 0, s) >= 80
+      && getStat('rep', 0, s) >= 80
+      && (s.auditCrisisCount || 0) === 0
+  },
+  {
+    id: 'end_a_hw_merchant',
+    grade: 'A',
+    title: '通商惠工 · 膏腴名家',
+    desc: '操舟通漕，修碓筑堰，蓄谷充实。宗族义产繁衍数代，守成安民，地方巨室敬重。',
+    cond: (s) => (s.track === 'merchant' || s.track === 'biz' || s.track === 'trade')
+      && Math.max(s.rankIndex || 0, s.lifetimeMaxRank || 0) >= 3
+      && (s.capital || 0) >= 120000
+      && getStat('rep', 0, s) >= 78
+  },
+  {
+    id: 'end_a_hw_military',
+    grade: 'A',
+    title: '金戈铁甲 · 保境安民',
+    desc: '整饬坞堡，严操部曲。遇贼先登，保全桑梓一方平安，军功显赫，州郡倚为干城。',
+    cond: (s) => s.track === 'military'
+      && Math.max(s.rankIndex || 0, s.lifetimeMaxRank || 0) >= 3
+      && getStat('courage', 0, s) >= 80
+      && getStat('rep', 0, s) >= 78
+  },
+  {
+    id: 'end_a_hw_recluse',
+    grade: 'A',
+    title: '抱朴修真 · 杏林遗风',
+    desc: '采药名山，悬壶济民。以一己医术救拔万家，不慕名利，淡泊自守，名士推重。',
+    cond: (s) => (s.track === 'recluse' || s.track === 'art' || s.track === 'med')
+      && Math.max(s.rankIndex || 0, s.lifetimeMaxRank || 0) >= 3
+      && getStat('clean', 0, s) >= 82
+      && getStat('rep', 0, s) >= 78
+  },
+
+  // 4. 汉魏 B 级平稳结局（兜底）
+  {
+    id: 'end_b_hw_solid_ancestor',
+    grade: 'B',
+    title: '承平守正 · 诗礼传家',
+    desc: '笃守家训，行己有耻。虽未登庙堂极品，然保全宗脉田宅，耕读修齐，功在长平。',
+    cond: () => true
+  }
+];
 
 const ENDGAME_ARCHETYPES_16 = [
   // 1. 优先拦截严重失节、破产、重度挫折的 C 级红线结局
@@ -18313,7 +18656,9 @@ function recordUnlockedEnding(endingId) {
 function evaluateEndgameArchetype(st) {
   const s = st || state;
   const amb = ensureLifeAmbition(s);
-  const matched = ENDGAME_ARCHETYPES_16.find(a => a.cond(s)) || ENDGAME_ARCHETYPES_16[ENDGAME_ARCHETYPES_16.length - 1];
+  const isHanWeiEra = (s.year && s.year <= 500) || (typeof isDynasticEra === 'function' && isDynasticEra(s.year)) || ['official', 'scholar', 'merchant', 'recluse'].includes(s.track);
+  const pool = isHanWeiEra ? ENDGAME_ARCHETYPES_HAN_WEI : ENDGAME_ARCHETYPES_16;
+  const matched = pool.find(a => a.cond(s)) || pool[pool.length - 1];
   s.endgameArchetype = matched;
   s.currentEndingArchetype = matched;
   if (typeof recordUnlockedEnding === 'function') {
@@ -20113,9 +20458,10 @@ function generateLifeTrajectoryPoster(callback) {
     pCtx.fillStyle = '#eae0cb';
     roundRect(pCtx, statBoxX, statBoxY, statBoxW, statBoxH, 8, true, true, '#b45309', 1.5);
 
+    const capPosterStr = (typeof formatCurrency === 'function') ? formatCurrency(state.capital || 0) : `${((state.capital || 0) / 10000).toFixed(1)}万钱`;
     const sItems = [
       { l: '功名评级', v: `${state.endgameGrade || 'S'} 等` },
-      { l: '结余积蓄', v: `¥${((state.capital || 0) / 10000).toFixed(1)}万` },
+      { l: '结余族产', v: capPosterStr },
       { l: '乡里口碑', v: `${getStat('rep', 50)} 分` },
       { l: '世事回响', v: `${(state.causalEchoes && state.causalEchoes.length) || 0} 桩` }
     ];
@@ -20142,7 +20488,7 @@ function generateLifeTrajectoryPoster(callback) {
     pCtx.textAlign = 'left';
     pCtx.font = 'bold 22px STKaiti, KaiTi, serif';
     pCtx.fillStyle = '#78350f';
-    pCtx.fillText("📈【六旬生平沉浮走势曲线】", graphX + 16, graphY + 16);
+    pCtx.fillText("〔沉浮〕六旬生平沉浮走势长卷", graphX + 16, graphY + 16);
 
     pCtx.textAlign = 'right';
     pCtx.font = '16px PingFang SC, sans-serif';
@@ -20275,7 +20621,7 @@ function generateLifeTrajectoryPoster(callback) {
     pCtx.textAlign = 'left';
     pCtx.font = 'bold 22px STKaiti, KaiTi, serif';
     pCtx.fillStyle = '#78350f';
-    pCtx.fillText("📜【太史公曰 · 终局赞辞】", textX + 16, textY + 16);
+    pCtx.fillText("〔赞辞〕太史公曰 · 终局赞辞", textX + 16, textY + 16);
 
     const memoir = state.activeMemoir || (typeof generateLifetimeMemoir === 'function' ? generateLifetimeMemoir() : null);
     const keyMoments = (memoir && memoir.keyMoments) || [
@@ -20297,7 +20643,8 @@ function generateLifeTrajectoryPoster(callback) {
     }
 
     // 四象座右铭朱印 (drawCinnabarSeal)
-    const sealText = isDaily ? "同命无悔" : (state.clean >= 75 ? "廉洁奉公" : (state.rep >= 70 ? "大国栋梁" : "平生无愧"));
+    const isHanWeiPoster = (state.year && state.year <= 500) || (typeof isDynasticEra === 'function' && isDynasticEra(state.year));
+    const sealText = isDaily ? "同命无悔" : (isHanWeiPoster ? (state.clean >= 75 ? "清操素砺" : (state.rep >= 70 ? "社稷之栋" : "家声克振")) : (state.clean >= 75 ? "廉洁奉公" : (state.rep >= 70 ? "大国栋梁" : "平生无愧")));
     if (typeof drawCinnabarSeal === 'function') {
       drawCinnabarSeal(pCtx, sealText, textX + textW - 65, textY + textH - 65, 38, -0.10, 1.15);
     } else {
@@ -20333,8 +20680,8 @@ function generateLifeTrajectoryPoster(callback) {
 
     pCtx.font = '17px PingFang SC, sans-serif';
     pCtx.fillStyle = '#64748b';
-    pCtx.fillText("扫描右侧小程序码，开启属于你的风华甲子", footX + 22, footY + 104);
-    pCtx.fillText("比拼 60 岁沉浮走势折线图与全服榜单", footX + 22, footY + 132);
+    pCtx.fillText(isHanWeiPoster ? "扫描右侧小程序码，入局汉魏世家大系" : "扫描右侧小程序码，开启属于你的风华甲子", footX + 22, footY + 104);
+    pCtx.fillText(isHanWeiPoster ? "比拼三百年门阀底蕴与全服世家榜单" : "比拼 60 岁沉浮走势折线图与全服榜单", footX + 22, footY + 132);
 
     pCtx.font = 'bold 16px PingFang SC, sans-serif';
     pCtx.fillStyle = '#15803d';
@@ -22149,7 +22496,8 @@ function drawTitleScreen() {
         c.fillStyle = '#fef08a';
         c.textAlign = 'center';
         c.textBaseline = 'top';
-        c.fillText(`〔 门阀 〕【${fam.province}·${fam.surname}氏·${fam.hallName}】`, clanCardX + clanCardW / 2, clanCardY + 4);
+        const safeHall = (fam.hallName || '颍川堂').replace(/颖川/g, '颍川');
+        c.fillText(`〔 门阀 〕【${fam.province}·${fam.surname}氏·${safeHall}】`, clanCardX + clanCardW / 2, clanCardY + 4);
         c.font = '10px ' + FONT_UI;
         c.fillStyle = '#cbd5e1';
         c.fillText(`已传 ${fam.genealogyList.length || 1} 世 · 声望 ${fam.clanTrust.prestigeScore} 分 · 点击拜谒宗祠`, clanCardX + clanCardW / 2, clanCardY + 18);
@@ -22320,12 +22668,15 @@ function drawTitleScreen() {
         pressedBg: '#221419',
         border: '#d97706',
         borderWidth: 1,
-        text: "〔 宗门长卷 · 历代纪元大纲演变 ➔ 〕",
+        text: "〔 宗祠金册 · 汉魏群贤长卷 ➔ 〕",
         font: '11px ' + FONT_CHRONICLE,
         textColor: '#fef08a',
         priority: 100,
         onClick: () => {
-          openDynasticChronicleModal(curEp);
+          state.scene = 'game';
+          state.currentTab = 'family';
+          state.clanFamilySubTab = 'pedigree';
+          requestRender();
         }
       });
     }
@@ -22874,15 +23225,18 @@ function drawGaokaoNoticeModal() {
       playSoundEffect('stamp');
       spawnInspirationSparks(btnX + btnW / 2, btnY + btnH / 2, 30);
 
-    // 🏛️ 华夏世家纪元：弱冠及冠 · 登明堂试策 / 中正定品出仕
+    // 🏛️ 华夏世家纪元：弱冠及冠 / 及笄及岁 · 登明堂试策 / 中正定品出仕
     if (state.year <= 500) {
       const isLiuChao = state.year > 300;
+      const isFemAd = (state.gender === 'female' || state.gender === '女');
+      const adStageTitle = isFemAd ? '及笄成礼' : '弱冠成丁';
+      const adActionDesc = isFemAd ? '及笄之年，你挽发加笄、取小字' : '弱冠之年，你加缁布冠、取表字';
       const decEvt = {
         id: 'crucible_hanwei_adulthood',
-        title: isLiuChao ? '🏛️ 十八岁弱冠成丁 · 中正定品试策' : '🏛️ 十八岁弱冠成丁 · 登明堂试策',
+        title: isLiuChao ? `🏛️ 十八岁${adStageTitle} · 中正定品试策` : `🏛️ 十八岁${adStageTitle} · 登明堂试策`,
         desc: isLiuChao
-          ? `弱冠之年，你加缁布冠、取表字，以【${state.rankName || '世家子弟'}】受大中正官核验九品门阀品第。面对江左名流清谈与州郡考选，你选择何种立身建功之道：`
-          : `弱冠之年，你加缁布冠、取表字，以【${state.rankName || '白衣门生'}】受辟进入【${state.gaokaoSchool || '郡国学馆与太学'}】。面对刺史太守与学官考评策论，你选择何种立身之道：`,
+          ? `${adActionDesc}，以【${state.rankName || '世家子弟'}】受大中正官核验九品门阀品第。面对江左名流清谈与州郡考选，你选择何种立身建功之道：`
+          : `${adActionDesc}，以【${state.rankName || '白衣门生'}】受辟进入【${state.gaokaoSchool || '郡国学馆与太学'}】。面对刺史太守与学官考评策论，你选择何种立身之道：`,
         choices: isLiuChao ? [
           {
             text: '阐发《周易》《老庄》玄理 · 挥麈清谈冠绝江左',
@@ -24298,7 +24652,7 @@ const _heritageData = _loadModule('./src/data/heritage.js', true) || {};
 const _familySystemMod = _loadModule('./src/data/familySystem.js', false) || {};
 const _epochOneMod = _loadModule('./src/data/epochOneEngine.js', false) || {};
 const _ancientMasterMod = _loadModule('./src/data/ancientChronicleMaster.js', false) || {};
-const _futureFrontierMod = _loadModule('./src/data/futureFrontierEngine.js', false) || {};
+const _futureFrontierMod = _loadModule('./subpackages/futureEpoch/game.js', false) || _loadModule('./subpackages/futureEpoch/futureFrontierEngine.js', false) || _loadModule('./src/data/futureFrontierEngine.js', false) || {};
 const _clanSocialMod = _loadModule('./src/data/clanSocialSystem.js', false) || {};
 const _seasonChronoMod = _loadModule('./src/data/seasonChronoPipeline.js', false) || {};
 const _seasonRegistryMod = _loadModule('./src/seasons/seasonRegistry.js', false) || {};
@@ -27139,12 +27493,8 @@ function drawCharacterDashboard() {
     return;
   }
 
-  // 18岁弱冠及冠后职务与散官正名归一化 (防止仍显示初生襁褓状态)
-  if (state.age >= 18 && (state.jobTitle === '襁褓婴儿' || state.rankName === '初临人间' || !state.jobTitle)) {
-    const s1Rank = (typeof getHistoricalRankTitle === 'function') ? getHistoricalRankTitle(state.track, state.rankLevel || 0, state.year) : null;
-    state.rankName = s1Rank ? s1Rank.title : '宗门子弟';
-    state.jobTitle = s1Rank ? s1Rank.title : '举孝廉 · 州郡治中';
-  }
+  // 18岁弱冠/及笄及岁后职务与散官正名归一化 (防止仍显示初生襁褓状态)
+  ensureAdultRankAndTitle(state);
 
   // 仪表盘卡片外框与装饰 (Elevation 1: 物理悬浮柔和投影 + 琉璃倒角高光 + 玉带与金标)
   drawElevatedCard(ctx, padX, dashY, w, curDashH, {
@@ -27160,7 +27510,8 @@ function drawCharacterDashboard() {
   // 1. 顶部战略流派共鸣横幅 / 时代箴言 (第 0 行: dashY + 5 到 dashY + 22)
   const auraH = 17;
   const auraY = dashY + 5;
-  let lifeSeasonTag = "〔 弱冠 · 笃道 〕";
+  const isFemaleDash = (state.gender === 'female' || state.gender === '女');
+  let lifeSeasonTag = isFemaleDash ? "〔 及笄 · 笃道 〕" : "〔 弱冠 · 笃道 〕";
   let lifeSeasonColor = "#fef08a";
   if (state.age >= 60) {
     lifeSeasonTag = "〔 耳顺 · 垂宪 〕";
@@ -27964,9 +28315,10 @@ function drawTimelineTab(startY) {
 
   // 2. 编年长卷分类筛选器 (Filter Bar)
   const filterH = 26;
-  const filW = (w - 16) / CHRONICLE_FILTERS.length;
+  const filterGap = 4;
+  const filW = Math.floor((w - (CHRONICLE_FILTERS.length - 1) * filterGap) / CHRONICLE_FILTERS.length);
   CHRONICLE_FILTERS.forEach((flt, fIdx) => {
-    const fx = padX + fIdx * (filW + 4);
+    const fx = padX + fIdx * (filW + filterGap);
     const isAct = (state.chronicleFilter || 'all') === flt.key;
     const filterId = `filter_chronicle_${flt.key}`;
 
@@ -28520,16 +28872,18 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
     const activeStratKey = (state.strategy === 'overwork') ? 'aggressive' : (state.strategy || 'balanced');
     const activeStratMeta = (STRATEGIES && STRATEGIES[activeStratKey]) || { name: '稳健统筹', desc: '政绩与身心均衡发展' };
 
+    const stratTitle = isHanWeiDeskOps ? `〔方针〕${activeStratMeta.name}` : `〔方针〕${activeStratMeta.name}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.font = 'bold 12px ' + FONT_CHRONICLE;
     ctx.fillStyle = '#fde047';
-    ctx.fillText(`〔 施政方针 〕：${activeStratMeta.name}`, padX + 10, curY + 6);
+    ctx.fillText(stratTitle, padX + 10, curY + 6);
 
+    const titleW = ctx.measureText(stratTitle).width;
+    const stratDescW = Math.max(60, w - titleW - 24);
     ctx.textAlign = 'right';
     ctx.font = '10.5px ' + FONT_CHRONICLE;
     ctx.fillStyle = '#a89988';
-    const stratDescW = Math.max(80, w - 190);
     ctx.fillText(fitText(activeStratMeta.desc, stratDescW, '10.5px ' + FONT_CHRONICLE), padX + w - 10, curY + 7);
 
     const stratItems = isHanWeiDeskOps ? [
@@ -28642,7 +28996,16 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
   } else {
     trackDocs = DESK_DOCUMENTS[state.track] || DESK_DOCUMENTS.gov || DESK_DOCUMENTS.biz || [];
   }
-  const eligibleDocs = trackDocs.filter(d => (d.minAge || d.age || 22) <= state.age);
+  const curWorldYear = state.year || 100;
+  const eraBoundDocs = trackDocs.filter(d => {
+    const ageOk = (d.minAge || d.age || 22) <= state.age;
+    if (!ageOk) return false;
+    // 史实世界时间线绑定：杜绝穿越 160 年或跨年代逆向签批
+    if (typeof d.minYear === 'number' && curWorldYear < d.minYear) return false;
+    if (typeof d.maxYear === 'number' && curWorldYear > d.maxYear) return false;
+    return true;
+  });
+  const eligibleDocs = eraBoundDocs;
   const pendingDoc = eligibleDocs.find(d => !state.handledEvents[`doc_signed_${d.id}`]);
 
   if ((state.age || 0) < 22) {
@@ -28716,15 +29079,19 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
         cornerLength: 6,
         cornerColor: '#f59e0b'
       });
+      const docHeadTitle = isHanWeiDeskOps ? "〔牍〕机要待签要件" : "〔要件〕机要待签办";
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-      ctx.font = 'bold 14px ' + FONT_CHRONICLE;
+      ctx.font = 'bold 13.5px ' + FONT_CHRONICLE;
       ctx.fillStyle = '#fef08a';
-      ctx.fillText("📋 机要案头待签办要件", padX + 12, curY + 10);
-      ctx.font = 'bold 12px ' + FONT_MONO;
+      ctx.fillText(docHeadTitle, padX + 12, curY + 10);
+      const headTitleW = ctx.measureText(docHeadTitle).width;
+      const numAvailW = Math.max(70, w - headTitleW - 32);
+
+      ctx.font = 'bold 11.5px ' + FONT_MONO;
       ctx.fillStyle = '#a89988';
       ctx.textAlign = 'right';
-      ctx.fillText(fitText(`【${currentDoc.num || ('〔' + state.year + '〕第0' + (state.age % 9 + 1) + '号')}·${currentDoc.secret || '正式'}】`, w - 165, 'bold 12px ' + FONT_MONO), padX + w - 12, curY + 11);
+      ctx.fillText(fitText(`【${currentDoc.num || ('〔' + state.year + '〕第0' + (state.age % 9 + 1) + '号')}·${currentDoc.secret || '正式'}】`, numAvailW, 'bold 11.5px ' + FONT_MONO), padX + w - 12, curY + 11);
       ctx.textAlign = 'left';
       ctx.font = 'bold 13.5px ' + FONT_CHRONICLE;
       ctx.fillStyle = '#f8fafc';
@@ -29310,7 +29677,7 @@ function drawDeskTab(startY) {
           c.textBaseline = 'top';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#f3e8ff';
-          c.fillText(fitText(`🏺 【天工非遗 · 华夏百工绝艺典藏阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+          c.fillText(fitText(`〔百工〕【天工非遗 · 华夏百工绝艺典藏阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
 
           c.font = '13.5px ' + FONT_UI;
           c.fillStyle = '#d8b4fe';
@@ -29354,7 +29721,7 @@ function drawDeskTab(startY) {
           c.textBaseline = 'top';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#fef08a';
-          c.fillText(fitText(`🏛️ 【神州金石 · 传世青铜鼎彝碑拓宝斋】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+          c.fillText(fitText(`〔金石〕【神州金石 · 传世青铜鼎彝碑拓宝斋】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
 
           c.font = '13.5px ' + FONT_UI;
           c.fillStyle = '#fde047';
@@ -29398,7 +29765,7 @@ function drawDeskTab(startY) {
           c.textBaseline = 'top';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#ccfbf1';
-          c.fillText(fitText(`🏺 【传世瓷韵 · 华夏五大名窑雅鉴阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+          c.fillText(fitText(`〔名瓷〕【传世瓷韵 · 华夏五大名窑雅鉴阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
 
           c.font = '13.5px ' + FONT_UI;
           c.fillStyle = '#5eead4';
@@ -29442,7 +29809,7 @@ function drawDeskTab(startY) {
           c.textBaseline = 'top';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#ecfdf5';
-          c.fillText(fitText(`🍵 【神州茶道 · 传世茶圣茗经七碗清风阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+          c.fillText(fitText(`〔茶道〕【神州茶道 · 传世茶圣茗经七碗清风阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
 
           c.font = '13.5px ' + FONT_UI;
           c.fillStyle = '#6ee7b7';
@@ -29486,7 +29853,7 @@ function drawDeskTab(startY) {
           c.textBaseline = 'top';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#fef3c7';
-          c.fillText(fitText(`🧵 【神州锦绣 · 传世四大名锦缂丝秘府】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+          c.fillText(fitText(`〔锦绣〕【神州锦绣 · 传世四大名锦缂丝秘府】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
 
           c.font = '13.5px ' + FONT_UI;
           c.fillStyle = '#fde68a';
@@ -29530,7 +29897,7 @@ function drawDeskTab(startY) {
           c.textBaseline = 'top';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#fef3c7';
-          c.fillText(fitText(`🎵 【神州琴道 · 华夏传世古琴七弦高山流水阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+          c.fillText(fitText(`〔琴道〕【神州琴道 · 华夏传世古琴七弦高山流水阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
 
           c.font = '13.5px ' + FONT_UI;
           c.fillStyle = '#fde68a';
@@ -29574,7 +29941,7 @@ function drawDeskTab(startY) {
           c.textBaseline = 'top';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#f3e8ff';
-          c.fillText(fitText(`🖋️ 【神州砚道 · 传世四大名砚石渠金匮阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+          c.fillText(fitText(`〔砚道〕【神州砚道 · 传世四大名砚石渠金匮阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
 
           c.font = '13.5px ' + FONT_UI;
           c.fillStyle = '#e9d5ff';
@@ -30284,17 +30651,33 @@ function drawContactsTab(startY) {
 
 // 10.4.5 家族门风后院 Tab (子女培养与传承成长树)
 
-const _CLAN_MOTTOS = [
-  { key: 'motto_clean', label: '⚖️ 清廉奉公', text: '清白做人，严明家规，克己奉公' },
-  { key: 'motto_ind', label: '🏗️ 实业报国', text: '敦本务实，敢为人先，实业兴邦' },
-  { key: 'motto_study', label: '📚 诗书传家', text: '积善成德，读书明理，功在长远' }
+const _CLAN_MOTTOS_HANWEI = [
+  { key: 'motto_clean', label: '〔清德〕清白传家', text: '行己有耻，清廉端肃，克己奉公' },
+  { key: 'motto_ind', label: '〔坞壁〕农耕实边', text: '辟地屯粮，修筑坞壁，经世济民' },
+  { key: 'motto_study', label: '〔经史〕诗礼继世', text: '治经明理，积善修德，功在长远' }
 ];
 
-const _PARENT_ACTS = [
-  { id: 'nourish', label: '💊 营养品', cost: 3000 },
-  { id: 'house', label: '🏡 修祖屋', cost: 20000 },
-  { id: 'trip', label: '🚩 看升旗', cost: 12000 }
+const _CLAN_MOTTOS_MODERN = [
+  { key: 'motto_clean', label: '〔廉政〕清廉奉公', text: '清白做人，严明家规，克己奉公' },
+  { key: 'motto_ind', label: '〔实业〕产业报国', text: '敦本务实，敢为人先，实业兴邦' },
+  { key: 'motto_study', label: '〔书香〕诗书传家', text: '积善成德，读书明理，功在长远' }
 ];
+
+const _CLAN_MOTTOS = _CLAN_MOTTOS_HANWEI;
+
+const _PARENT_ACTS_HANWEI = [
+  { id: 'nourish', label: '草木调摄', cost: 3000 },
+  { id: 'house', label: '拓修宗祠', cost: 20000 },
+  { id: 'trip', label: '京师游学', cost: 12000 }
+];
+
+const _PARENT_ACTS_MODERN = [
+  { id: 'nourish', label: '调摄滋补', cost: 3000 },
+  { id: 'house', label: '修缮祖屋', cost: 20000 },
+  { id: 'trip', label: '名城见闻', cost: 12000 }
+];
+
+const _PARENT_ACTS = _PARENT_ACTS_HANWEI;
 
 // ==========================================
 // 🏛️ 华夏三千年世家大系 · 宗族门阀交互中枢 (WeChat Mini-Game Canvas 2D)
@@ -30771,7 +31154,7 @@ function drawClanEstablishmentModal() {
     bg: state.isClanProfileLoadingFromCloud ? 'rgba(75, 85, 99, 0.85)' : 'rgba(180, 83, 9, 0.95)',
     border: state.isClanProfileLoadingFromCloud ? '#9ca3af' : '#fde047',
     borderWidth: 1.2,
-    text: state.isClanProfileLoadingFromCloud ? "⏳ 云端寻谱中 · 请稍候..." : "🔥 焚香告庙 · 永定传世世家 ➔",
+    text: state.isClanProfileLoadingFromCloud ? "〔候〕云端寻谱中 · 请稍候..." : "✦ 焚香告庙 · 永定传世世家 ➔",
     font: 'bold 13.5px ' + FONT_CHRONICLE,
     textColor: state.isClanProfileLoadingFromCloud ? '#d1d5db' : '#fef08a',
     priority: 110,
@@ -31526,7 +31909,7 @@ function claimClanTrustDividends() {
   fam.clanTrust.lastDividendYear = state.year;
   saveClanProfile(fam);
   playSoundEffect('cash');
-  showToast(`【宗族义庄信托】拨付公元${state.year}年岁律分红 ¥${divAmount.toLocaleString()}！族产庇荫子孙！`, "gold");
+  showToast(`【宗族义庄信托】拨付公元${state.year}年岁律分红 ${formatCurrency(divAmount, state.year)}！族产庇荫子孙！`, "gold");
   requestRender();
 }
 
@@ -31576,7 +31959,7 @@ function proposeHistoricalMarriage(houseIdx) {
   state.capital = (state.capital || 0) + personalShare;
   saveClanProfile(fam);
   playSoundEffect('fanfare');
-  showToast(`【秦晋之好】喜与【${house.province}·${house.surname}氏·${house.hallName}】联姻！公积金+¥${(house.dowryGift || 8000).toLocaleString()}，个人添妆+¥${personalShare.toLocaleString()}，声望+${house.prestigeBonus}！`, "gold");
+  showToast(`【秦晋之好】喜与【${house.province}·${house.surname}氏·${house.hallName}】联姻！公积金+${formatCurrency(house.dowryGift || 8000, state.year)}，个人添妆+${formatCurrency(personalShare, state.year)}，声望+${house.prestigeBonus}！`, "gold");
   requestRender();
 }
 
@@ -31800,13 +32183,17 @@ function executeChronicleChoice(optIdx) {
     }
 
     session.isEpochSettled = true;
-    const nextEp = ep + 1;
     fam.timeline.completedEpochs = fam.timeline.completedEpochs || {};
     fam.timeline.completedEpochs[ep] = true;
-    fam.timeline.currentEpochIndex = Math.min(15, nextEp);
-
-    if (EPOCH_START_YEARS[nextEp]) {
-      fam.timeline.currentYear = EPOCH_START_YEARS[nextEp];
+    if (fam.currentSeasonId === 'season_1_han_wei' || !fam.currentSeasonId) {
+      fam.timeline.currentEpochIndex = 1;
+      fam.currentSeasonId = 'season_1_han_wei';
+    } else {
+      const nextEp = ep + 1;
+      fam.timeline.currentEpochIndex = Math.min(15, nextEp);
+      if (EPOCH_START_YEARS[nextEp]) {
+        fam.timeline.currentYear = EPOCH_START_YEARS[nextEp];
+      }
     }
 
     saveClanProfile(fam);
@@ -32433,7 +32820,7 @@ function drawSeasonSettlementModal() {
       bg: '#78350f',
       border: '#f59e0b',
       borderWidth: 1.2,
-      text: '👑 抢先演练新季 ➔',
+      text: '🌿 续写汉魏新篇 ➔',
       font: 'bold 11px ' + FONT_CHRONICLE,
       textColor: '#fef08a',
       priority: 105,
@@ -32484,7 +32871,7 @@ function drawSeasonSettlementModal() {
       bg: '#78350f',
       border: '#f59e0b',
       borderWidth: 1.5,
-      text: fitText(`👑 启程${nextSName} · 承接百年门阀余荫 ➔`, cardW - 36, 'bold 12.5px ' + FONT_CHRONICLE),
+      text: fitText(`🌿 开辟宗门新支脉 · 续写汉魏风华 ➔`, cardW - 36, 'bold 12.5px ' + FONT_CHRONICLE),
       font: 'bold 12.5px ' + FONT_CHRONICLE,
       textColor: '#fef08a',
       priority: 105,
@@ -33561,17 +33948,24 @@ function drawFamilyLineageSection(startY) {
   ctx.textBaseline = 'top';
   ctx.font = 'bold 13px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#fef08a';
-  ctx.fillText(`🏛️ 四、宗祠金册 · 已录入先祖 (${geneList.length} 位)`, padX + 14, curY + 8);
+  ctx.fillText(`🏛️ 四、宗祠金册 · 已入祀先贤 (${geneList.length} 位)`, padX + 14, curY + 8);
 
   ctx.font = '11px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#cbd5e1';
   if (geneList.length === 0) {
-    ctx.fillText("我族方肇基业，当前由阁下执掌第一代始祖大纛！", padX + 18, curY + 30);
-    ctx.fillText("善修经学德行，深固坞壁部曲，百年后勋业皆载于本庙！", padX + 18, curY + 50);
+    ctx.fillText("我族方肇基业，当前由阁下执掌宗门开基大纛！", padX + 18, curY + 30);
+    ctx.fillText("无论嫡长、同宗兄弟或旁系支脉，凡有功于宗门者皆入祀太庙！", padX + 18, curY + 50);
   } else {
     const latestAnc = geneList[geneList.length - 1];
-    ctx.fillText(`• 先祖【${latestAnc.name || '先公'}】享寿 ${latestAnc.deathAge || 60} 载 · 官至【${latestAnc.finalRankTitle || '名门布衣'}】`, padX + 18, curY + 30);
-    ctx.fillText(`• 遗泽：清誉声望 ${latestAnc.score || 80} 分 · 庇佑后嗣起家出仕`, padX + 18, curY + 50);
+    const ancName = latestAnc.fullName || latestAnc.name || '先公';
+    const ancAge = Array.isArray(latestAnc.lifespan)
+      ? (latestAnc.lifespan[1] - latestAnc.lifespan[0])
+      : (latestAnc.deathAge || 60);
+    const ancTitle = latestAnc.officialTitle || latestAnc.finalRankTitle || '名门处士';
+    const ancPosthumous = latestAnc.posthumousTitle || '恭穆公';
+    const ancPrestige = latestAnc.prestigeGain || latestAnc.score || 50;
+    ctx.fillText(`• 近期入祀：【${ancName}】（${latestAnc.successorRole || '宗门先贤'}）享寿 ${ancAge} 载 · 官至【${ancTitle}】`, padX + 18, curY + 30);
+    ctx.fillText(`• 宗祠尊谥：【${ancPosthumous}】· 增广宗门声望 +${ancPrestige} 分，泽被阖族`, padX + 18, curY + 50);
   }
 
   curY += geneCardH + 10;
@@ -33644,51 +34038,100 @@ function drawFamilyTabFrontierSection(startY) {
 
   curY += bannerH + 12;
 
-  // 1.5 前沿状态与大盘卡片 (Frontier Status & Industry Index Card)
-  const frontierYear = state.currentFrontierYear || (activeChrono && activeChrono.frontierYear) || 2035;
-  const isFrontierBlocked = curYear >= frontierYear;
-  const fCardH = 106;
+  // 1.5 篇章或前沿状态卡片
+  if (curYear >= 2000) {
+    const frontierYear = (state && state.currentFrontierYear) || (activeChrono && activeChrono.frontierYear) || 2035;
+    const isFrontierBlocked = curYear >= frontierYear;
+    const fCardH = 106;
 
-  if (isFrontierBlocked) {
-    ctx.fillStyle = '#26161c';
-    roundRect(ctx, padX, curY, w, fCardH, 6, true, true, '#b45309', 1.5);
-    drawCornerOrnaments(ctx, padX, curY, w, fCardH, 5, '#f59e0b');
+    if (isFrontierBlocked) {
+      ctx.fillStyle = '#26161c';
+      roundRect(ctx, padX, curY, w, fCardH, 6, true, true, '#b45309', 1.5);
+      drawCornerOrnaments(ctx, padX, curY, w, fCardH, 5, '#f59e0b');
 
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.font = 'bold 14px ' + FONT_CHRONICLE;
-    ctx.fillStyle = '#fef08a';
-    ctx.fillText("⏳ 岁月未至 · 敬候盛世", padX + w / 2, curY + 14);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.font = 'bold 14px ' + FONT_CHRONICLE;
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText("⏳ 岁月未至 · 敬候盛世", padX + w / 2, curY + 14);
 
-    ctx.font = '12px ' + FONT_CHRONICLE;
-    ctx.fillStyle = '#cbd5e1';
-    ctx.fillText(`本家族已繁衍推进至公元 ${curYear} 年，达到当前版本最高视界！`, padX + w / 2, curY + 38);
-    ctx.fillText(`当前岁月前沿线：公元 ${frontierYear} 年。请静候运营开放下一个崭新纪元！`, padX + w / 2, curY + 58);
-    ctx.fillText("家族功德声望已完好封存入云端，新时代开启时将第一时刻为您鸣钟！", padX + w / 2, curY + 78);
+      ctx.font = '12px ' + FONT_CHRONICLE;
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillText(`本家族已繁衍推进至公元 ${curYear} 年，达到当前版本最高视界！`, padX + w / 2, curY + 38);
+      ctx.fillText(`当前岁月前沿线：公元 ${frontierYear} 年。请静候运营开放下一个崭新纪元！`, padX + w / 2, curY + 58);
+      ctx.fillText("家族功德声望已完好封存入云端，新时代开启时将第一时刻为您鸣钟！", padX + w / 2, curY + 78);
+    } else {
+      ctx.fillStyle = '#141e28';
+      roundRect(ctx, padX, curY, w, fCardH, 6, true, true, '#0284c7', 1.5);
+      drawCornerOrnaments(ctx, padX, curY, w, fCardH, 5, '#38bdf8');
+
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.font = 'bold 14px ' + FONT_CHRONICLE;
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillText("🚀 新纪元已开 · 时代号角吹响", padX + 14, curY + 12);
+
+      ctx.font = '11.5px ' + FONT_CHRONICLE;
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillText(`前沿线已推进至公元 ${frontierYear} 年！家族可继续破浪前行，亲历崭新历史！`, padX + 18, curY + 34);
+
+      ctx.font = 'bold 12px ' + FONT_CHRONICLE;
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText("📈 全服宏观产业景气度大盘", padX + 18, curY + 56);
+
+      ctx.font = '11px ' + FONT_UI;
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText("硬核科技: 1.03  空间产业: 1.05  清洁能源: 1.02  深海远洋: 1.02", padX + 18, curY + 76);
+    }
+    curY += fCardH + 12;
   } else {
-    ctx.fillStyle = '#141e28';
-    roundRect(ctx, padX, curY, w, fCardH, 6, true, true, '#0284c7', 1.5);
-    drawCornerOrnaments(ctx, padX, curY, w, fCardH, 5, '#38bdf8');
+    // 汉魏四卷历史篇章切入选择器 (Han-Wei 4-Chapter Chronicles)
+    const chapters = [
+      { idx: 1, title: '卷一 · 东汉永元', range: [100, 145], desc: '和帝邓后 · 经学筑基 · 坞壁初建' },
+      { idx: 2, title: '卷二 · 桓灵党锢', range: [146, 190], desc: '宦官权戚 · 士林清议 · 黄巾倡乱' },
+      { idx: 3, title: '卷三 · 建安风骨', range: [191, 235], desc: '群雄割据 · 官渡赤壁 · 三国鼎立' },
+      { idx: 4, title: '卷四 · 正始太康', range: [236, 280], desc: '高平陵变 · 魏晋玄风 · 太康一统' }
+    ];
+
+    const chCardH = 146;
+    ctx.fillStyle = '#181422';
+    roundRect(ctx, padX, curY, w, chCardH, 6, true, true, '#d97706', 1.2);
+    drawCornerOrnaments(ctx, padX, curY, w, chCardH, 5, '#f59e0b');
 
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.font = 'bold 14px ' + FONT_CHRONICLE;
-    ctx.fillStyle = '#7dd3fc';
-    ctx.fillText("🚀 新纪元已开 · 时代号角吹响", padX + 14, curY + 12);
-
-    ctx.font = '11.5px ' + FONT_CHRONICLE;
-    ctx.fillStyle = '#cbd5e1';
-    ctx.fillText(`前沿线已推进至公元 ${frontierYear} 年！家族可继续破浪前行，亲历崭新历史！`, padX + 18, curY + 34);
-
-    ctx.font = 'bold 12px ' + FONT_CHRONICLE;
+    ctx.font = 'bold 13px ' + FONT_CHRONICLE;
     ctx.fillStyle = '#fef08a';
-    ctx.fillText("📈 全服宏观产业景气度大盘", padX + 18, curY + 56);
+    ctx.fillText("📜 汉魏四卷历史篇章 · 历世谱系图鉴", padX + 14, curY + 10);
 
-    ctx.font = '11px ' + FONT_UI;
-    ctx.fillStyle = '#94a3b8';
-    ctx.fillText("硬核科技: 1.03  空间产业: 1.05  清洁能源: 1.02  深海远洋: 1.02", padX + 18, curY + 76);
+    const geneListAll = (fam && fam.genealogyList) || [];
+    const colW = Math.floor((w - 28) / 2);
+    const colH = 46;
+    chapters.forEach((chItem, cIdx) => {
+      const cx = padX + 10 + (cIdx % 2) * (colW + 8);
+      const cy = curY + 32 + Math.floor(cIdx / 2) * (colH + 8);
+      const count = geneListAll.filter(a => {
+        const birth = Array.isArray(a.lifespan) ? a.lifespan[0] : 100;
+        return birth >= chItem.range[0] && birth <= chItem.range[1];
+      }).length;
+
+      ctx.fillStyle = 'rgba(28, 20, 24, 0.85)';
+      roundRect(ctx, cx, cy, colW, colH, 4, true, true, '#5c4538', 1);
+
+      ctx.font = 'bold 11px ' + FONT_CHRONICLE;
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText(`${chItem.title} (${chItem.range[0]}~${chItem.range[1]})`, cx + 6, cy + 5);
+
+      ctx.font = '10px ' + FONT_UI;
+      ctx.fillStyle = '#a7f3d0';
+      ctx.fillText(`已入祀先贤: ${count} 位`, cx + 6, cy + 20);
+
+      ctx.font = '9.5px ' + FONT_CHRONICLE;
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(fitText(chItem.desc, colW - 12, '9.5px ' + FONT_CHRONICLE), cx + 6, cy + 32);
+    });
+    curY += chCardH + 12;
   }
-  curY += fCardH + 12;
 
   // 2. 宗族存续与覆灭重生规则卡片 (Clan Succession & Extinction Rule)
   const ruleH = 110;
@@ -33919,12 +34362,19 @@ function drawFamilyPedigreeTree(startY) {
         ctx.textBaseline = 'top';
         ctx.font = 'bold 13px ' + FONT_CHRONICLE;
         ctx.fillStyle = '#fef08a';
-        const originTag = (anc.successorOrigin === 'disciple_mentee') ? '【📜 衣钵门生】' :
-                          (anc.successorOrigin === 'affinity_inlaw') ? '【💍 秦晋联姻】' :
-                          (anc.successorOrigin === 'clan_nephew') ? '【🤝 宗房过继】' :
-                          (anc.successorOrigin === 'clan_branch_heir') ? '【🌿 宗祠公选】' :
-                          '【👑 宗门正统】';
-        ctx.fillText(`🌲 第 ${anc.generation} 世 ·【${anc.eraName}】${anc.fullName} ${originTag}`, padX + 12, curY + 10);
+        const ORIGIN_TAG_MAP = {
+          'same_gen_brother': '【🤝 同宗昆仲】',
+          'lineage_heir':     '【👑 宗门嫡系】',
+          'lineage_child':    '【👑 宗门嫡系】',
+          'adopted_clan':     '【🌿 旁系支脉】',
+          'foster_son':       '【⚔️ 赐姓义子】',
+          'retainer':         '【🛡️ 家臣掌事】',
+          'virtuous_manager': '【📜 贤良掌事】'
+        };
+        const originTag = ORIGIN_TAG_MAP[anc.successorOrigin] || `【${anc.successorRole || '宗门子弟'}】`;
+        const playOrderNum = anc.playOrder || (aIdx + 1);
+        const genNum = anc.generation || 1;
+        ctx.fillText(`🌲 宗门第 ${playOrderNum} 贤（${genNum}世·${anc.branchName || '宗房'}）·【${anc.eraName || '汉魏风骨'}】${anc.fullName} ${originTag}`, padX + 12, curY + 10);
 
         ctx.font = '11px ' + FONT_UI;
         ctx.fillStyle = '#a7f3d0';
@@ -33971,14 +34421,14 @@ function drawFamilyPedigreeTree(startY) {
       ctx.font = 'bold 14px ' + FONT_CHRONICLE;
       ctx.fillStyle = '#fef08a';
       const ancName = state.dynasticAncestor ? state.dynasticAncestor.name : `${state.name[0]}氏开基先祖`;
-      ctx.fillText(`🌲 一代宗主 · 拓荒元勋【${ancName}】`, padX + 12, curY + 10);
+      ctx.fillText(`🌲 一代宗主 · 汉魏开基【${ancName}】`, padX + 12, curY + 10);
 
-      ctx.font = '13.5px ' + FONT_UI;
+      ctx.font = '12px ' + FONT_UI;
       ctx.fillStyle = '#cbd5e1';
-      ctx.fillText("功德录：改革初年拓荒拓土，奠定百年基石门楣。", padX + 12, curY + 32);
-      ctx.font = 'italic 13.5px ' + FONT_CHRONICLE;
+      ctx.fillText("功德录：汉安永元之际辟地筑坞堡，研读治经，奠定百年世家门楣。", padX + 12, curY + 32);
+      ctx.font = 'italic 12px ' + FONT_CHRONICLE;
       ctx.fillStyle = '#f59e0b';
-      ctx.fillText("“崇德重道，诗书传家，以义为利，不负山河”", padX + 12, curY + 54);
+      ctx.fillText("“崇德重道，诗书传家，以义为利，深壁固垒”", padX + 12, curY + 54);
     }
     curY += ancH;
 
@@ -34010,12 +34460,13 @@ function drawFamilyPedigreeTree(startY) {
     ctx.textBaseline = 'top';
     ctx.font = 'bold 14px ' + FONT_CHRONICLE;
     ctx.fillStyle = '#fef08a';
-    ctx.fillText(`👑 当代家主 · 第 ${state.dynasticGeneration || 1} 代掌门【${state.name}】`, padX + 12, curY + 12);
+    const playOrderCount = (state.familyProfile && state.familyProfile.genealogyList) ? state.familyProfile.genealogyList.length : 0;
+    ctx.fillText(`👑 当值主事 · ${state.clanBranch || '长房嫡脉'}第 ${state.lineageGeneration || 1} 世【${state.name}】（总第 ${playOrderCount + 1} 任）`, padX + 12, curY + 12);
 
-    ctx.font = '13.5px ' + FONT_UI;
+    ctx.font = '13px ' + FONT_UI;
     ctx.fillStyle = '#e2e8f0';
-    ctx.fillText(`生平位阶：${state.rankName} · ${state.jobTitle}`, padX + 12, curY + 36);
-    ctx.fillText(`宗族声望：${state.family.prestige} 分 · 族产结余：¥${(state.capital || 0).toLocaleString()}`, padX + 12, curY + 56);
+    ctx.fillText(`生平位阶：${state.rankName || '士林名流'} · ${state.jobTitle || '处士'}`, padX + 12, curY + 36);
+    ctx.fillText(`宗族声望：${(state.family && state.family.prestige) || 50} 分 · 个人家资：${formatCurrency(state.capital || 0, state.year)}`, padX + 12, curY + 56);
     ctx.fillText(state.family.spouseName ? `贤内助：【${state.family.spouseName}】· 齐家治业同舟共济` : `婚姻现状：尚未成家 · 潜心笃行立业`, padX + 12, curY + 76);
 
     // 当代家主朱红堂印
@@ -34049,21 +34500,18 @@ function drawFamilyPedigreeTree(startY) {
     ctx.fillStyle = '#fef08a';
 
     const hasChild = (state.family.children && state.family.children.length > 0) || !!state.family.childName;
-    const childObj = (state.family.children && state.family.children.length > 0) ? state.family.children[0] : (state.family.childName ? { name: state.family.childName, birthYear: state.birthYear + 26 } : null);
+    const childObj = (state.family.children && state.family.children.length > 0) ? state.family.children[0] : (state.family.childName ? { name: state.family.childName, birthYear: (state.birthYear || 100) + 26 } : null);
 
+    ctx.fillText(`🌱 宗门储材 · 嫡子 / 同宗兄弟 / 旁支宗室 / 义子门生皆可承祧`, padX + 12, curY + 12);
+    ctx.font = '12px ' + FONT_CHRONICLE;
+    ctx.fillStyle = '#cbd5e1';
     if (childObj) {
       const cAge = childObj.birthYear ? Math.max(0, state.year - childObj.birthYear) : Math.max(1, state.age - 26);
-      ctx.fillText(`🌱 传世子嗣 · 第 ${(state.dynasticGeneration || 1) + 1} 代【${childObj.name}】（${cAge}岁）`, padX + 12, curY + 12);
-      ctx.font = '12px ' + FONT_CHRONICLE;
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillText(`培养志向：${childObj.direction || '勤学笃行 · 立志投身国家建设'}`, padX + 12, curY + 34);
-      ctx.fillText(fitText("家风荫泽：家族兴办的教育信托与人脉名望将世代传承，庇佑后人。", w - 24, '12px ' + FONT_CHRONICLE), padX + 12, curY + 54);
+      ctx.fillText(`膝下嫡嗣：【${childObj.name}】（${cAge}岁）· 培养志向：${childObj.direction || '研读经史 · 传承汉魏门风，图立朝察举'}`, padX + 12, curY + 34);
+      ctx.fillText(fitText("宗族家风：族产信托与宗室名望将世代流芳，同宗昆仲共筑汉魏门阀。", w - 24, '12px ' + FONT_CHRONICLE), padX + 12, curY + 54);
     } else {
-      ctx.fillText(`🌱 传世子嗣 · 膝下尚无子嗣`, padX + 12, curY + 12);
-      ctx.font = '12px ' + FONT_CHRONICLE;
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillText("待成家立业喜迎麟儿后，将在六岁与十八岁开启求学成才大计。", padX + 12, curY + 34);
-      ctx.fillText("当前可先行积累家产与永续信托基金，庇佑后代无虞。", padX + 12, curY + 54);
+      ctx.fillText("成家立业后喜迎麟儿，亦可随时依宗法自同宗兄弟或旁系子侄中择贤承祧。", padX + 12, curY + 34);
+      ctx.fillText("族产信托与宗室名望将世代流芳，同宗昆仲共筑汉魏门阀。", padX + 12, curY + 54);
     }
   }
 
@@ -34079,11 +34527,11 @@ function drawFamilyPedigreeTree(startY) {
     ctx.textBaseline = 'top';
     ctx.font = 'bold 14px ' + FONT_CHRONICLE;
     ctx.fillStyle = '#fef08a';
-    ctx.fillText("🏛️ 宗祠金石家训铭碑", padX + 12, curY + 10);
+    ctx.fillText("〔铭碑〕 宗祠金石家训铭碑", padX + 12, curY + 10);
 
     ctx.font = '12px ' + FONT_CHRONICLE;
     ctx.fillStyle = '#d4c7b8';
-    const curMotto = state.clanMotto || '清廉奉公，实业报国，敦睦宗族';
+    const curMotto = state.clanMotto || ((state.year && state.year <= 500) || isDynasticEra(state.year) ? '清白传家，诗礼继世，耕读传宗' : '清廉奉公，实业报国，敦睦宗族');
     ctx.fillText(`当前家风奉行：【${curMotto}】`, padX + 12, curY + 30);
 
     const mBtnW = (w - 36) / 3;
@@ -36007,16 +36455,18 @@ function drawActionBar() {
     } else if (targetAge === 15) {
       labelText = isNarrowScreen ? "束发志学 ➔" : "光阴箭催 · 十五岁束发志学 ➔";
     } else if (targetAge >= 18) {
+      const isFemaleBtn = (state.gender === 'female' || state.gender === '女');
+      const adultPrefix = isFemaleBtn ? "及笄" : "弱冠";
       if (state.youthPath === 'scholar') {
-        labelText = isNarrowScreen ? "弱冠试策 ➔" : "弱冠成丁 · 登明堂试策对策 ➔";
+        labelText = isNarrowScreen ? `${adultPrefix}试策 ➔` : `${adultPrefix}成丁 · 登明堂试策对策 ➔`;
       } else if (state.youthPath === 'military') {
-        labelText = isNarrowScreen ? "授符统兵 ➔" : "弱冠成丁 · 授符统领部曲 ➔";
+        labelText = isNarrowScreen ? "授符统兵 ➔`" : `${adultPrefix}成丁 · 授符统领部曲 ➔`;
       } else if (state.youthPath === 'commerce') {
-        labelText = isNarrowScreen ? "掌理族产 ➔" : "弱冠成丁 · 掌理宗门家产 ➔";
+        labelText = isNarrowScreen ? "掌理族产 ➔" : `${adultPrefix}成丁 · 掌理宗门家产 ➔`;
       } else if (state.youthPath === 'med') {
-        labelText = isNarrowScreen ? "悬壶行医 ➔" : "弱冠成丁 · 悬壶济世行医 ➔";
+        labelText = isNarrowScreen ? "悬壶行医 ➔" : `${adultPrefix}成丁 · 悬壶济世行医 ➔`;
       } else {
-        labelText = isNarrowScreen ? "察举出仕 ➔" : "弱冠及冠 · 州郡察举孝廉出仕 ➔";
+        labelText = isNarrowScreen ? "察举出仕 ➔" : (isFemaleBtn ? "及笄及岁 · 宗门引荐出仕 ➔" : "弱冠及冠 · 州郡察举孝廉出仕 ➔");
       }
     } else if (nextStep > 1) {
       labelText = isNarrowScreen ? `跃进至${targetAge}岁 ➔` : `光阴箭催 · 两年一跃 (${targetAge}岁) ➔`;
@@ -43260,7 +43710,9 @@ function drawDossierModal() {
   ctx.fillText(`莫逆名仕同盟：${swornGuardianCount} 位`, cardX + 28, zY + 92);
 
   // 朱砂官方验印
-  drawCinnabarSeal(ctx, state.clean >= 75 ? "廉洁奉公" : (state.rep >= 70 ? "大国栋梁" : "实干兴邦"), cardX + cardW - 65, zY + 64, 30, -0.12);
+  const isHanWeiSeal = (state.year && state.year <= 500) || (typeof isDynasticEra === 'function' && isDynasticEra(state.year));
+  const dossierSealText = isHanWeiSeal ? (state.clean >= 75 ? "清操素砺" : (state.rep >= 70 ? "社稷之栋" : "家声克振")) : (state.clean >= 75 ? "廉洁奉公" : (state.rep >= 70 ? "大国栋梁" : "实干兴邦"));
+  drawCinnabarSeal(ctx, dossierSealText, cardX + cardW - 65, zY + 64, 30, -0.12);
 
   // 双按钮组：【💾 手动封卷】与【合上档案卷宗】
   const isNarrowDossier = cardW < 330;
@@ -43317,23 +43769,42 @@ function drawDossierModal() {
 
 // 六十岁传世人生回忆录全景画卷系统 (Procedural Lifetime Memoir Scroll)
 function generateLifetimeMemoir() {
-  const tConf = TRACK_CONFIGS[state.track] || {};
+  const isHanWeiMemoir = (state.year && state.year <= 500) || (typeof isDynasticEra === 'function' && isDynasticEra(state.year));
+  const tConf = (typeof TRACK_CONFIGS !== 'undefined' && TRACK_CONFIGS[state.track]) ? TRACK_CONFIGS[state.track] : {};
+  const hanWeiTrackMap = {
+    official: '门阀仕途',
+    scholar: '儒林太学',
+    merchant: '豪强庄园',
+    military: '行伍戎马',
+    recluse: '林泉隐逸'
+  };
+  const trackTitle = isHanWeiMemoir
+    ? (hanWeiTrackMap[state.track] || (tConf && tConf.title) || '门阀仕途')
+    : (tConf.name || tConf.title || '基层一线');
+
   let epitaph = "【勤勉持正 · 不负平生】";
-  if (state.rep >= 90) epitaph = "【清风亮节 · 众望所归】";
-  else if (state.capital >= 1000000) epitaph = "【白手兴家 · 散财有道】";
+  if (state.rep >= 90) epitaph = isHanWeiMemoir ? "【海内人望 · 冠冕名流】" : "【清风亮节 · 众望所归】";
+  else if (state.capital >= 1000000) epitaph = isHanWeiMemoir ? "【陶朱猗顿 · 膏腴安族】" : "【白手兴家 · 散财有道】";
 
   const rawName = sanitizeUserInput(state.name || '陈守正');
   const safeMemoirName = (!rawName || rawName.includes('***')) ? '陈守正' : rawName;
-  const rawMotto = sanitizeUserInput(state.clanMotto || '清廉奉公，实业报国');
-  const safeMotto = (!rawMotto || rawMotto.includes('***')) ? '清廉奉公，实业报国' : rawMotto;
+  const defaultClanMotto = isHanWeiMemoir ? '清白传家，诗礼继世' : '清廉奉公，实业报国';
+  const rawMotto = sanitizeUserInput(state.clanMotto || defaultClanMotto);
+  const safeMotto = (!rawMotto || rawMotto.includes('***')) ? defaultClanMotto : rawMotto;
 
   const careerYears = Math.max(1, (state.age || 60) - 18);
-  const startYear = (state.year || 2032) - careerYears;
-  const origInfo = FAMILY_ORIGINS[state.originKey] || {};
-  const trackTitle = tConf.name || state.track || '基层一线';
+  const startYear = state.birthYear ? (state.birthYear + 18) : ((state.year || (isHanWeiMemoir ? 160 : 2032)) - careerYears);
+  const origInfo = (typeof FAMILY_ORIGINS !== 'undefined' && FAMILY_ORIGINS[state.originKey]) ? FAMILY_ORIGINS[state.originKey] : {};
+  const clanOriginName = (state.familyProfile && state.familyProfile.fullName) || origInfo.name || (isHanWeiMemoir ? '耕读名门' : '寻常人家');
 
-  const keyMoments = [
-    `【初入世途】${startYear}年自「${origInfo.name || '寻常人家'}」起步，投身${trackTitle}一线；`,
+  const keyMoments = isHanWeiMemoir ? [
+    `【初入世途】${startYear}年自「${clanOriginName}」出仕，躬身立于${trackTitle}；`,
+    `【半生耕耘】经世${careerYears}载，历任至「${state.rankName || '世家名宿'} · ${state.jobTitle || '州郡治中'}」；`,
+    `【立身持家】晚年操守清誉清明，以「${safeMotto}」垂宪儿孙；`,
+    `【平生故交】一生得 ${(state.contacts && state.contacts.filter(c => c.isSwornGuardian).length) || 1} 位名仕知交扶持相伴；`,
+    `【经世功绩】历年考课政声折合 ${state.governanceScore || 85} 分，载于郡望谱牒。`
+  ] : [
+    `【初入世途】${startYear}年自「${clanOriginName}」起步，投身${trackTitle}一线；`,
     `【半生耕耘】从业${careerYears}载，历任至「${state.rankName || '业务骨干'} · ${state.jobTitle || '资深专员'}」；`,
     `【立身持家】晚年清誉评分 ${state.clean}，以「${safeMotto}」训诫儿孙；`,
     `【平生故交】一生得 ${(state.contacts && state.contacts.filter(c => c.isSwornGuardian).length) || 1} 位知交故旧扶持相伴；`,
@@ -43570,7 +44041,7 @@ function drawEndgameModal() {
   };
   let trackCareerTitle = trackCareerTitles[trKey] || ((state.rankName || '资深骨干') + ' · ' + (state.jobTitle || '技术专员'));
   if (isHanWeiEnd) {
-    const isLiuChaoEnd = state.year > 300;
+    const isLiuChaoEnd = false;
     const hwTrackTitles = isLiuChaoEnd ? {
       official: highRep ? "台阁领袖 · 出将入相都督中外" : "清要显官 · 九品高第典掌枢机",
       scholar: highRep ? "玄风领袖 · 挥毫法帖名重江左" : "名理硕学 · 谈玄析理风雅推崇",
@@ -43616,7 +44087,7 @@ function drawEndgameModal() {
   const curAnc = state.lastInscribedAncestor;
   if (curFam && curAnc) {
     ctx.fillStyle = '#fde68a';
-    const clanLine = `🏛️ 入谱归宗：载入【${curFam.fullName}】第 ${curAnc.generation} 世 · 谥【${curAnc.posthumousTitle}】· 注入公积+¥${Math.floor((state.capital || 0) * 0.3).toLocaleString()}`;
+    const clanLine = `🏛️ 入谱归宗：载入【${curFam.fullName}】第 ${curAnc.generation} 世 · 谥【${curAnc.posthumousTitle}】· 注入公积+${formatCurrency(Math.floor((state.capital || 0) * 0.3), state.year)}`;
     ctx.fillText(fitText(clanLine, cardW - 48, '12px ' + FONT_CHRONICLE), cardX + 22, achY + 6 + achLineH * 4);
   } else {
     ctx.fillStyle = '#fde68a';
@@ -44419,7 +44890,9 @@ function drawToasts() {
   }
 
   const alpha = tAge > 1800 ? (2400 - tAge) / 600 : Math.min(1.0, tAge / 200);
-  const toastY = (typeof getContentTop === 'function') ? (getContentTop() + 14) : (getTopHeaderBottom() + 140);
+  const toastY = (typeof getContentTop === 'function' && typeof getContentH === 'function')
+    ? Math.round(getContentTop() + getContentH() * 0.45)
+    : Math.round(screenHeight * 0.45);
 
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -45853,6 +46326,8 @@ if (__DEV__ && typeof GameGlobal !== "undefined") {
     adjustGovernancePolicy,
     setGovernancePreset,
     drawFamilyPedigreeTree,
+    drawFamilyLineageSection,
+    drawFamilyTabFrontierSection,
     openTeaBanquetsModal,
     generateLifetimeMemoir,
     triggerInkWashTransition,
@@ -46357,6 +46832,7 @@ if (typeof global !== 'undefined' && __DEV__) {
   global.saveClanProfile = saveClanProfile;
   global.drawFamilyTab = drawFamilyTab;
   global.drawFamilyPedigreeTree = drawFamilyPedigreeTree;
+  global.drawFamilyLineageSection = drawFamilyLineageSection;
   global.drawFamilyTabLeaderboardSection = drawFamilyTabLeaderboardSection;
   global.drawFamilyTabAllianceSection = drawFamilyTabAllianceSection;
   global.drawFamilyTabFrontierSection = drawFamilyTabFrontierSection;

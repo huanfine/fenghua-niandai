@@ -3,8 +3,15 @@
 
 console.log('【风华年代 · 分包】futureEpoch 分包加载成功！');
 
-module.exports = {
+let futureEngine = null;
+try {
+  futureEngine = require('./futureFrontierEngine.js');
+} catch (e) {
+  console.warn('【分包】加载 futureFrontierEngine 失败:', e);
+}
+
+module.exports = Object.assign({
   isLoaded: true,
   epochRange: [2100, 3100],
   version: '1.0.0'
-};
+}, futureEngine || {});

@@ -1,0 +1,53 @@
+{
+  "manifestVersion": "2026.10.15.v1",
+  "updatedAt": "2026-10-15T12:00:00Z",
+  "description": "《风华年代：沧海沉浮录》线上动态内容热更包 (文案、平衡数值与突发事件)",
+  "balanceOverrides": {
+    "rewards": {
+      "promotionBonus": 22000,
+      "endgameSGradeBaseScore": 1000
+    },
+    "TRACK_INCOME_BONUS_SCALE": {
+      "trade": 1.25,
+      "biz": 1.20,
+      "tech": 1.15
+    }
+  },
+  "textOverrides": {
+    "common": {
+      "healthyAdviceTitle": "文明健康游戏提示",
+      "gameSubtitle": "风华年代 · 沧海沉浮录"
+    }
+  },
+  "storiesPatch": [
+    {
+      "id": "patch_era_digital_transformation",
+      "year": 2028,
+      "title": "数字中国新赛道 · 智算融合试点",
+      "desc": "沿海与中西部算力枢纽节点全面并网，国家启动新一代数字协同大工程，重构跨区域资源配置效率。",
+      "category": "时代机遇",
+      "weight": 12,
+      "choices": [
+        {
+          "text": "牵头算法攻关",
+          "statReq": "iq",
+          "reqVal": 65,
+          "costText": "消耗 15 点精力",
+          "successText": "算法模型在算力网络实测中收敛优异，赋能千行百业！",
+          "failText": "算力融合调试遇阻，所幸积累了扎实的工程试验数据。",
+          "effects": { "iq": 4, "rep": 3, "sp": -15 }
+        },
+        {
+          "text": "稳步推进基建",
+          "statReq": "resilience",
+          "reqVal": 60,
+          "costText": "消耗 ¥50,000 资金",
+          "successText": "数字基建坚如磐石，为特区数字经济构筑坚强后盾！",
+          "failText": "工程调度面临多方协调压力，需沉下心扎实筑基。",
+          "effects": { "clean": 3, "resilience": 3, "capital": -50000 }
+        }
+      ]
+    }
+  ],
+  "encountersPatch": []
+}

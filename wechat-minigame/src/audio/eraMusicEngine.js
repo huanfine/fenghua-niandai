@@ -826,6 +826,56 @@ const ERA_BGM_SUITES = {
       { beat: 54,  freq: 196.00, dur: 2.8, inst: 'xiao',  vol: 0.048 }, // G3
       { beat: 58,  freq: 110.00, dur: 5.5, inst: 'guqin', vol: 0.060 }  // A2 低沉古琴大泛音收束
     ]
+  },
+  hanwei: {
+    title: "《汉魏雅乐·广陵清商》", // 汉魏第一赛季门阀世家风骨雅乐 (100-300年)
+    tempoBpm: 60,
+    beatSec: 1.0,
+    totalBeats: 64,
+    chords: [
+      [55.00,  110.00, 164.81, 220.00], // A羽幽邃 (A1, A2, E3, A3)
+      [65.41,  130.81, 196.00, 261.63], // C宫高古 (C2, C3, G3, C4)
+      [73.42,  146.83, 220.00, 293.66], // D商风骨 (D2, D3, A3, D4)
+      [98.00,  146.83, 196.00, 293.66], // G徵沉雄 (G2, D3, G3, D4)
+      [55.00,  110.00, 164.81, 220.00],
+      [65.41,  130.81, 196.00, 261.63],
+      [73.42,  146.83, 220.00, 293.66],
+      [98.00,  146.83, 196.00, 329.63],
+      [55.00,  110.00, 164.81, 220.00],
+      [65.41,  130.81, 196.00, 261.63],
+      [73.42,  146.83, 220.00, 293.66],
+      [98.00,  146.83, 196.00, 293.66],
+      [55.00,  110.00, 164.81, 220.00],
+      [65.41,  130.81, 196.00, 261.63],
+      [98.00,  146.83, 196.00, 293.66],
+      [55.00,  110.00, 164.81, 220.00]
+    ],
+    notes: [
+      // 起·幽谷古琴散音长吟，汉魏相和歌初奠
+      { beat: 0,   freq: 110.00, dur: 3.5, inst: 'guqin',     vol: 0.062 }, // A2 古琴深沉散音
+      { beat: 2,   freq: 146.83, dur: 2.8, inst: 'bianzhong', vol: 0.048 }, // 编钟轻叩 D3
+      { beat: 4,   freq: 220.00, dur: 2.2, inst: 'guqin',     vol: 0.056 }, // A3 按音微揉
+      { beat: 6,   freq: 261.63, dur: 2.0, inst: 'guqin',     vol: 0.054 }, // C4
+      { beat: 8,   freq: 293.66, dur: 3.2, inst: 'xiao',      vol: 0.052 }, // D4 洞箫空谷清吟
+      // 承·建安风骨，古琴泛音与洞箫清越对话
+      { beat: 16,  freq: 392.00, dur: 2.5, inst: 'guqin',     vol: 0.058 }, // G4 泛音
+      { beat: 19,  freq: 440.00, dur: 2.0, inst: 'guqin',     vol: 0.055 }, // A4 泛音
+      { beat: 22,  freq: 329.63, dur: 2.2, inst: 'xiao',      vol: 0.050 }, // E4
+      { beat: 24,  freq: 293.66, dur: 2.8, inst: 'guzheng',   vol: 0.052 }, // D4 古筝流水轻抚
+      { beat: 27,  freq: 220.00, dur: 4.5, inst: 'guqin',     vol: 0.060 }, // A3 大散音留白
+      // 转·金石铿锵，编钟与古琴交相辉映
+      { beat: 32,  freq: 196.00, dur: 3.5, inst: 'bianzhong', vol: 0.052 }, // G3 编钟长鸣
+      { beat: 33,  freq: 293.66, dur: 1.8, inst: 'guqin',     vol: 0.056 }, // D4
+      { beat: 35,  freq: 329.63, dur: 2.0, inst: 'guqin',     vol: 0.054 }, // E4
+      { beat: 38,  freq: 392.00, dur: 2.5, inst: 'xiao',      vol: 0.052 }, // G4
+      { beat: 41,  freq: 440.00, dur: 2.8, inst: 'guqin',     vol: 0.058 }, // A4 按音大滑音
+      { beat: 44,  freq: 329.63, dur: 3.2, inst: 'guzheng',   vol: 0.050 }, // E4
+      // 合·正始玄风，天地悠悠归于浩渺
+      { beat: 48,  freq: 261.63, dur: 2.5, inst: 'guqin',     vol: 0.054 }, // C4
+      { beat: 51,  freq: 220.00, dur: 2.5, inst: 'xiao',      vol: 0.050 }, // A3
+      { beat: 54,  freq: 146.83, dur: 3.5, inst: 'bianzhong', vol: 0.050 }, // D3 钟声隐退
+      { beat: 58,  freq: 110.00, dur: 5.8, inst: 'guqin',     vol: 0.065 }  // A2 苍茫太古余韵
+    ]
   }
 };
 
@@ -834,7 +884,11 @@ const ERA_BGM_SUITES = {
 function getCurrentBgmSuite() {
   const state = _getGameStateFn() || {};
   const age = state.age !== undefined ? state.age : 18;
-  const yr = state.year ? state.year : 1992;
+  const yr = state.year ? state.year : 100;
+  // 汉魏第一赛季（公元 100-300 年及古典纪元）专属雅乐相和歌
+  if (yr <= 500) {
+    return ERA_BGM_SUITES.hanwei || ERA_BGM_SUITES.modern;
+  }
   if (age < 16) return ERA_BGM_SUITES.childhood;
   if (yr < 2000) return ERA_BGM_SUITES.early;
   if (yr < 2013) return ERA_BGM_SUITES.mid;
@@ -879,8 +933,8 @@ function scheduleBgmBeat(exactTime, beatIdx, suite) {
 
     // 结构性段落标志金石之声 (Structural Cadential Accents)
     if (barIdx === 0 || barIdx === 4 || barIdx === 8 || barIdx === 12) {
-      if (suite === ERA_BGM_SUITES.modern) {
-        // 当代沧海回望：灵璧玉磬悠长空灵微鸣
+      if (suite === ERA_BGM_SUITES.modern || suite === ERA_BGM_SUITES.hanwei) {
+        // 当代与汉魏清商雅乐：灵璧玉磬与金石编钟悠长空灵微鸣
         playInstrumentTone('bianqing', chord[0] * 4.0, suite.beatSec * 3.0, 0.032, 0.01, bgmBus, humanTime);
       } else if (suite === ERA_BGM_SUITES.mid) {
         // 千禧盛世：曾侯乙青铜编钟宏大鸣响
@@ -896,7 +950,7 @@ function scheduleBgmBeat(exactTime, beatIdx, suite) {
   // 声部二：丝桐流觞（中景 / 琵琶古筝流水织体与和弦琶音，Plucked String Fluid Texture）
   // ==========================================
   // 采用真正的五声调式行云流水织体，区分强弱拍、主辅交替与声部对位
-  const arpInst = (suite === ERA_BGM_SUITES.childhood) ? 'musicbox' : ((suite === ERA_BGM_SUITES.early && isClimax) ? 'pipa' : 'guzheng');
+  const arpInst = (suite === ERA_BGM_SUITES.childhood) ? 'musicbox' : ((suite === ERA_BGM_SUITES.hanwei) ? 'guqin' : ((suite === ERA_BGM_SUITES.early && isClimax) ? 'pipa' : 'guzheng'));
 
   if (beatInBar === 0) {
     // 拍 1：低音抚弦 (Root Pluck) 沉稳有力
@@ -953,7 +1007,7 @@ function scheduleBgmBeat(exactTime, beatIdx, suite) {
   if (!isLeadNotePlayingThisBeat && beatInBar === 2 && !isIntro) {
     const callPitches = [392.0, 440.0, 523.25, 659.25];
     const fillPitch = callPitches[(barIdx * 2 + 1) % callPitches.length];
-    const fillInst = (suite === ERA_BGM_SUITES.childhood) ? 'musicbox' : (suite === ERA_BGM_SUITES.modern ? 'guqin' : 'guzheng');
+    const fillInst = (suite === ERA_BGM_SUITES.childhood) ? 'musicbox' : ((suite === ERA_BGM_SUITES.modern || suite === ERA_BGM_SUITES.hanwei) ? 'guqin' : 'guzheng');
     playInstrumentTone(fillInst, fillPitch, suite.beatSec * 1.4, 0.024 * sectionGain, 0.02, bgmBus, humanTime);
   }
 

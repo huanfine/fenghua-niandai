@@ -420,15 +420,15 @@ function recordAncestorToGenealogy(family, ancestorRecord) {
   if (!family || !family.genealogyList) return false;
 
   const isGenerational = !!ancestorRecord.isGenerationalRun;
-  const targetEra = ancestorRecord.eraIndex !== undefined ? ancestorRecord.eraIndex : (family.genealogyList.length + 1);
+  // 第一赛季恒定锁定 eraIndex = 1 (汉魏风骨)，严禁按 genealogyList.length 递增纪元！
+  const targetEra = ancestorRecord.eraIndex || 1;
+  const playOrder = family.genealogyList.length + 1;
 
-  // 查重：若是历朝纪元推演，按 eraIndex 幂等去重；若是代际亲历局，按 recordId 幂等去重
-  const existingIdx = isGenerational
-    ? (ancestorRecord.recordId ? family.genealogyList.findIndex(a => a.recordId === ancestorRecord.recordId) : -1)
-    : family.genealogyList.findIndex(a => a.eraIndex === targetEra && !a.isGenerationalRun);
+  const existingIdx = ancestorRecord.recordId
+    ? family.genealogyList.findIndex(a => a.recordId === ancestorRecord.recordId)
+    : -1;
 
   if (existingIdx >= 0) {
-    // 幂等更新：若该条目已归档，仅刷新谥号与勋业，绝不重复虚增代数、族产与声望
     const existing = family.genealogyList[existingIdx];
     if (ancestorRecord.fullName) existing.fullName = ancestorRecord.fullName;
     else if (ancestorRecord.givenName) existing.fullName = `${family.surname}${ancestorRecord.givenName}`;
@@ -438,33 +438,37 @@ function recordAncestorToGenealogy(family, ancestorRecord) {
     if (ancestorRecord.finalDeeds && ancestorRecord.finalDeeds.length > 0) existing.finalDeeds = ancestorRecord.finalDeeds;
     if (ancestorRecord.successorOrigin) existing.successorOrigin = ancestorRecord.successorOrigin;
     if (ancestorRecord.successorRole) existing.successorRole = ancestorRecord.successorRole;
+    if (ancestorRecord.branchName) existing.branchName = ancestorRecord.branchName;
     return existing;
   }
 
   const entry = {
     recordId: ancestorRecord.recordId || `rec_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
-    isGenerationalRun: isGenerational,
-    generation: ancestorRecord.generation || (family.genealogyList.length + 1),
+    isGenerationalRun: true,
+    playOrder: playOrder, // 宗祠入祀总序（第 1 ~ N 位先贤）
+    generation: ancestorRecord.generation || ancestorRecord.lineageGeneration || 1, // 宗法字辈（第 1 ~ 8 世）
+    branchName: ancestorRecord.branchName || '长房嫡脉',
     eraIndex: targetEra,
-    eraName: ancestorRecord.eraName || (isGenerational ? `当代承续` : '汉末筑基'),
-    successorOrigin: ancestorRecord.successorOrigin || 'lineage_child',
+    eraName: ancestorRecord.eraName || '汉魏风骨',
+    successorOrigin: ancestorRecord.successorOrigin || 'lineage_heir',
     successorRole: ancestorRecord.successorRole || '宗门嫡长',
-    fullName: ancestorRecord.fullName || `${family.surname}${ancestorRecord.givenName || '先祖'}`,
+    fullName: ancestorRecord.fullName || `${family.surname}${ancestorRecord.givenName || '先贤'}`,
     ziHao: ancestorRecord.ziHao || '德远',
-    lifespan: ancestorRecord.lifespan || [160, 220],
+    lifespan: ancestorRecord.lifespan || [100, 165],
     officialTitle: ancestorRecord.officialTitle || '布衣名士',
     posthumousTitle: ancestorRecord.posthumousTitle || '仁靖公',
     epitaph: ancestorRecord.epitaph || '躬耕保族，虽经兵燹，文脉未坠。',
     finalDeeds: ancestorRecord.finalDeeds || [],
     passedRelic: ancestorRecord.passedRelic || null,
+    bequeathedMoney: ancestorRecord.bequeathedMoney || 0,
+    prestigeGain: ancestorRecord.prestigeGain || 30,
     recordedTimestamp: Date.now()
   };
 
   family.genealogyList.push(entry);
 
-  // 宗族资产沉淀 (首次归档时发放)
   if (ancestorRecord.bequeathedMoney) {
-    family.clanTrust.trustFundMoney += Math.floor(ancestorRecord.bequeathedMoney * 0.3); // 30% 归宗族公产
+    family.clanTrust.trustFundMoney += Math.floor(ancestorRecord.bequeathedMoney * 0.3);
   }
   if (ancestorRecord.prestigeGain) {
     family.clanTrust.prestigeScore += ancestorRecord.prestigeGain;
@@ -476,10 +480,16 @@ function recordAncestorToGenealogy(family, ancestorRecord) {
     family.clanTrust.relics.push(ancestorRecord.passedRelic);
   }
 
+  // 严格锁定在第一赛季（汉魏风骨），绝不自动将 currentEpochIndex 递增至 2（六朝烟雨）
   if (family.timeline) {
-    family.timeline.completedEpochs = family.timeline.completedEpochs || {};
-    family.timeline.completedEpochs[targetEra] = true;
-    family.timeline.currentEpochIndex = Math.min(15, Math.max(family.timeline.currentEpochIndex || 1, targetEra + 1));
+    if (family.currentSeasonId === 'season_1_han_wei' || !family.currentSeasonId) {
+      family.timeline.currentEpochIndex = 1;
+      family.currentSeasonId = 'season_1_han_wei';
+    } else {
+      family.timeline.completedEpochs = family.timeline.completedEpochs || {};
+      family.timeline.completedEpochs[targetEra] = true;
+      family.timeline.currentEpochIndex = Math.min(15, Math.max(family.timeline.currentEpochIndex || 1, targetEra + 1));
+    }
   }
 
   return entry;

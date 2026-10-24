@@ -99,7 +99,7 @@ function createMonetizationManager(deps = {}) {
         onSuccess(true);
       } else {
         if (isBucketB) {
-          showToast("📽️ 参悟先祖遗韵！下代天赋+1、获¥15,000祖荫银两与世家声誉！", "gold");
+          showToast("📽️ 参悟先祖遗韵！下代天赋+1、获 15,000 五铢钱祖荫与世家声誉！", "gold");
         } else {
           showToast("📽️ 翻阅旧影有所得，为后人留下一分家学底蕴（下局天赋+1）", "gold");
         }

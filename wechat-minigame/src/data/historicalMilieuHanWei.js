@@ -1016,7 +1016,7 @@ const HAN_WEI_CRITICAL_CHRONO_EVENTS = [
         successReward: { morality: 40, clean: 30, clanPrestige: 50, text: '力抗奢靡流毒，子孙俭朴敦厚，为即将到来的乱世筑牢防波堤！' }
       },
       {
-        text: '参与平吴后江东良田大拓荒，在建康购置庄园别苑',
+        text: '参与平吴后江东良田大拓荒，在建邺购置庄园别苑',
         cost: { money: 10000 },
         successReward: { southEstateUnlocked: true, clanPrestige: 45, text: '未雨绸缪！提前在江南布下退路庄园，为日后永嘉南渡埋下火种！' }
       }
@@ -1033,11 +1033,11 @@ const LIU_CHAO_CRITICAL_CHRONO_EVENTS = [
     historicalContext: '洛阳陷落，八王乱尽，五胡蜂起。中原衣冠巨族纷泛孤舟浮江而南，王与马共天下。宗族去留在此一举。',
     options: [
       {
-        text: '举族南渡，泛舟大江，在建康秦淮河畔扎根立宅',
+        text: '举族南渡，泛舟大江，在建邺秦淮河畔扎根立宅',
         cost: { money: 5000 },
         reqStat: 'courage',
         reqVal: 50,
-        successReward: { clanPrestige: 50, resilience: 30, southEstateUnlocked: true, heirloom: 'nandu_zhuangyuan_deed', text: '举族南渡建康，化危为机，成为江左中兴侨姓世族领袖！' },
+        successReward: { clanPrestige: 50, resilience: 30, southEstateUnlocked: true, heirloom: 'nandu_zhuangyuan_deed', text: '举族南渡建邺，化危为机，成为江左中兴侨姓世族领袖！' },
         failPenalty: { money: -3000, rep: 10, text: '南渡舟车险恶，折损资财，然宗族血脉终得保全。' }
       },
       {
@@ -1157,9 +1157,9 @@ const HAN_WEI_RELICS_DATABASE = [
   },
   {
     id: 'relic_nandu_zhuangyuan_deed',
-    name: '六朝建康庄园地契',
+    name: '六朝建邺庄园地契',
     era: '六朝',
-    desc: '永嘉南渡时期在建康秦淮膏腴之地购建的庄园基业红契。',
+    desc: '永嘉南渡时期在建邺秦淮膏腴之地购建的庄园基业红契。',
     perkDesc: '跨赛季起步额外增加 15,000五铢钱 祖产，田庄产出提升 30%。'
   }
 ];
@@ -1540,7 +1540,7 @@ const HAN_WEI_PROCEDURAL_ENCOUNTER_POOL = [
     minYear: 140,
     maxYear: 300,
     title: '📜 淮泗舟楫 · 南北长途通商',
-    desc: '组织百艘平底运粮大船沿淮泗顺流而下，直通江东建康大市：',
+    desc: '组织百艘平底运粮大船沿淮泗顺流而下，直通江东建邺大市：',
     choices: [
       {
         text: '装运中原漆器与铁甲 · 换取江南香料生丝',
@@ -2366,6 +2366,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_off_1",
       age: 24,
       minAge: 20,
+      minYear: 90,
+      maxYear: 160,
       org: "汉郡守府选曹司",
       secret: "机要 · 呈荐",
       num: "永元十六年·举字第十二号",
@@ -2390,6 +2392,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_off_2",
       age: 32,
       minAge: 28,
+      minYear: 110,
+      maxYear: 180,
       org: "刺史部劝农督邮司",
       secret: "民生 · 牒文",
       num: "元初三年·农字第零四号",
@@ -2414,6 +2418,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_off_3",
       age: 40,
       minAge: 36,
+      minYear: 120,
+      maxYear: 200,
       org: "朝廷台阁尚书省",
       secret: "台省 · 密奏",
       num: "延光二年·台字第七十一号",
@@ -2438,6 +2444,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_off_4",
       age: 48,
       minAge: 42,
+      minYear: 196,
+      maxYear: 260,
       org: "魏中原典农中郎将府",
       secret: "屯田 · 考课",
       num: "建安十六年·农计第七号",
@@ -2464,6 +2472,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_sch_1",
       age: 24,
       minAge: 20,
+      minYear: 90,
+      maxYear: 150,
       org: "洛阳太学司业直学士",
       secret: "经苑 · 论辨",
       num: "永元经字第零五号",
@@ -2488,6 +2498,34 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_sch_2",
       age: 32,
       minAge: 28,
+      minYear: 140,
+      maxYear: 170,
+      org: "东观秘书阁校书署",
+      secret: "经藏 · 秘牒",
+      num: "延熹东观·校书第九案",
+      title: "关于东观兰台勘定两《汉书》与先秦古文秘录呈文",
+      content: "受诏入东观秘书阁掌管图籍，校定太史公《史记》及《汉书》，厘正班固遗文，面临撰述本家世家谱录以垂后世之机缘。",
+      choices: [
+        {
+          stampType: "pass",
+          stampText: "直笔董狐",
+          text: "【秉笔：秉公秉实厘定正史世系，著成传世家传纪年三十卷】",
+          effect: "门第声望+35，清廉+25，智谋+20。海内称叹‘良史之才，不虚美不隐恶’！"
+        },
+        {
+          stampType: "pass",
+          stampText: "注疏微言",
+          text: "【疏证：专研春秋三传微言大义，阐扬汉魏门阀治世之道】",
+          effect: "家风底蕴+30，智谋+15。受天下经师争相奉为案头宝笈。"
+        }
+      ]
+    },
+    {
+      id: "hw_doc_sch_3",
+      age: 40,
+      minAge: 38,
+      minYear: 172,
+      maxYear: 220,
       org: "太常寺经学博士署",
       secret: "典谟 · 勘校",
       num: "熹平石经·碑勘第零一案",
@@ -2509,33 +2547,11 @@ const HAN_WEI_DESK_DOCUMENTS = {
       ]
     },
     {
-      id: "hw_doc_sch_3",
-      age: 40,
-      minAge: 35,
-      org: "东观秘书阁校书署",
-      secret: "经藏 · 秘牒",
-      num: "延熹石渠·校校第九案",
-      title: "关于勘定班马两《汉书》与先秦古文秘录呈文",
-      content: "受诏入东观秘书阁掌管图籍，校定太史公《史记》及《汉书》，厘正班固遗文，面临撰述本家世家谱录以垂后世之机缘。",
-      choices: [
-        {
-          stampType: "pass",
-          stampText: "直笔董狐",
-          text: "【秉笔：秉公秉实厘定正史世系，著成传世家传纪年三十卷】",
-          effect: "门第声望+35，清廉+25，智谋+20。海内称叹‘良史之才，不虚美不隐恶’！"
-        },
-        {
-          stampType: "pass",
-          stampText: "注疏微言",
-          text: "【疏证：专研春秋三传微言大义，阐扬汉魏门阀治世之道】",
-          effect: "家风底蕴+30，智谋+15。受天下经师争相奉为案头宝笈。"
-        }
-      ]
-    },
-    {
       id: "hw_doc_sch_4",
       age: 50,
       minAge: 46,
+      minYear: 265,
+      maxYear: 300,
       org: "朝廷太常礼乐寺",
       secret: "国制 · 大典",
       num: "泰始礼典·开基第零一卷",
@@ -2562,6 +2578,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_mer_1",
       age: 24,
       minAge: 20,
+      minYear: 90,
+      maxYear: 160,
       org: "郡国均输盐铁监",
       secret: "通商 · 契案",
       num: "均字第七号·货殖关防",
@@ -2586,6 +2604,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_mer_2",
       age: 32,
       minAge: 28,
+      minYear: 140,
+      maxYear: 210,
       org: "两淮水陆关津通商盟",
       secret: "货殖 · 宏图",
       num: "淮商盟约·丙子年案",
@@ -2610,6 +2630,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_mer_3",
       age: 42,
       minAge: 36,
+      minYear: 215,
+      maxYear: 275,
       org: "荆扬舟楫通商大总领",
       secret: "商路 · 密契",
       num: "建衡二年·商字第十八号",
@@ -2634,16 +2656,18 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_mer_4",
       age: 52,
       minAge: 46,
+      minYear: 275,
+      maxYear: 300,
       org: "太康典客榷运都公所",
       secret: "通漕 · 总账",
       num: "太康二年·商字第九十九案",
-      title: "关于平吴后江南建康行台丝麻质库总核算牒",
-      content: "天下归晋，南北混一。我族抢先于三吴膏腴之地布设三十所质库与丝绸工坊，面临扩大江南庄园还是扶植乡邦小商户之裁决。",
+      title: "关于平吴后江南建邺邸阁丝麻货殖总核算牒",
+      content: "天下归晋，南北混一。我族抢先于三吴膏腴之地布设三十所货殖邸舍与丝绸工坊，面临扩大江南庄园还是扶植乡邦小商户之裁决。",
       choices: [
         {
           stampType: "pass",
           stampText: "兼济桑梓",
-          text: "【批复：免除小商户质利三成，设商道义塾抚恤行商老弱】",
+          text: "【批复：免除小商户租佣三成，设商道义塾抚恤行商老弱】",
           effect: "五铢钱+50000，门第声望+40，德泽江南，深得江左世族爱戴！"
         },
         {
@@ -2660,6 +2684,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_mil_1",
       age: 24,
       minAge: 20,
+      minYear: 90,
+      maxYear: 185,
       org: "关中军司马府兵曹",
       secret: "战备 · 布防",
       num: "汉军防务·要塞布防图册",
@@ -2684,6 +2710,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_mil_2",
       age: 32,
       minAge: 26,
+      minYear: 186,
+      maxYear: 205,
       org: "关东义军联防都尉府",
       secret: "戎机 · 密令",
       num: "初平元年·军字第零三号",
@@ -2708,6 +2736,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_mil_3",
       age: 42,
       minAge: 36,
+      minYear: 198,
+      maxYear: 230,
       org: "中军督护都督府",
       secret: "军略 · 军符",
       num: "建安五年·官渡大营军令牒",
@@ -2732,6 +2762,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_mil_4",
       age: 52,
       minAge: 46,
+      minYear: 270,
+      maxYear: 300,
       org: "荆州都督府水军大本营",
       secret: "方略 · 水阵",
       num: "咸宁五年·平吴督建字第一号",
@@ -2758,17 +2790,19 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_rec_1",
       age: 24,
       minAge: 20,
+      minYear: 90,
+      maxYear: 180,
       org: "名山神仙洞府药局",
       secret: "杏林 · 秘方",
       num: "本草采芝·经脉医案",
-      title: "关于搜集伤寒杂病经方并修明防疫大典案",
-      content: "关东大疫初起，黎民多染恶疾。需跋涉名山悬崖采集柴胡黄芩，研制传世驱疠大汤。",
+      title: "关于采掘神农本草经方并于乡闾施药防疫案",
+      content: "伏牛群山多生仙草灵药，乡民染患寒热之疾。需跋涉名山悬崖采集柴胡黄芩，研制传世驱疾草方。",
       choices: [
         {
           stampType: "pass",
           stampText: "舍身采药",
           text: "【背篓登山：踏遍太行伏牛诸山，尝百草辨药性，著述救急良方】",
-          effect: "清廉+20，体魄+15，收得《汉魏伤寒要略》，活人无算！"
+          effect: "清廉+20，体魄+15，收得《汉魏百草救急要略》，活人无算！"
         },
         {
           stampType: "pass",
@@ -2782,11 +2816,13 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_rec_2",
       age: 34,
       minAge: 28,
+      minYear: 120,
+      maxYear: 200,
       org: "太行名岳抱朴草堂",
       secret: "丹道 · 养生",
-      num: "黄庭内景·卷上考案",
-      title: "关于深山修习黄庭导引暨救治山氓疴疾之札",
-      content: "隐居深山幽谷，修习老庄黄庭导引长生之法。近山采药时遇乡氓暴染瘴疟，祈求先生施符药搭救。",
+      num: "河上真经·导引要录",
+      title: "关于深山修习老子河上真诀暨救治山氓疴疾之札",
+      content: "隐居深山幽谷，修习《老子河上公注》与吐纳导引长生之法。近山采药时遇乡氓暴染瘴疟，祈求先生施符药搭救。",
       choices: [
         {
           stampType: "pass",
@@ -2806,6 +2842,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_rec_3",
       age: 44,
       minAge: 38,
+      minYear: 235,
+      maxYear: 260,
       org: "白鹿山居避世精舍",
       secret: "玄言 · 琴道",
       num: "长生要旨·广陵音律辨",
@@ -2830,6 +2868,8 @@ const HAN_WEI_DESK_DOCUMENTS = {
       id: "hw_doc_rec_4",
       age: 54,
       minAge: 48,
+      minYear: 255,
+      maxYear: 285,
       org: "山阳竹林雅集草堂",
       secret: "超然 · 绝响",
       num: "山阳雅聚·景元清隐谱",
@@ -3081,7 +3121,7 @@ const HAN_WEI_CHRONICLE_ENCYCLOPEDIA = [
     eventTitle: '八王之乱爆发与华夏板荡前夕',
     historicalSource: '《晋书·卷四·帝纪第四·惠帝纪》《晋书·卷五十九·列传第二十九·八王传》《资治通鉴·卷八十二·晋纪四》',
     historicalFact: '晋武帝崩，痴愚惠帝即位，贾南风皇后乱政诛杀杨骏。随后引汝南王亮、楚王玮入朝，开启历时十六年骨肉相残之‘八王之乱’，中原百骸暴野，五胡乱华与衣冠南渡大变局前夕来临。',
-    clanStrategy: '华夏沉沦前夕之至暗关头！世家须未雨绸缪：北宗闭紧坞壁深垒、储备十年粮秣；南宗速在建康购置别苑，为避乱江南留下血脉火种。'
+    clanStrategy: '华夏沉沦前夕之至暗关头！世家须未雨绸缪：北宗闭紧坞壁深垒、储备十年粮秣；南宗速在建邺购置别苑，为避乱江南留下血脉火种。'
   }
 ];
 

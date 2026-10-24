@@ -109,6 +109,15 @@ class SeasonOneHanWei extends BaseSeason {
         return true;
       });
     }
+
+    const year = typeof filter.year === 'number' ? filter.year : null;
+    if (year !== null) {
+      list = list.filter(d => {
+        if (typeof d.minYear === 'number' && year < d.minYear) return false;
+        if (typeof d.maxYear === 'number' && year > d.maxYear) return false;
+        return true;
+      });
+    }
     return list;
   }
 
