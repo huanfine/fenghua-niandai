@@ -1,0 +1,9 @@
+{
+  "name": "verifyMidasOrder",
+  "version": "1.0.0",
+  "description": "米大师虚拟支付/道具订单服务端核验与流水记账云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

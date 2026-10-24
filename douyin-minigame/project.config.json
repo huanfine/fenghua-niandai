@@ -1,0 +1,12 @@
+{
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "newFeature": true
+  },
+  "appid": "tt1234567890abcdef",
+  "projectname": "fusheng-wanxiang-douyin",
+  "compileType": "game"
+}

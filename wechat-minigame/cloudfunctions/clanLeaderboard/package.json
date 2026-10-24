@@ -1,0 +1,9 @@
+{
+  "name": "clanLeaderboard",
+  "version": "1.0.0",
+  "description": "华夏三千年世家大系 · 云端全服宗族榜单、跨设备存档与赛季名人堂归档云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

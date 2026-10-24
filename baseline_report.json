@@ -1,0 +1,695 @@
+[
+ {
+  "policy": "skip",
+  "lives": 24,
+  "summary": {
+   "avgEndAge": 77,
+   "interactionsPerLife": 71,
+   "decisionsPerLife": 35.5,
+   "turnsPerLife": 15.4,
+   "estMinutesPerLife": 15.8,
+   "delegatedPerLife": 0,
+   "S_or_A_share": "0%",
+   "grades": {
+    "S": 0,
+    "A": 0,
+    "B": 0,
+    "C": 24
+   },
+   "ambitionAchieved": "0%",
+   "distinctDecisionIds": 51,
+   "fixedScriptIds": 27,
+   "fixedScriptShare": "74%",
+   "variableDecisionsPerLife": 9.1,
+   "distinctEndings": 1,
+   "endings": {
+    "end_c_bankrupt_drifter": 24
+   },
+   "errors": {}
+  },
+  "curve": {
+   "20": {
+    "cap": 39225,
+    "rep": 7
+   },
+   "30": {
+    "cap": 30355,
+    "rep": 0
+   },
+   "40": {
+    "cap": 19344,
+    "rep": 3
+   },
+   "50": {
+    "cap": 11325,
+    "rep": 4
+   },
+   "60": {
+    "cap": -4242,
+    "rep": 0
+   },
+   "70": {
+    "cap": 12603,
+    "rep": 4
+   }
+  },
+  "perTrack": [
+   {
+    "track": "gov",
+    "real": "gov",
+    "endAge": 80,
+    "cap": -12885,
+    "rep": 3,
+    "clean": 54,
+    "hp": 63,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "tech",
+    "real": "tech",
+    "endAge": 68,
+    "cap": 7393,
+    "rep": 6,
+    "clean": 49,
+    "hp": 24,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "biz",
+    "real": "biz",
+    "endAge": 80,
+    "cap": 13184,
+    "rep": 5,
+    "clean": 62,
+    "hp": 18,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "trade",
+    "real": "biz",
+    "endAge": 78,
+    "cap": 13436,
+    "rep": 1,
+    "clean": 59,
+    "hp": 52,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "industry",
+    "real": "industry",
+    "endAge": 82,
+    "cap": -4408,
+    "rep": 4,
+    "clean": 46,
+    "hp": 52,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "military",
+    "real": "military",
+    "endAge": 74,
+    "cap": -987,
+    "rep": 3,
+    "clean": 58,
+    "hp": 36,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "agri",
+    "real": "agri",
+    "endAge": 76,
+    "cap": 6883,
+    "rep": 1,
+    "clean": 47,
+    "hp": 52,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "grassroots",
+    "real": "agri",
+    "endAge": 75,
+    "cap": -11119,
+    "rep": 2,
+    "clean": 59,
+    "hp": 31,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "art",
+    "real": "art",
+    "endAge": 79,
+    "cap": 10073,
+    "rep": 4,
+    "clean": 49,
+    "hp": 41,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "med",
+    "real": "med",
+    "endAge": 79,
+    "cap": 9943,
+    "rep": 4,
+    "clean": 49,
+    "hp": 41,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "law",
+    "real": "law",
+    "endAge": 79,
+    "cap": 10073,
+    "rep": 4,
+    "clean": 49,
+    "hp": 41,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "education",
+    "real": "education",
+    "endAge": 82,
+    "cap": -3366,
+    "rep": 3,
+    "clean": 57,
+    "hp": 53,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   }
+  ],
+  "fixedIds": [
+   "arc_1992_southern_tour",
+   "arc_1994_tax_debt",
+   "arc_1998_flood",
+   "arc_2001_wto_port",
+   "arc_2003_sars",
+   "arc_2008_wenchuan_aid",
+   "childhood_evt_10",
+   "childhood_evt_12",
+   "childhood_evt_14",
+   "childhood_evt_15",
+   "childhood_evt_17",
+   "childhood_evt_3",
+   "childhood_evt_4",
+   "childhood_evt_5",
+   "childhood_evt_7",
+   "childhood_evt_8",
+   "crisis_age_34_choices",
+   "crossroads_age_22_seed",
+   "crossroads_age_32_home_and_tide",
+   "crossroads_age_38",
+   "crossroads_age_45_storm",
+   "epic_1992_crossroads",
+   "epic_1997_crossroads",
+   "epic_1999_crossroads",
+   "epic_2001_crossroads",
+   "epic_2008_crossroads",
+   "epic_2012_crossroads"
+  ]
+ },
+ {
+  "policy": "random",
+  "lives": 24,
+  "summary": {
+   "avgEndAge": 85,
+   "interactionsPerLife": 77,
+   "decisionsPerLife": 44.4,
+   "turnsPerLife": 17,
+   "estMinutesPerLife": 17.1,
+   "delegatedPerLife": 0,
+   "S_or_A_share": "46%",
+   "grades": {
+    "S": 8,
+    "A": 3,
+    "B": 2,
+    "C": 11
+   },
+   "ambitionAchieved": "33%",
+   "distinctDecisionIds": 74,
+   "fixedScriptIds": 37,
+   "fixedScriptShare": "83%",
+   "variableDecisionsPerLife": 7.8,
+   "distinctEndings": 9,
+   "endings": {
+    "end_s_pillar_of_state": 1,
+    "end_c_mediocre_passerby": 11,
+    "end_s_chief_scientist": 2,
+    "end_a_trailblazing_vanguard": 1,
+    "end_b_grey_speculator": 2,
+    "end_a_wealthy_gentry": 2,
+    "end_s_patriotic_tycoon": 3,
+    "end_s_supreme_artisan": 1,
+    "end_s_shennong_sage": 1
+   },
+   "errors": {}
+  },
+  "curve": {
+   "20": {
+    "cap": 28504,
+    "rep": 2
+   },
+   "30": {
+    "cap": 105287,
+    "rep": 6
+   },
+   "40": {
+    "cap": 207644,
+    "rep": 18
+   },
+   "50": {
+    "cap": 359492,
+    "rep": 34
+   },
+   "60": {
+    "cap": 490225,
+    "rep": 41
+   },
+   "70": {
+    "cap": 579231,
+    "rep": 38
+   }
+  },
+  "perTrack": [
+   {
+    "track": "gov",
+    "real": "gov",
+    "endAge": 79,
+    "cap": 390310,
+    "rep": 67,
+    "clean": 100,
+    "hp": 46,
+    "grades": "1/0/0/1",
+    "amb": "50%"
+   },
+   {
+    "track": "tech",
+    "real": "tech",
+    "endAge": 94,
+    "cap": 473467,
+    "rep": 100,
+    "clean": 73,
+    "hp": 61,
+    "grades": "1/1/0/0",
+    "amb": "50%"
+   },
+   {
+    "track": "biz",
+    "real": "biz",
+    "endAge": 84,
+    "cap": 588005,
+    "rep": 4,
+    "clean": 51,
+    "hp": 59,
+    "grades": "0/0/2/0",
+    "amb": "0%"
+   },
+   {
+    "track": "trade",
+    "real": "trade,biz",
+    "endAge": 80,
+    "cap": 727156,
+    "rep": 0,
+    "clean": 65,
+    "hp": 50,
+    "grades": "0/1/0/1",
+    "amb": "0%"
+   },
+   {
+    "track": "industry",
+    "real": "trade",
+    "endAge": 91,
+    "cap": 1609857,
+    "rep": 99,
+    "clean": 89,
+    "hp": 34,
+    "grades": "2/0/0/0",
+    "amb": "100%"
+   },
+   {
+    "track": "military",
+    "real": "military,trade",
+    "endAge": 94,
+    "cap": 1171768,
+    "rep": 98,
+    "clean": 90,
+    "hp": 57,
+    "grades": "2/0/0/0",
+    "amb": "100%"
+   },
+   {
+    "track": "agri",
+    "real": "agri",
+    "endAge": 80,
+    "cap": 783954,
+    "rep": 67,
+    "clean": 80,
+    "hp": 45,
+    "grades": "1/1/0/0",
+    "amb": "50%"
+   },
+   {
+    "track": "grassroots",
+    "real": "agri,trade",
+    "endAge": 81,
+    "cap": 251904,
+    "rep": 5,
+    "clean": 66,
+    "hp": 48,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "art",
+    "real": "art",
+    "endAge": 83,
+    "cap": 257898,
+    "rep": 9,
+    "clean": 75,
+    "hp": 35,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "med",
+    "real": "med",
+    "endAge": 89,
+    "cap": 273198,
+    "rep": 60,
+    "clean": 74,
+    "hp": 44,
+    "grades": "1/0/0/1",
+    "amb": "50%"
+   },
+   {
+    "track": "law",
+    "real": "law",
+    "endAge": 83,
+    "cap": 257898,
+    "rep": 9,
+    "clean": 75,
+    "hp": 35,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   },
+   {
+    "track": "education",
+    "real": "trade",
+    "endAge": 85,
+    "cap": 267738,
+    "rep": 2,
+    "clean": 57,
+    "hp": 45,
+    "grades": "0/0/0/2",
+    "amb": "0%"
+   }
+  ],
+  "fixedIds": [
+   "arc_1992_southern_tour",
+   "arc_1994_tax_debt",
+   "arc_1998_flood",
+   "arc_2001_wto_port",
+   "arc_2003_sars",
+   "arc_2008_wenchuan_aid",
+   "arc_2015_mass_entrepreneurship",
+   "arc_2018_tech_self_reliance",
+   "arc_2023_embodied_ai_future",
+   "childhood_evt_10",
+   "childhood_evt_12",
+   "childhood_evt_14",
+   "childhood_evt_15",
+   "childhood_evt_17",
+   "childhood_evt_3",
+   "childhood_evt_4",
+   "childhood_evt_5",
+   "childhood_evt_7",
+   "childhood_evt_8",
+   "crisis_age_34_choices",
+   "crossroads_age_22_seed",
+   "crossroads_age_32_home_and_tide",
+   "crossroads_age_38",
+   "crossroads_age_45_storm",
+   "epic_1984_crossroads",
+   "epic_1992_crossroads",
+   "epic_1997_crossroads",
+   "epic_1999_crossroads",
+   "epic_2001_crossroads",
+   "epic_2008_crossroads",
+   "epic_2012_crossroads",
+   "epic_2015_crossroads",
+   "epic_2018_crossroads",
+   "epic_2020_crossroads",
+   "epic_2023_crossroads",
+   "epic_2025_crossroads",
+   "epic_2035_crossroads"
+  ]
+ },
+ {
+  "policy": "strategic",
+  "lives": 24,
+  "summary": {
+   "avgEndAge": 88,
+   "interactionsPerLife": 79.5,
+   "decisionsPerLife": 48.4,
+   "turnsPerLife": 17.6,
+   "estMinutesPerLife": 17.6,
+   "delegatedPerLife": 0,
+   "S_or_A_share": "100%",
+   "grades": {
+    "S": 20,
+    "A": 4,
+    "B": 0,
+    "C": 0
+   },
+   "ambitionAchieved": "100%",
+   "distinctDecisionIds": 84,
+   "fixedScriptIds": 43,
+   "fixedScriptShare": "89%",
+   "variableDecisionsPerLife": 5.5,
+   "distinctEndings": 6,
+   "endings": {
+    "end_s_pillar_of_state": 2,
+    "end_s_chief_scientist": 6,
+    "end_s_patriotic_tycoon": 5,
+    "end_s_supreme_artisan": 3,
+    "end_s_shennong_sage": 4,
+    "end_a_cultural_grandmaster": 4
+   },
+   "errors": {}
+  },
+  "curve": {
+   "20": {
+    "cap": 28437,
+    "rep": 2
+   },
+   "30": {
+    "cap": 135207,
+    "rep": 26
+   },
+   "40": {
+    "cap": 306814,
+    "rep": 70
+   },
+   "50": {
+    "cap": 522449,
+    "rep": 95
+   },
+   "60": {
+    "cap": 754244,
+    "rep": 99
+   },
+   "70": {
+    "cap": 870830,
+    "rep": 100
+   }
+  },
+  "perTrack": [
+   {
+    "track": "gov",
+    "real": "gov",
+    "endAge": 84,
+    "cap": 772585,
+    "rep": 100,
+    "clean": 97,
+    "hp": 44,
+    "grades": "2/0/0/0",
+    "amb": "100%"
+   },
+   {
+    "track": "tech",
+    "real": "tech",
+    "endAge": 84,
+    "cap": 772648,
+    "rep": 100,
+    "clean": 98,
+    "hp": 44,
+    "grades": "2/0/0/0",
+    "amb": "100%"
+   },
+   {
+    "track": "biz",
+    "real": "trade,biz",
+    "endAge": 82,
+    "cap": 1715925,
+    "rep": 100,
+    "clean": 99,
+    "hp": 50,
+    "grades": "2/0/0/0",
+    "amb": "100%"
+   },
+   {
+    "track": "trade",
+    "real": "biz",
+    "endAge": 85,
+    "cap": 1774459,
+    "rep": 100,
+    "clean": 96,
+    "hp": 53,
+    "grades": "2/0/0/0",
+    "amb": "100%"
+   },
+   {
+    "track": "industry",
+    "real": "trade,industry",
+    "endAge": 95,
+    "cap": 1342009,
+    "rep": 97,
+    "clean": 91,
+    "hp": 51,
+    "grades": "2/0/0/0",
+    "amb": "100%"
+   },
+   {
+    "track": "military",
+    "real": "military",
+    "endAge": 100,
+    "cap": 762833,
+    "rep": 99,
+    "clean": 90,
+    "hp": 54,
+    "grades": "2/0/0/0",
+    "amb": "100%"
+   },
+   {
+    "track": "agri",
+    "real": "agri",
+    "endAge": 80,
+    "cap": 1138831,
+    "rep": 100,
+    "clean": 96,
+    "hp": 49,
+    "grades": "2/0/0/0",
+    "amb": "100%"
+   },
+   {
+    "track": "grassroots",
+    "real": "agri",
+    "endAge": 79,
+    "cap": 1083036,
+    "rep": 100,
+    "clean": 96,
+    "hp": 44,
+    "grades": "2/0/0/0",
+    "amb": "100%"
+   },
+   {
+    "track": "art",
+    "real": "art",
+    "endAge": 84,
+    "cap": 821649,
+    "rep": 100,
+    "clean": 99,
+    "hp": 49,
+    "grades": "0/2/0/0",
+    "amb": "100%"
+   },
+   {
+    "track": "med",
+    "real": "med",
+    "endAge": 92,
+    "cap": 836916,
+    "rep": 100,
+    "clean": 95,
+    "hp": 54,
+    "grades": "2/0/0/0",
+    "amb": "100%"
+   },
+   {
+    "track": "law",
+    "real": "law",
+    "endAge": 95,
+    "cap": 752969,
+    "rep": 100,
+    "clean": 90,
+    "hp": 53,
+    "grades": "0/2/0/0",
+    "amb": "100%"
+   },
+   {
+    "track": "education",
+    "real": "education",
+    "endAge": 100,
+    "cap": 543187,
+    "rep": 100,
+    "clean": 90,
+    "hp": 55,
+    "grades": "2/0/0/0",
+    "amb": "100%"
+   }
+  ],
+  "fixedIds": [
+   "arc_1992_southern_tour",
+   "arc_1994_tax_debt",
+   "arc_1998_flood",
+   "arc_2001_wto_port",
+   "arc_2003_sars",
+   "arc_2008_wenchuan_aid",
+   "arc_2015_mass_entrepreneurship",
+   "arc_2018_tech_self_reliance",
+   "arc_2023_embodied_ai_future",
+   "childhood_evt_10",
+   "childhood_evt_12",
+   "childhood_evt_14",
+   "childhood_evt_15",
+   "childhood_evt_17",
+   "childhood_evt_3",
+   "childhood_evt_4",
+   "childhood_evt_5",
+   "childhood_evt_7",
+   "childhood_evt_8",
+   "crisis_age_34_choices",
+   "crossroads_age_22_seed",
+   "crossroads_age_32_home_and_tide",
+   "crossroads_age_38",
+   "crossroads_age_45_storm",
+   "crossroads_age_54_legacy",
+   "crossroads_age_72_centennial_monument",
+   "crossroads_age_76_ancestral_precepts",
+   "echo_legacy_modal",
+   "epic_1984_crossroads",
+   "epic_1992_crossroads",
+   "epic_1997_crossroads",
+   "epic_1999_crossroads",
+   "epic_2001_crossroads",
+   "epic_2008_crossroads",
+   "epic_2012_crossroads",
+   "epic_2015_crossroads",
+   "epic_2018_crossroads",
+   "epic_2020_crossroads",
+   "epic_2023_crossroads",
+   "epic_2025_crossroads",
+   "epic_2030_crossroads",
+   "epic_2035_crossroads",
+   "magnum_gov"
+  ]
+ }
+]

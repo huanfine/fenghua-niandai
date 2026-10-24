@@ -1,0 +1,708 @@
+{
+ "reports": [
+  {
+   "policy": "skip",
+   "lives": 36,
+   "summary": {
+    "avgEndAge": 62,
+    "interactionsPerLife": 50.3,
+    "decisionsPerLife": 31.2,
+    "turnsPerLife": 12,
+    "estMinutesPerLife": 11.6,
+    "delegatedPerLife": 0,
+    "S_or_A_share": "0%",
+    "grades": {
+     "S": 0,
+     "A": 0,
+     "B": 0,
+     "C": 36
+    },
+    "ambitionAchieved": "0%",
+    "gaokaoScoreRange": "411~626 (均值 478)",
+    "gaokaoTiers": {
+     "failed": 7,
+     "tier3": 8,
+     "commerce": 6,
+     "vocational": 3,
+     "military": 3,
+     "agri": 6,
+     "tier1": 1,
+     "tier2": 2
+    },
+    "distinctDecisionIds": 527,
+    "fixedScriptIds": 1,
+    "fixedScriptShare": "3%",
+    "variableDecisionsPerLife": 30.2,
+    "distinctEndings": 1,
+    "endings": {
+     "end_c_disgraced_fall": 36
+    },
+    "errors": {}
+   },
+   "curve": {
+    "20": {
+     "cap": 34067,
+     "rep": 29
+    },
+    "30": {
+     "cap": 21610,
+     "rep": 1
+    },
+    "40": {
+     "cap": 17306,
+     "rep": 9
+    },
+    "50": {
+     "cap": 13246,
+     "rep": 6
+    },
+    "60": {
+     "cap": 3733,
+     "rep": 4
+    },
+    "70": null
+   },
+   "perTrack": [
+    {
+     "track": "gov",
+     "real": "gov",
+     "endAge": 62,
+     "cap": 1680,
+     "rep": 10,
+     "clean": 57,
+     "hp": 42,
+     "grades": "0/0/0/3",
+     "amb": "0%",
+     "gaokaoSamples": "451/494/447",
+     "endingSamples": "end_c_disgraced_fall"
+    },
+    {
+     "track": "tech",
+     "real": "tech",
+     "endAge": 62,
+     "cap": 10675,
+     "rep": 4,
+     "clean": 54,
+     "hp": 43,
+     "grades": "0/0/0/3",
+     "amb": "0%",
+     "gaokaoSamples": "456/496/411",
+     "endingSamples": "end_c_disgraced_fall"
+    },
+    {
+     "track": "biz",
+     "real": "biz",
+     "endAge": 62,
+     "cap": 14835,
+     "rep": 7,
+     "clean": 52,
+     "hp": 46,
+     "grades": "0/0/0/3",
+     "amb": "0%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_c_disgraced_fall"
+    },
+    {
+     "track": "trade",
+     "real": "trade",
+     "endAge": 62,
+     "cap": 1064,
+     "rep": 4,
+     "clean": 55,
+     "hp": 53,
+     "grades": "0/0/0/3",
+     "amb": "0%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_c_disgraced_fall"
+    },
+    {
+     "track": "industry",
+     "real": "industry",
+     "endAge": 62,
+     "cap": 2514,
+     "rep": 8,
+     "clean": 57,
+     "hp": 50,
+     "grades": "0/0/0/3",
+     "amb": "0%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_c_disgraced_fall"
+    },
+    {
+     "track": "military",
+     "real": "military",
+     "endAge": 62,
+     "cap": -7679,
+     "rep": 7,
+     "clean": 57,
+     "hp": 48,
+     "grades": "0/0/0/3",
+     "amb": "0%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_c_disgraced_fall"
+    },
+    {
+     "track": "agri",
+     "real": "agri",
+     "endAge": 62,
+     "cap": 7089,
+     "rep": 8,
+     "clean": 52,
+     "hp": 40,
+     "grades": "0/0/0/3",
+     "amb": "0%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_c_disgraced_fall"
+    },
+    {
+     "track": "grassroots",
+     "real": "grassroots",
+     "endAge": 62,
+     "cap": 18197,
+     "rep": 13,
+     "clean": 55,
+     "hp": 45,
+     "grades": "0/0/0/3",
+     "amb": "0%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_c_disgraced_fall"
+    },
+    {
+     "track": "art",
+     "real": "art",
+     "endAge": 62,
+     "cap": -8130,
+     "rep": 5,
+     "clean": 56,
+     "hp": 52,
+     "grades": "0/0/0/3",
+     "amb": "0%",
+     "gaokaoSamples": "466/626/451",
+     "endingSamples": "end_c_disgraced_fall"
+    },
+    {
+     "track": "med",
+     "real": "med",
+     "endAge": 62,
+     "cap": 9387,
+     "rep": 5,
+     "clean": 54,
+     "hp": 34,
+     "grades": "0/0/0/3",
+     "amb": "0%",
+     "gaokaoSamples": "458/551/467",
+     "endingSamples": "end_c_disgraced_fall"
+    },
+    {
+     "track": "law",
+     "real": "law",
+     "endAge": 62,
+     "cap": 16660,
+     "rep": 13,
+     "clean": 58,
+     "hp": 40,
+     "grades": "0/0/0/3",
+     "amb": "0%",
+     "gaokaoSamples": "566/427/449",
+     "endingSamples": "end_c_disgraced_fall"
+    },
+    {
+     "track": "education",
+     "real": "education",
+     "endAge": 62,
+     "cap": 15639,
+     "rep": 12,
+     "clean": 57,
+     "hp": 40,
+     "grades": "0/0/0/3",
+     "amb": "0%",
+     "gaokaoSamples": "424/465/500",
+     "endingSamples": "end_c_disgraced_fall"
+    }
+   ],
+   "fixedIds": [
+    "childhood_evt_15"
+   ]
+  },
+  {
+   "policy": "random",
+   "lives": 36,
+   "summary": {
+    "avgEndAge": 68,
+    "interactionsPerLife": 70.1,
+    "decisionsPerLife": 44.1,
+    "turnsPerLife": 13.6,
+    "estMinutesPerLife": 15.6,
+    "delegatedPerLife": 0,
+    "S_or_A_share": "22%",
+    "grades": {
+     "S": 0,
+     "A": 8,
+     "B": 16,
+     "C": 12
+    },
+    "ambitionAchieved": "47%",
+    "gaokaoScoreRange": "387~615 (均值 522)",
+    "gaokaoTiers": {
+     "tier3": 7,
+     "tier2": 8,
+     "tier1": 1,
+     "failed": 2,
+     "commerce": 6,
+     "vocational": 3,
+     "military": 3,
+     "agri": 6
+    },
+    "distinctDecisionIds": 620,
+    "fixedScriptIds": 1,
+    "fixedScriptShare": "2%",
+    "variableDecisionsPerLife": 43.1,
+    "distinctEndings": 7,
+    "endings": {
+     "end_b_burnout_martyr": 16,
+     "end_a_incorruptible_censor": 3,
+     "end_c_bankrupt_drifter": 5,
+     "end_a_wealthy_gentry": 3,
+     "end_c_mediocre_passerby": 7,
+     "end_a_cultural_grandmaster": 1,
+     "end_a_master_diplomat": 1
+    },
+    "errors": {}
+   },
+   "curve": {
+    "20": {
+     "cap": 31406,
+     "rep": 35
+    },
+    "30": {
+     "cap": 140178,
+     "rep": 39
+    },
+    "40": {
+     "cap": 230472,
+     "rep": 46
+    },
+    "50": {
+     "cap": 368016,
+     "rep": 58
+    },
+    "60": {
+     "cap": 458903,
+     "rep": 59
+    },
+    "70": {
+     "cap": 575622,
+     "rep": 75
+    }
+   },
+   "perTrack": [
+    {
+     "track": "gov",
+     "real": "gov",
+     "endAge": 70,
+     "cap": 609963,
+     "rep": 84,
+     "clean": 80,
+     "hp": 39,
+     "grades": "0/1/2/0",
+     "amb": "100%",
+     "gaokaoSamples": "512/528/501",
+     "endingSamples": "end_b_burnout_martyr,end_a_incorruptible_censor"
+    },
+    {
+     "track": "tech",
+     "real": "tech",
+     "endAge": 70,
+     "cap": 221736,
+     "rep": 32,
+     "clean": 75,
+     "hp": 33,
+     "grades": "0/1/0/2",
+     "amb": "33%",
+     "gaokaoSamples": "606/615/387",
+     "endingSamples": "end_c_bankrupt_drifter,end_a_incorruptible_censor"
+    },
+    {
+     "track": "biz",
+     "real": "biz",
+     "endAge": 67,
+     "cap": 560404,
+     "rep": 63,
+     "clean": 75,
+     "hp": 35,
+     "grades": "0/2/0/1",
+     "amb": "67%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_a_wealthy_gentry,end_c_mediocre_passerby,end_a_cultural_grandmaster"
+    },
+    {
+     "track": "trade",
+     "real": "trade",
+     "endAge": 69,
+     "cap": 566017,
+     "rep": 61,
+     "clean": 77,
+     "hp": 34,
+     "grades": "0/2/0/1",
+     "amb": "67%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_a_wealthy_gentry,end_c_mediocre_passerby"
+    },
+    {
+     "track": "industry",
+     "real": "industry",
+     "endAge": 68,
+     "cap": 590451,
+     "rep": 76,
+     "clean": 76,
+     "hp": 34,
+     "grades": "0/0/3/0",
+     "amb": "33%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_b_burnout_martyr"
+    },
+    {
+     "track": "military",
+     "real": "military",
+     "endAge": 62,
+     "cap": 208764,
+     "rep": 19,
+     "clean": 74,
+     "hp": 30,
+     "grades": "0/0/1/2",
+     "amb": "0%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_c_mediocre_passerby,end_b_burnout_martyr,end_c_bankrupt_drifter"
+    },
+    {
+     "track": "agri",
+     "real": "agri",
+     "endAge": 68,
+     "cap": 430891,
+     "rep": 57,
+     "clean": 79,
+     "hp": 33,
+     "grades": "0/1/1/1",
+     "amb": "33%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_c_bankrupt_drifter,end_b_burnout_martyr,end_a_master_diplomat"
+    },
+    {
+     "track": "grassroots",
+     "real": "grassroots",
+     "endAge": 63,
+     "cap": 630993,
+     "rep": 53,
+     "clean": 77,
+     "hp": 33,
+     "grades": "0/0/2/1",
+     "amb": "33%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_b_burnout_martyr,end_c_mediocre_passerby"
+    },
+    {
+     "track": "art",
+     "real": "art",
+     "endAge": 71,
+     "cap": 515612,
+     "rep": 66,
+     "clean": 78,
+     "hp": 41,
+     "grades": "0/0/2/1",
+     "amb": "33%",
+     "gaokaoSamples": "503/571/487",
+     "endingSamples": "end_c_mediocre_passerby,end_b_burnout_martyr"
+    },
+    {
+     "track": "med",
+     "real": "med",
+     "endAge": 67,
+     "cap": 468966,
+     "rep": 63,
+     "clean": 81,
+     "hp": 35,
+     "grades": "0/0/2/1",
+     "amb": "33%",
+     "gaokaoSamples": "419/567/515",
+     "endingSamples": "end_c_mediocre_passerby,end_b_burnout_martyr"
+    },
+    {
+     "track": "law",
+     "real": "law",
+     "endAge": 64,
+     "cap": 347120,
+     "rep": 39,
+     "clean": 79,
+     "hp": 30,
+     "grades": "0/1/0/2",
+     "amb": "33%",
+     "gaokaoSamples": "553/530/490",
+     "endingSamples": "end_c_mediocre_passerby,end_c_bankrupt_drifter,end_a_incorruptible_censor"
+    },
+    {
+     "track": "education",
+     "real": "education",
+     "endAge": 71,
+     "cap": 638826,
+     "rep": 81,
+     "clean": 80,
+     "hp": 41,
+     "grades": "0/0/3/0",
+     "amb": "100%",
+     "gaokaoSamples": "545/534/533",
+     "endingSamples": "end_b_burnout_martyr"
+    }
+   ],
+   "fixedIds": [
+    "childhood_evt_15"
+   ]
+  },
+  {
+   "policy": "strategic",
+   "lives": 36,
+   "summary": {
+    "avgEndAge": 78,
+    "interactionsPerLife": 119.8,
+    "decisionsPerLife": 51.9,
+    "turnsPerLife": 15.7,
+    "estMinutesPerLife": 25.6,
+    "delegatedPerLife": 0,
+    "S_or_A_share": "97%",
+    "grades": {
+     "S": 13,
+     "A": 22,
+     "B": 1,
+     "C": 0
+    },
+    "ambitionAchieved": "94%",
+    "gaokaoScoreRange": "438~662 (均值 523)",
+    "gaokaoTiers": {
+     "tier3": 7,
+     "tier1": 1,
+     "tier2": 7,
+     "failed": 3,
+     "commerce": 6,
+     "vocational": 3,
+     "military": 3,
+     "agri": 6
+    },
+    "distinctDecisionIds": 666,
+    "fixedScriptIds": 1,
+    "fixedScriptShare": "2%",
+    "variableDecisionsPerLife": 50.9,
+    "distinctEndings": 9,
+    "endings": {
+     "end_a_incorruptible_censor": 4,
+     "end_a_cultural_grandmaster": 10,
+     "end_s_chief_scientist": 3,
+     "end_s_patriotic_tycoon": 5,
+     "end_a_wealthy_gentry": 5,
+     "end_s_supreme_artisan": 1,
+     "end_s_shennong_sage": 4,
+     "end_a_master_diplomat": 3,
+     "end_b_diligent_backbone": 1
+    },
+    "errors": {}
+   },
+   "curve": {
+    "20": {
+     "cap": 37865,
+     "rep": 45
+    },
+    "30": {
+     "cap": 136281,
+     "rep": 71
+    },
+    "40": {
+     "cap": 260155,
+     "rep": 84
+    },
+    "50": {
+     "cap": 607614,
+     "rep": 87
+    },
+    "60": {
+     "cap": 838934,
+     "rep": 88
+    },
+    "70": {
+     "cap": 903783,
+     "rep": 89
+    }
+   },
+   "perTrack": [
+    {
+     "track": "gov",
+     "real": "gov",
+     "endAge": 78,
+     "cap": 900235,
+     "rep": 94,
+     "clean": 81,
+     "hp": 52,
+     "grades": "0/3/0/0",
+     "amb": "100%",
+     "gaokaoSamples": "495/662/484",
+     "endingSamples": "end_a_incorruptible_censor,end_a_cultural_grandmaster"
+    },
+    {
+     "track": "tech",
+     "real": "tech",
+     "endAge": 82,
+     "cap": 913345,
+     "rep": 91,
+     "clean": 80,
+     "hp": 52,
+     "grades": "1/2/0/0",
+     "amb": "100%",
+     "gaokaoSamples": "500/591/438",
+     "endingSamples": "end_s_chief_scientist,end_a_cultural_grandmaster"
+    },
+    {
+     "track": "biz",
+     "real": "biz",
+     "endAge": 77,
+     "cap": 908079,
+     "rep": 89,
+     "clean": 79,
+     "hp": 50,
+     "grades": "3/0/0/0",
+     "amb": "100%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_s_patriotic_tycoon"
+    },
+    {
+     "track": "trade",
+     "real": "trade",
+     "endAge": 77,
+     "cap": 924630,
+     "rep": 89,
+     "clean": 76,
+     "hp": 51,
+     "grades": "2/1/0/0",
+     "amb": "100%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_s_patriotic_tycoon,end_a_wealthy_gentry"
+    },
+    {
+     "track": "industry",
+     "real": "industry",
+     "endAge": 77,
+     "cap": 895395,
+     "rep": 87,
+     "clean": 78,
+     "hp": 50,
+     "grades": "0/3/0/0",
+     "amb": "100%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_a_cultural_grandmaster,end_a_wealthy_gentry"
+    },
+    {
+     "track": "military",
+     "real": "military",
+     "endAge": 79,
+     "cap": 884242,
+     "rep": 82,
+     "clean": 81,
+     "hp": 49,
+     "grades": "1/2/0/0",
+     "amb": "100%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_s_supreme_artisan,end_a_wealthy_gentry,end_a_incorruptible_censor"
+    },
+    {
+     "track": "agri",
+     "real": "agri",
+     "endAge": 81,
+     "cap": 936229,
+     "rep": 92,
+     "clean": 82,
+     "hp": 51,
+     "grades": "2/1/0/0",
+     "amb": "100%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_a_cultural_grandmaster,end_s_shennong_sage"
+    },
+    {
+     "track": "grassroots",
+     "real": "grassroots",
+     "endAge": 80,
+     "cap": 876380,
+     "rep": 84,
+     "clean": 77,
+     "hp": 51,
+     "grades": "1/2/0/0",
+     "amb": "100%",
+     "gaokaoSamples": "职教/入伍/闯海/务农",
+     "endingSamples": "end_a_master_diplomat,end_s_shennong_sage"
+    },
+    {
+     "track": "art",
+     "real": "art",
+     "endAge": 79,
+     "cap": 902557,
+     "rep": 89,
+     "clean": 77,
+     "hp": 53,
+     "grades": "1/2/0/0",
+     "amb": "100%",
+     "gaokaoSamples": "451/542/556",
+     "endingSamples": "end_a_cultural_grandmaster,end_s_shennong_sage"
+    },
+    {
+     "track": "med",
+     "real": "med",
+     "endAge": 76,
+     "cap": 906096,
+     "rep": 88,
+     "clean": 81,
+     "hp": 51,
+     "grades": "1/1/1/0",
+     "amb": "67%",
+     "gaokaoSamples": "485/508/540",
+     "endingSamples": "end_a_cultural_grandmaster,end_s_chief_scientist,end_b_diligent_backbone"
+    },
+    {
+     "track": "law",
+     "real": "law",
+     "endAge": 75,
+     "cap": 900647,
+     "rep": 87,
+     "clean": 80,
+     "hp": 51,
+     "grades": "0/3/0/0",
+     "amb": "67%",
+     "gaokaoSamples": "591/575/446",
+     "endingSamples": "end_a_wealthy_gentry,end_a_master_diplomat,end_a_incorruptible_censor"
+    },
+    {
+     "track": "education",
+     "real": "education",
+     "endAge": 77,
+     "cap": 863819,
+     "rep": 90,
+     "clean": 80,
+     "hp": 51,
+     "grades": "1/2/0/0",
+     "amb": "100%",
+     "gaokaoSamples": "467/528/555",
+     "endingSamples": "end_s_chief_scientist,end_a_cultural_grandmaster"
+    }
+   ],
+   "fixedIds": [
+    "childhood_evt_15"
+   ]
+  }
+ ],
+ "divReport": {
+  "runs": 20,
+  "distinctGaokaoScores": 20,
+  "distinctEndAges": 10,
+  "distinctEndings": 4,
+  "grades": {
+   "S": 8,
+   "A": 12,
+   "B": 0,
+   "C": 0
+  }
+ }
+}

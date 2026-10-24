@@ -1,0 +1,9 @@
+{
+  "name": "verifyAndSubmitScore",
+  "version": "1.0.0",
+  "description": "终局成绩服务端双向验算与防作弊上报鉴权云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
