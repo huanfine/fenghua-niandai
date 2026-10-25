@@ -224,7 +224,11 @@ function setStat(key, val, st) {
   const maxCap = (key === 'iq' && target && target.clanIqCapBonus) ? (cfg.max + target.clanIqCapBonus) : (cfg ? cfg.max : 100);
   const raw = typeof val === 'number' && !Number.isNaN(val) ? val : (cfg ? cfg.def : 0);
   const clamped = cfg ? Math.max(cfg.min, Math.min(maxCap, Math.round(raw))) : Math.round(raw);
+  const oldVal = target[key];
   target[key] = clamped;
+  if (target === (typeof state !== 'undefined' ? state : null) && oldVal !== undefined && oldVal !== clamped && typeof triggerStatPulseHighlight === 'function') {
+    triggerStatPulseHighlight(key, 1200, clamped > oldVal ? '#34d399' : '#ef4444');
+  }
   return clamped;
 }
 
@@ -315,7 +319,8 @@ function clampCoreStats(st) {
     const k = boundedKeys[i];
     if (typeof target[k] === 'number' && !Number.isNaN(target[k])) {
       const cfg = CORE_BOUNDED_STATS[k];
-      target[k] = Math.max(cfg.min, Math.min(cfg.max, Math.round(target[k])));
+      const maxCap = (k === 'iq' && target && target.clanIqCapBonus) ? (cfg.max + target.clanIqCapBonus) : cfg.max;
+      target[k] = Math.max(cfg.min, Math.min(maxCap, Math.round(target[k])));
     }
   }
   if ((target.age || 0) < 18) {
@@ -998,10 +1003,23 @@ function spawnDustParticles(x, y, color, count) {
 // 浮空文字队列
 let floatingTexts = [];
 function addFloatingText(text, x, y, color) {
+  let targetX = x;
+  let targetY = y;
+  const isDefaultCoord = targetX === undefined || targetY === undefined ||
+    (typeof screenWidth === 'number' && Math.abs(targetX - screenWidth / 2) < 4 && Math.abs(targetY - (getDashboardY() + 40)) < 15);
+  if (isDefaultCoord) {
+    if (typeof lastTouchX === 'number' && lastTouchX > 0 && typeof lastTouchY === 'number' && lastTouchY > 0) {
+      targetX = Math.max(30, Math.min((screenWidth || 375) - 30, lastTouchX));
+      targetY = Math.max(70, Math.min((screenHeight || 667) - 60, lastTouchY - 22));
+    } else {
+      targetX = (screenWidth || 375) / 2;
+      targetY = (screenHeight || 667) * 0.45;
+    }
+  }
   floatingTexts.push(obtainPooledParticle((obj) => {
     obj.text = text;
-    obj.x = x;
-    obj.y = y;
+    obj.x = targetX;
+    obj.y = targetY;
     obj.vy = -1.2;
     obj.alpha = 1.0;
     obj.color = color || '#f59e0b';
@@ -5825,6 +5843,8 @@ function triggerStatPulseHighlight(keys, durationMs = 1200, color = '#f59e0b') {
   });
   if (typeof requestRender === 'function') requestRender();
 }
+const triggerStatPulse = triggerStatPulseHighlight;
+if (typeof global !== 'undefined') global.triggerStatPulse = triggerStatPulseHighlight;
 
 function getStatPulseProgress(key) {
   const item = _statPulseHighlights[key];
@@ -7115,6 +7135,7 @@ let maxScrollY = 800;
 let isTouching = false;
 let touchStartX = 0;
 let touchStartY = 0;
+let lastTouchX = 0;
 let lastTouchY = 0;
 let touchLastTime = 0;
 let scrollVelocity = 0;
@@ -11585,7 +11606,7 @@ function executeDiceChoice(choiceOrIdx, baseRate) {
       spawnDustParticles(screenWidth / 2, screenHeight / 2 - 30, '#ef4444', 18);
     }
     requestRender();
-  }, 750);
+  }, 360);
 }
 
 // ==========================================
@@ -15986,6 +16007,28 @@ function settleAnnualCoreProgression() {
   triggerCalendarTear(state.year);
   if (typeof recordTrajectoryPoint === 'function') {
     recordTrajectoryPoint();
+  }
+
+  // 1.9 闲置精力自动笃行持家（化解玩家“每年打工清空3筹体力”的割裂与焦虑，多余筹码自动倾注于族产与身心）
+  if (state.age >= 18 && (state.ap || 0) > 0) {
+    const leftoverAp = state.ap;
+    const isDynastic = isDynasticEra(state.year) || (state.year && state.year <= 500);
+    if (isDynastic) {
+      const grainGain = leftoverAp * 20;
+      const moneyGain = leftoverAp * 150;
+      if (state.manor) {
+        state.manor.granaryStoredGrain = (state.manor.granaryStoredGrain || 0) + grainGain;
+      }
+      state.capital = (state.capital || 0) + moneyGain;
+      if (leftoverAp >= 2) addStat('health', 1);
+      if (state.age % 4 === 0) {
+        addChronicleItem(state.age, state.year, `【从容持家】岁余${leftoverAp}筹谋策悉倾坞壁耕读，家业肃睦，积谷${grainGain}斛、余资${moneyGain}铢。`, "持家之道", "clan");
+      }
+    } else {
+      const capGain = leftoverAp * 800;
+      state.capital = (state.capital || 0) + capGain;
+      if (leftoverAp >= 2) addStat('health', 1);
+    }
   }
 
   // 2. 刷新当年履职精力（统一计入乾坤独断心法与非遗/造物上限加成）
@@ -27693,15 +27736,15 @@ function drawCharacterDashboard() {
   // 18岁弱冠/及笄及岁后职务与散官正名归一化 (防止仍显示初生襁褓状态)
   ensureAdultRankAndTitle(state);
 
-  // 仪表盘卡片外框与装饰 (Elevation 1: 物理悬浮柔和投影 + 琉璃倒角高光 + 玉带与金标)
+  // 仪表盘卡片外框与装饰 (Elevation 1: 物理悬浮柔和投影 + 琉璃倒角高光 + 玄檀金玉质感)
   drawElevatedCard(ctx, padX, dashY, w, curDashH, {
     elevation: 1,
-    borderColor: '#d97706',
-    borderWidth: 1.5,
+    borderColor: '#856447',
+    borderWidth: 1.0,
     hasCornerOrnaments: true,
-    cornerLength: 6,
-    headerBandColor: 'rgba(245, 158, 11, 0.15)',
-    leftAccentColor: '#f59e0b'
+    cornerLength: 5,
+    headerBandColor: 'rgba(217, 119, 6, 0.10)',
+    leftAccentColor: '#d97706'
   });
 
   // 1. 顶部战略流派共鸣横幅 / 时代箴言 (第 0 行: dashY + 5 到 dashY + 22)
@@ -28141,7 +28184,7 @@ function drawDynastyMissionBanner(ctx, padX, curY, w) {
   // 指津行动行
   ctx.font = '10px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#cbd5e1';
-  const apText = (state.ap || 0) > 0 ? `尚余 ${state.ap} 筹决策权 · 切换下方【宗业/案牍】经略` : '岁末已至 · 可点击下方按钮推进至下一年';
+  const apText = (state.ap || 0) > 0 ? `家主威仪内蕴 · 余资筹谋岁暮自转耕读族产，亦可随时推演` : '岁末已至 · 岁月如流，静候新年春序';
   ctx.fillText(apText, textLeft, curY + 44);
 
   // 触控交互：点击主线看板弹出宗族位阶与危机评述
@@ -28191,9 +28234,6 @@ function drawContentArea() {
   let renderedHeight = 0;
   const startY = topY - scrollY;
   let curContentY = startY;
-
-  // 10.3B 汉魏主线行动指针与危机看板 (Dynasty Core Mandate Banner 置顶展现)
-  curContentY = drawDynastyMissionBanner(ctx, padX, curContentY, w);
 
   if (state.activeTab === 'timeline') {
     renderedHeight = drawTimelineTab(curContentY);
@@ -28460,9 +28500,6 @@ function drawTimelineTab(startY) {
     });
     curY += childTutH + 8;
   }
-
-  // 0.0 下一阶段大考倒计时与三年攻坚军令状横幅
-  curY = drawMilestoneCountdownBanner(curY, 'timeline');
 
   // 0. 童年自主精力分配面板 (3 ~ 17 岁)
   if (state.age >= 3 && state.age < 18) {
@@ -35585,6 +35622,9 @@ function drawFamilyTab(startY) {
     return curY;
   }
 
+  // 汉魏主线门阀位阶与天下危机看板 (置于宗族堂前总览，主次分明)
+  curY = drawDynastyMissionBanner(ctx, padX, curY, w);
+
   // 2. 玩家已建立世家：展示宗祠门匾与五大维度子导航
   const plaqueH = 76;
   ctx.fillStyle = '#1c1218';
@@ -36966,9 +37006,7 @@ function drawActionBar() {
   const nextBtnY = barY + (actionBarH - nextBtnH) / 2;
 
   const isHanWeiAct = state && state.year <= 500;
-  let labelText = (state.ap || 0) > 0
-    ? (isNarrowScreen ? `下一年 (余${state.ap}筹) ➔` : `寒暑更迭 · 推进一载 (余 ${state.ap} 筹) ➔`)
-    : (isNarrowScreen ? `迈入 ${(state.year || 100) + 1} 年 ➔` : `寒暑易节 · 迈入公元 ${(state.year || 100) + 1} 年 ➔`);
+  let labelText = isNarrowScreen ? "推进一载 ➔" : `寒暑更迭 · 推进一载 ➔`;
   if (state.age < 18) {
     const nextStep = typeof getChildhoodNextStep === 'function' ? getChildhoodNextStep(state.age) : 1;
     const targetAge = state.age + nextStep;
@@ -36998,8 +37036,6 @@ function drawActionBar() {
       }
     } else if (nextStep > 1) {
       labelText = isNarrowScreen ? `跃进至${targetAge}岁 ➔` : `光阴箭催 · 两年一跃 (${targetAge}岁) ➔`;
-    } else if ((state.ap || 0) > 0) {
-      labelText = isNarrowScreen ? `下一载 (余${state.ap}筹) ➔` : `寒暑流转 · 推进一载 (余 ${state.ap} 筹) ➔`;
     } else {
       labelText = isNarrowScreen ? `迈入 ${targetAge} 岁 ➔` : `寒暑流转 · 迈入 ${targetAge} 岁 ➔`;
     }
@@ -43581,27 +43617,38 @@ function drawDecisionModal() {
     roundRect(ctx, cardX + 16, rollY, cardW - 32, rollH, 4, true, true, '#856447', 1);
 
     const cx = cardX + cardW / 2;
-    const cy = rollY + 65;
+    const cy = rollY + 60;
+    const sealSize = 52;
+    const stampProgress = Math.min(1.0, (diceAnim.rollingTimer || 0) / 360);
+    const stampScale = 1.0 + Math.max(0, (1 - stampProgress) * 0.22);
+
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.rotate(diceAnim.angle);
-    ctx.fillStyle = '#251e22';
-    roundRect(ctx, -26, -26, 52, 52, 4, true, true, '#d97706', 1.5);
-    ctx.font = 'bold 22px ' + FONT_MONO;
+    ctx.scale(stampScale, stampScale);
+
+    // 汉魏朱砂金石方印
+    ctx.fillStyle = '#7f1d1d';
+    roundRect(ctx, -sealSize / 2, -sealSize / 2, sealSize, sealSize, 4, true, true, '#f59e0b', 1.5);
+    ctx.strokeStyle = 'rgba(254, 240, 138, 0.55)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-sealSize / 2 + 4, -sealSize / 2 + 4, sealSize - 8, sealSize - 8);
+
+    ctx.font = 'bold 13px ' + FONT_CHRONICLE;
     ctx.fillStyle = '#fef08a';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(diceAnim.displayNum, 0, 0);
+    ctx.fillText("朱砂", 0, -8);
+    ctx.fillText("落印", 0, 9);
     ctx.restore();
 
     ctx.textAlign = 'center';
-    ctx.font = 'bold 14px ' + FONT_CHRONICLE;
+    ctx.font = 'bold 14.5px ' + FONT_CHRONICLE;
     ctx.fillStyle = '#fef08a';
-    ctx.fillText("🎲 命运之骰激烈翻滚中……", cardX + cardW / 2, rollY + 115);
+    ctx.fillText("〔 金石定论 · 秉笔裁断 〕", cardX + cardW / 2, rollY + 115);
 
-    ctx.font = '13px ' + FONT_CHRONICLE;
-    ctx.fillStyle = '#a89988';
-    ctx.fillText("考量大局智谋、气运与组织信任度", cardX + cardW / 2, rollY + 140);
+    ctx.font = '12px ' + FONT_CHRONICLE;
+    ctx.fillStyle = '#d4c7b8';
+    ctx.fillText("气运凝于方寸，成败见于毫芒", cardX + cardW / 2, rollY + 138);
     return;
   }
 
@@ -43615,7 +43662,7 @@ function drawDecisionModal() {
   choices.forEach((c, cIdx) => {
     const optId = 'choose_opt_' + cIdx + '_' + (c.text || '').slice(0, 4);
 
-    // 科学属性检定与支线协同成功率详细测算 (胜率拆解透明公式条)
+    // 科学属性检定与支线协同成功率详细测算
     const detailedRate = calcChoiceSuccessRateDetailed(c, state);
     const sRate = detailedRate.rate;
 
@@ -43654,13 +43701,32 @@ function drawDecisionModal() {
         const sub = formatEffectsSummaryText(c.effects) || c.effectText || c.successText || "直面关键抉择，成败系于一念之间。";
         cCtx.fillText(fitText(sub, leftContentW, '11px ' + FONT_CHRONICLE), cardX + 26, optY + 24);
 
-        // L3 胜率拆解透明公式条
-        cCtx.font = 'bold 10px ' + FONT_MONO;
-        cCtx.fillStyle = sRate >= 70 ? '#34d399' : (sRate >= 50 ? '#fbbf24' : '#f87171');
-        const formulaStr = `🎲 胜率${sRate}% · [${detailedRate.formulaText}]`;
-        cCtx.fillText(fitText(formulaStr, leftContentW, 'bold 10px ' + FONT_MONO), cardX + 26, optY + optH - 16);
+        // L3 汉魏成算与因果评述 (摒弃西方掷骰与公式噪点)
+        cCtx.font = 'bold 11px ' + FONT_CHRONICLE;
+        const statKey = c.statReq || 'iq';
+        const sName = (typeof _STAT_CN_LABELS !== 'undefined' && _STAT_CN_LABELS[statKey]) ? _STAT_CN_LABELS[statKey] : '智谋';
+        const pVal = getStat(statKey, 50, state);
+        const rawReq = typeof c.reqVal === 'number' ? c.reqVal : 55;
+        let verdictStr = '';
+        let verdictColor = '#34d399';
 
-        // L4 嵌入式操作按钮
+        if (sRate >= 80 || pVal >= rawReq) {
+          verdictStr = (pVal >= rawReq)
+            ? `〔成算在胸〕${sName}充沛 (${pVal}/${rawReq}) · 稳操胜券 ✓`
+            : `〔因果分明〕成算约九成 · 稳健妥帖`;
+          verdictColor = '#34d399';
+        } else if (sRate >= 50) {
+          verdictStr = `〔中平之略〕成算约${Math.round(sRate / 10)}成 · 需${sName}周全`;
+          verdictColor = '#fbbf24';
+        } else {
+          verdictStr = `〔孤注险策〕成算仅${Math.round(sRate / 10)}成 · 履险蹈危`;
+          verdictColor = '#f87171';
+        }
+
+        cCtx.fillStyle = verdictColor;
+        cCtx.fillText(fitText(verdictStr, leftContentW, 'bold 11px ' + FONT_CHRONICLE), cardX + 26, optY + optH - 16);
+
+        // L4 嵌入式操作按钮 (金石落印)
         cCtx.fillStyle = cIdx === 2 ? '#78350f' : '#7f1d1d';
         roundRect(cCtx, btnX, btnY, btnW, btnH, 3, true, true, cIdx === 2 ? '#d97706' : '#991b1b', 1);
 
@@ -43668,7 +43734,7 @@ function drawDecisionModal() {
         cCtx.fillStyle = '#fef08a';
         cCtx.textAlign = 'center';
         cCtx.textBaseline = 'middle';
-        cCtx.fillText(cardW < 330 ? "决断 ➔" : "掷骰 ➔", btnX + btnW / 2, btnY + btnH / 2);
+        cCtx.fillText("落印 ➔", btnX + btnW / 2, btnY + btnH / 2);
       },
       onClick: () => {
         executeDiceChoice(c, sRate);
@@ -45618,6 +45684,7 @@ if (typeof wx !== 'undefined' && typeof wx.onTouchStart === 'function') {
     isTouching = true;
     touchStartX = x;
     touchStartY = y;
+    lastTouchX = x;
     lastTouchY = y;
     touchLastTime = Date.now();
     scrollVelocity = 0;
@@ -45712,6 +45779,8 @@ if (typeof wx !== 'undefined' && typeof wx.onTouchEnd === 'function') {
     }
     const x = typeof touch.clientX !== 'undefined' ? touch.clientX : (typeof touch.x !== 'undefined' ? touch.x : touch.pageX || 0);
     const y = typeof touch.clientY !== 'undefined' ? touch.clientY : (typeof touch.y !== 'undefined' ? touch.y : touch.pageY || 0);
+    lastTouchX = x;
+    lastTouchY = y;
     pressedHitboxId = null;
 
     // 手指若停顿超过 80ms 再抬起，清除惯性速度 (Stop fling on hold)
