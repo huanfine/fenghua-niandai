@@ -350,7 +350,7 @@ state.estate = state.estate || [];
 if (!state.estate.includes('江南会稽南渡庄园')) state.estate.push('江南会稽南渡庄园');
 
 const estateHitboxes = [];
-[0, 200, 400, 600, 800, 1000, 1200].forEach(sY => {
+[0, 200, 400, 600, 800, 1000, 1200, 1400, 1600].forEach(sY => {
   global.drawFamilyTab(100 - sY);
   estateHitboxes.push(...game.getHitboxes(), ...game.getScrollHitboxes());
 });

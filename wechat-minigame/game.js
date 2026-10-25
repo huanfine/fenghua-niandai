@@ -9669,13 +9669,14 @@ function executeNpcDialogue(branch) {
     state.threeYearActionCount = (state.threeYearActionCount || 0) + 1;
   }
 
+  const isDynasticChat = (typeof isDynasticEra === 'function' && isDynasticEra(state.year)) || (state.year && state.year <= 300);
+
   if (branch === 1) {
     // 1. 论道大势 · 时代精神 (推心置腹)
     contact.affinity = Math.min(100, (contact.affinity || 35) + 12);
     addStat("rep", 3, 0);
     addStat("iq", 2, 0);
     addStat("eq", 2, 0);
-    const isDynasticChat = isDynasticEra(state.year) || (state.year && state.year <= 300);
     chat.reactionText = isDynasticChat
       ? `“${state.name}兄高见！天下纷扰之际，能与使君秉烛夜谈经纬大义与风骨初心，实乃平生快事！”`
       : `“${state.name}同志高见！在浮躁逐利的年代，能与君秉烛夜谈时代大势与报国初心，实乃平生快事！”`;
@@ -9694,55 +9695,75 @@ function executeNpcDialogue(branch) {
         contact.affinity = Math.min(100, (contact.affinity || 35) + 8);
         state.capital += bonusCap;
         addStat("eq", 2, 0);
-        chat.reactionText = `“这批顺路发往沿海的急单刚好缺可靠的人盯着，你帮我跑通这一趟，分你 ¥${bonusCap.toLocaleString()} 劳务周转！”`;
-        chat.perkText = `【业务协作】协助打理渠道订单，获分红 ¥${bonusCap.toLocaleString()}，情商+2！`;
-        addFloatingText(`+¥${bonusCap.toLocaleString()}`, screenWidth / 2, getDashboardY() + 40, "#34d399");
+        chat.reactionText = isDynasticChat
+          ? `“洛阳与许都间粮秣盐铁官榷流转，正需君这等世家风骨之人居中引荐转运，通关顺利，特分润 ${bonusCap.toLocaleString()} 五铢钱以为酬劳！”`
+          : `“这批顺路发往沿海的急单刚好缺可靠的人盯着，你帮我跑通这一趟，分你 ¥${bonusCap.toLocaleString()} 劳务周转！”`;
+        chat.perkText = isDynasticChat
+          ? `【货殖榷利】协助打理官榷盐铁商道，获分润 ${bonusCap.toLocaleString()} 五铢钱，世情融通！`
+          : `【业务协作】协助打理渠道订单，获分红 ¥${bonusCap.toLocaleString()}，情商+2！`;
+        addFloatingText(isDynasticChat ? `+${bonusCap.toLocaleString()} 五铢` : `+¥${bonusCap.toLocaleString()}`, screenWidth / 2, getDashboardY() + 40, "#34d399");
       } else {
         const costCap = 1200;
         contact.affinity = Math.min(100, (contact.affinity || 35) + 4);
         state.capital = Math.max(-50000, (state.capital || 0) - costCap);
         addStat("resilience", 2, 0);
-        chat.reactionText = "“今年行情紧俏，上游回款全压在货场上，咱们先喝顿茶探探底，明年有合适单子再合伙！”";
-        chat.perkText = `【商海常情】茶叙应酬花费 ¥${costCap.toLocaleString()}，项目暂缓但摸清了行情，抗逆+2。`;
-        addFloatingText(`-¥${costCap.toLocaleString()}`, screenWidth / 2, getDashboardY() + 40, "#f87171");
+        chat.reactionText = isDynasticChat
+          ? "“岁末流民纷扰、邸阁货值暂滞，咱们先且温酒清谈，静待开春关防放行再作筹谋！”"
+          : "“今年行情紧俏，上游回款全压在货场上，咱们先喝顿茶探探底，明年有合适单子再合伙！”";
+        chat.perkText = isDynasticChat
+          ? `【市易多艰】折冲应酬耗费 ${costCap.toLocaleString()} 五铢钱，项目暂缓但洞悉行市流变，抗逆+2。`
+          : `【商海常情】茶叙应酬花费 ¥${costCap.toLocaleString()}，项目暂缓但摸清了行情，抗逆+2。`;
+        addFloatingText(isDynasticChat ? `-${costCap.toLocaleString()} 五铢` : `-¥${costCap.toLocaleString()}`, screenWidth / 2, getDashboardY() + 40, "#f87171");
       }
     } else if (fKey === 'med_health') {
       contact.affinity = Math.min(100, (contact.affinity || 35) + 10);
       addStat("health", 8, 0);
-      chat.reactionText = "“看你最近连轴转气色偏虚，我给你开一副调理方子，平时千万注意作息！”";
+      chat.reactionText = isDynasticChat
+        ? "“使君操劳宗族公事日久，脉象微虚，老夫赠君一剂温补经方，万望静摄调养！”"
+        : "“看你最近连轴转气色偏虚，我给你开一副调理方子，平时千万注意作息！”";
       chat.perkText = "【良医叮嘱】身心体魄恢复+8，好感度+10！";
       addFloatingText("+8 精力安康", screenWidth / 2, getDashboardY() + 40, "#10b981");
     } else if (fKey === 'tech_pioneer') {
       contact.affinity = Math.min(100, (contact.affinity || 35) + 10);
       addStat("iq", 4, 0);
-      chat.reactionText = "“这本最新整理的技术手册和实验参数笔记借你参考，遇到卡壳咱们随时切磋！”";
-      chat.perkText = "【技术切磋】智谋+4，好感度+10！";
-      addFloatingText("+4 技术切磋", screenWidth / 2, getDashboardY() + 40, "#38bdf8");
+      chat.reactionText = isDynasticChat
+        ? "“此乃老夫手订之天文历数与农桑营造水碓图谱，赠予贤友，以资经世致用！”"
+        : "“这本最新整理的技术手册和实验参数笔记借你参考，遇到卡壳咱们随时切磋！”";
+      chat.perkText = isDynasticChat ? "【经世考工】智谋+4，好感度+10！" : "【技术切磋】智谋+4，好感度+10！";
+      addFloatingText(isDynasticChat ? "+4 经世考工" : "+4 技术切磋", screenWidth / 2, getDashboardY() + 40, "#38bdf8");
     } else if (fKey === 'agri_roots') {
       contact.affinity = Math.min(100, (contact.affinity || 35) + 10);
       addStat("rep", 4, 0);
       addStat("clean", 3, 0);
-      chat.reactionText = "“咱们基层讲究的是实打实的收成，乡亲们看你踏实肯干，都愿意跟着试一试！”";
+      chat.reactionText = isDynasticChat
+        ? "“民以食为天。乡民见使君抚恤庄客、劝课农桑，皆心怀感戴，愿执耒耜效命！”"
+        : "“咱们基层讲究的是实打实的收成，乡亲们看你踏实肯干，都愿意跟着试一试！”";
       chat.perkText = "【乡土口碑】声望+4、清廉+3，好感度+10！";
       addFloatingText("+4 群众声望", screenWidth / 2, getDashboardY() + 40, "#84cc16");
     } else if (fKey === 'culture_arts') {
       contact.affinity = Math.min(100, (contact.affinity || 35) + 10);
       addStat("rep", 5, 0);
       addStat("eq", 2, 0);
-      chat.reactionText = "“你在基层一线摸爬滚打的故事很有时代质感，回头我写进专栏报道里！”";
-      chat.perkText = "【口碑传播】声誉+5、情商+2，好感度+10！";
+      chat.reactionText = isDynasticChat
+        ? "“足下持身雅正、风仪峻拔，我当将足下行迹录入《海内名士品藻录》，播扬士林！”"
+        : "“你在基层一线摸爬滚打的故事很有时代质感，回头我写进专栏报道里！”";
+      chat.perkText = isDynasticChat ? "【士林品藻】声誉+5、情商+2，好感度+10！" : "【口碑传播】声誉+5、情商+2，好感度+10！";
       addFloatingText("+5 名望传播", screenWidth / 2, getDashboardY() + 40, "#ec4899");
     } else if (fKey === 'law_order') {
       contact.affinity = Math.min(100, (contact.affinity || 35) + 10);
       addStat("clean", 5, 0);
       state.activeShield = true;
-      chat.reactionText = "“这是最新的经济合同合规审查要点，签字盖章前多留个心眼，能避开不少暗坑！”";
-      chat.perkText = "【合规把关】清廉+5，激活一次合规防暗算护盾！";
+      chat.reactionText = isDynasticChat
+        ? "“此乃本朝律令与察举考课旧章，行事断案前明晰朝廷宪典，可避酷吏攻讦之险！”"
+        : "“这是最新的经济合同合规审查要点，签字盖章前多留个心眼，能避开不少暗坑！”";
+      chat.perkText = isDynasticChat ? "【明晓宪章】清廉+5，激活一次合规庇护暗盾！" : "【合规把关】清廉+5，激活一次合规防暗算护盾！";
       addFloatingText("🛡️ 合规防线生效", screenWidth / 2, getDashboardY() + 40, "#a855f7");
     } else {
       contact.affinity = Math.min(100, (contact.affinity || 35) + 10);
       state.family.prestige = (state.family.prestige || 15) + 6;
-      chat.reactionText = "“家和万事兴！邻里亲友互相照应，你在外头打拼也少一分后顾之忧！”";
+      chat.reactionText = isDynasticChat
+        ? "“诗书继世，忠厚传家！宗族同气连枝，使君在外扬历风节，内院自当安泰！”"
+        : "“家和万事兴！邻里亲友互相照应，你在外头打拼也少一分后顾之忧！”";
       chat.perkText = "【门风敦睦】家族声望+6，好感度+10！";
       addFloatingText("+6 家族声望", screenWidth / 2, getDashboardY() + 40, "#f97316");
     }
@@ -9754,12 +9775,14 @@ function executeNpcDialogue(branch) {
     contact.affinity = Math.min(100, (contact.affinity || 35) + 8);
     addStat("clean", 5, 0);
     state.activeShield = true;
-    chat.reactionText = `“多亏${state.name}金石良言提点！当今诱惑虽多，但纪律与法律红线万万踩不得！”`;
+    chat.reactionText = isDynasticChat
+      ? `“多亏${state.name}兄金石良言！士人立世当以名节风骨为先，贪图虚妄非士族所为！”`
+      : `“多亏${state.name}金石良言提点！当今诱惑虽多，但纪律与法律红线万万踩不得！”`;
     chat.perkText = "【守正避险】清廉操守+5，好感度+8，获得合规暗盾护体！";
     addFloatingText("+5 清廉操守", screenWidth / 2, getDashboardY() + 40, "#10b981");
     playSoundEffect('paper');
     triggerHaptic('light');
-    addChronicleItem(state.age, state.year, `【名仕私晤】在交谈中与【${contact.name}】互勉严守纪律合规底线，化解潜在风险。`, "守正控险", "history");
+    addChronicleItem(state.age, state.year, `【名仕私晤】在交谈中与【${contact.name}】互勉${isDynasticChat ? '恪守士族风骨' : '严守纪律合规底线'}，化解潜在风险。`, "守正控险", "history");
   }
 
   // 兑现【四海知交】天赋、【入世签字金笔】传家宝与【燕舞收录机】信物的名仕私晤加成
@@ -9991,7 +10014,79 @@ function openFamilyEvent() {
   const reBias = (state.worldVolatility && state.worldVolatility.sectorBias && state.worldVolatility.sectorBias.realEstate) || 0;
   let eventData = null;
 
-  if (yr < 2000) {
+  const isAncient = (typeof isDynasticEra === 'function' && isDynasticEra(yr)) || yr <= 500;
+  if (isAncient) {
+    // 汉魏门阀世家：后院春秋与治家治产抉择
+    eventData = {
+      title: "🏡 门阀后院春秋：治产训诫与宗亲请托",
+      context: `汉魏门阀以规矩持家。伴侣【${spName}】手持内院账簿（内帑结余 ${(state.capital || 0).toLocaleString()} 五铢钱）前来商议开支；适逢同宗旁系族人登门拜谒，求宗房提携子弟或资助修缮桑蚕庄舍。`,
+      choices: [
+        {
+          title: "量入为出 · 添置织机桑苗以赡内庄 (需 2,000五铢)",
+          desc: "斥资 2,000 五铢钱购置新式水碓提花织机，增辟桑林，提升庄园内眷收益与门第声望。",
+          action: () => {
+            if ((state.capital || 0) < 2000) {
+              showToast("府库五铢不足 2,000 钱，请先积攒资财或另择家务之策！", "alert");
+              return false;
+            }
+            state.capital -= 2000;
+            state.family.prestige = (state.family.prestige || 15) + 8;
+            addStat("health", 6);
+            if (state.manor) {
+              state.manor.farmlandAcres = (state.manor.farmlandAcres || 40) + 2;
+            }
+            showToast("兴造织机桑蚕！后院井然，体魄+6，良田+2顷！", "good");
+            addChronicleItem(state.age, state.year, `【内修家政】与伴侣【${spName}】擘画内庄，斥资置办提花织机与桑苗，衣被自足，乡党称贤。`, "内修家政", "history");
+          }
+        },
+        {
+          title: "正家风 · 自掏 1,500 五铢资助旁系垦荒",
+          desc: "不以私害公，私出俸禄资助旁系贫寒族弟屯田垦荒，自食其力。",
+          action: () => {
+            if ((state.capital || 0) < 1500) {
+              showToast("私囊结余不足 1,500 五铢钱，请另选治家方案！", "alert");
+              return false;
+            }
+            state.capital -= 1500;
+            addStat("clean", 5);
+            const roll = seededRandom();
+            if (roll < 0.5) {
+              const repay = 3600;
+              state.capital += repay;
+              addStat("rep", 8);
+              showToast(`🌾 旁系屯田大稔奉还 ${repay} 五铢！清廉+5，声望+8！`, "gold");
+              addChronicleItem(state.age, state.year, "【宗谊永固】昔年解囊资助同宗旁系垦殖荒滩，今岁秋熟丰稔，族众携粮钱奉还宗房，敦睦风尚彰于乡里。", "宗族敦睦", "promo");
+            } else {
+              showToast("旁系遇旱荒收成微薄，1,500五铢尽化膏腴，但明正家规，不堕清名！", "info");
+              addChronicleItem(state.age, state.year, "【守正重义】资助族弟垦荒虽遇灾薄收，然保全宗法规纪，清名布于远近。", "守正避嫌", "history");
+            }
+          }
+        },
+        {
+          title: hasKids ? `督课晚辈【${kidName}】研读《孝经》《论语》 (明经修身)` : `与伴侣【${spName}】调燮阴阳、修德祈嗣 (立家嗣)`,
+          desc: hasKids ? "督责经学章句与家训仪轨，培育簪缨继世之才。" : "静摄调养身心，祈宗嗣绵延、百代承祧。",
+          action: () => {
+            if (!hasKids) {
+              const childGender = seededRandom() < 0.5 ? 'male' : 'female';
+              const childName = generateRandomChineseName(childGender).fullName;
+              state.family.children = [{ name: childName, gender: childGender, birthYear: yr, traits: [] }];
+              state.family.childName = childName;
+              state.family.prestige = (state.family.prestige || 15) + 6;
+              addStat("health", 4);
+              showToast(`👶 喜得宗嗣【${childName}】！宗枝延绵，声望+6！`, "gold");
+              addChronicleItem(state.age, state.year, `【添丁弄瓦】与伴侣【${spName}】诞下宗嗣【${childName}】，宗庙有继，举族同庆。`, "宗族添丁", "history");
+            } else {
+              addStat("iq", 4);
+              addStat("rep", 4);
+              state.family.prestige = (state.family.prestige || 15) + 4;
+              showToast(`📖 督课经史！【${kidName}】通晓经义章句，智谋+4，声望+4！`, "good");
+              addChronicleItem(state.age, state.year, `【诗书传家】晨昏督导【${kidName}】诵习《孝经》《春秋》，举止知书达礼，深得长辈称许。`, "严谨家教", "history");
+            }
+          }
+        }
+      ]
+    };
+  } else if (yr < 2000) {
     eventData = {
       title: "🏡 90年代后院春秋：家计开支与亲友请托",
       context: `改革潮起，街坊邻里开始置办大件。伴侣【${spName}】拿出家里的存折（当前余额 ¥${(state.capital || 0).toLocaleString()}）商量开支；同时老家表舅提着土特产登门，求你托关系或借钱帮表弟谋个出路。`,
@@ -22722,9 +22817,10 @@ function drawTitleScreen() {
         textColor: '#fef08a',
         priority: 100,
         onClick: () => {
-          state.scene = 'game';
-          state.currentTab = 'family';
-          state.clanFamilySubTab = 'pedigree';
+          state.gameScene = 'game';
+          state.activeTab = 'family';
+          state.familyView = 'pedigree';
+          playSoundEffect('fanfare');
           requestRender();
         }
       });
@@ -32999,7 +33095,11 @@ function drawSeasonSettlementModal() {
     ctx.fillText(`• 考定门阀品第：【${nobleTier.name}】`, cfX + 18, cfTextY);
     cfTextY += 22;
     ctx.fillStyle = '#34d399';
-    ctx.fillText(`• 族产信托结转：¥${(data.carryOverTrustFund || 10000).toLocaleString()}`, cfX + 18, cfTextY);
+    const isDynasticTrust = (typeof isDynasticEra === 'function' && isDynasticEra(state.year)) || (state.year <= 500);
+    const trustFundStr = isDynasticTrust
+      ? `${(data.carryOverTrustFund || 10000).toLocaleString()} 五铢钱`
+      : `¥${(data.carryOverTrustFund || 10000).toLocaleString()}`;
+    ctx.fillText(`• 族产信托结转：${trustFundStr}`, cfX + 18, cfTextY);
     cfTextY += 22;
     ctx.fillStyle = '#fbbf24';
     ctx.fillText(`• 启程新篇：${nextSName}（公元${nextSYear}年）`, cfX + 18, cfTextY);
@@ -33143,17 +33243,18 @@ function drawSuccessorSelectionModal() {
   ctx.fillStyle = hasChild ? '#94a3b8' : '#fbbf24';
   ctx.fillText(subPrompt, cardX + cardW / 2, cardY + 52);
 
-  const candidates = (state.successorCandidates && state.successorCandidates.length === 5)
+  const candidates = (state.successorCandidates && state.successorCandidates.length >= 5)
     ? state.successorCandidates
     : (state.successorCandidates = generateSuccessorCandidates());
 
-  const availH = cardH - 128;
-  const itemH = Math.min(78, Math.max(66, Math.floor((availH - 24) / Math.max(1, candidates.length))));
-  const itemGap = 5;
-  let curY = cardY + 68;
+  const availH = cardH - 122;
+  const itemH = Math.min(68, Math.max(54, Math.floor((availH - (candidates.length - 1) * 4) / Math.max(1, candidates.length))));
+  const itemGap = 4;
+  let curY = cardY + 64;
 
   const originIcons = {
     lineage_heir: '👑',
+    same_gen_brother: '🤝',
     adopted_clan: '🤝',
     foster_son: '📜',
     retainer: '⚔️',
@@ -33192,13 +33293,15 @@ function drawSuccessorSelectionModal() {
     ctx.textAlign = 'left';
     ctx.font = '10px ' + FONT_CHRONICLE;
     ctx.fillStyle = '#e2e8f0';
-    ctx.fillText(fitText(cand.desc, itemW - 105, '10px ' + FONT_CHRONICLE), itemX + 10, curY + 24);
+    const descY = itemH <= 58 ? curY + 21 : curY + 24;
+    ctx.fillText(fitText(cand.desc, itemW - 105, '10px ' + FONT_CHRONICLE), itemX + 10, descY);
 
     // 属性加成描述
     ctx.font = '9.5px ' + FONT_UI;
     ctx.fillStyle = '#f59e0b';
     const bonusStr = cand.bonusText ? `✦ ${cand.bonusText} · 【代价】${cand.costText || '无'}` : '✦ 承前启后，继序其皇';
-    ctx.fillText(fitText(bonusStr, itemW - 105, '9.5px ' + FONT_UI), itemX + 10, curY + 44);
+    const bonusY = itemH <= 58 ? curY + 36 : curY + 42;
+    ctx.fillText(fitText(bonusStr, itemW - 105, '9.5px ' + FONT_UI), itemX + 10, bonusY);
 
     // 触控接棒按钮 (30px 高度，保证易触)
     const btnW = 82;
@@ -35054,6 +35157,76 @@ function drawDynasticEstateSection(curY, isCardVisible) {
   }
   curY += card3H + 14;
 
+  // -------------------------------------------------------------------
+  // 柱石四：〔 宗 族 五 柱 · 多 房 协 同 功 德 册 〕
+  // -------------------------------------------------------------------
+  const card4H = 172;
+  if (isCardVisible(curY, card4H)) {
+    ctx.fillStyle = 'rgba(26, 20, 24, 0.94)';
+    roundRect(ctx, padX, curY, w, card4H, 4, true, true, '#856447', 1.2);
+    drawCornerOrnaments(ctx, padX, curY, w, card4H, 6, '#d97706');
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.font = 'bold 13px ' + FONT_CHRONICLE;
+    ctx.fillStyle = '#fef08a';
+    ctx.fillText("〔 宗族五柱 · 多房长效协同册 〕", padX + 12, curY + 10);
+
+    ctx.font = '10px ' + FONT_CHRONICLE;
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText("嫡庶同宗，旁系共筑。历代族人分房履仕、经商、统兵、治经、修道，永固宗基！", padX + 12, curY + 28);
+
+    const pillars = (famProfile && famProfile.clanPillars) || {
+      official: { maxRank: 0, maxTitle: '白衣门生', totalRuns: 0, perkDesc: '门阀政治庇护与官阶起步加成' },
+      scholar: { maxRank: 0, maxTitle: '太学诸生', totalRuns: 0, perkDesc: '经学太学启蒙与悟性书香加成' },
+      merchant: { maxRank: 0, maxTitle: '货殖商客', totalRuns: 0, perkDesc: '水碓庄园兴造与资财分红加成' },
+      military: { maxRank: 0, maxTitle: '部曲武卒', totalRuns: 0, perkDesc: '坞壁防备坚固与部曲募兵加成' },
+      recluse: { maxRank: 0, maxTitle: '名岳处士', totalRuns: 0, perkDesc: '大医避疫方术与延年天元加成' }
+    };
+
+    const pillarConfigs = [
+      { key: 'official', name: '仕途', icon: '🏛️', color: '#f59e0b', bonus: `声望+${Math.min(10, ((pillars.official && pillars.official.maxRank) || 0) * 2)}` },
+      { key: 'scholar', name: '太学', icon: '📜', color: '#60a5fa', bonus: `悟性+${Math.min(8, ((pillars.scholar && pillars.scholar.maxRank) || 0) * 2)}` },
+      { key: 'merchant', name: '货殖', icon: '💰', color: '#34d399', bonus: `资财+${Math.min(15000, ((pillars.merchant && pillars.merchant.maxRank) || 0) * 2500)}` },
+      { key: 'military', name: '虎贲', icon: '⚔️', color: '#f87171', bonus: `胆魄+${Math.min(8, ((pillars.military && pillars.military.maxRank) || 0) * 2)}` },
+      { key: 'recluse', name: '隐逸', icon: '🌿', color: '#a78bfa', bonus: `体魄+${Math.min(8, ((pillars.recluse && pillars.recluse.maxRank) || 0) * 2)}` }
+    ];
+
+    const colW = Math.floor((w - 24 - 4 * 6) / 5);
+    const pY = curY + 46;
+    const colH = 114;
+
+    pillarConfigs.forEach((pc, pIdx) => {
+      const pData = pillars[pc.key] || { maxRank: 0, maxTitle: '初涉', totalRuns: 0 };
+      const cX = padX + 12 + pIdx * (colW + 6);
+
+      ctx.fillStyle = 'rgba(38, 28, 34, 0.85)';
+      roundRect(ctx, cX, pY, colW, colH, 3, true, true, pData.maxRank > 0 ? pc.color : '#524037', 1);
+
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 11px ' + FONT_CHRONICLE;
+      ctx.fillStyle = pc.color;
+      ctx.fillText(`${pc.icon} ${pc.name}`, cX + colW / 2, pY + 6);
+
+      ctx.font = '10px ' + FONT_CHRONICLE;
+      ctx.fillStyle = '#fde68a';
+      const shortTitle = (pData.maxTitle || '未立').slice(0, 4);
+      ctx.fillText(shortTitle, cX + colW / 2, pY + 25);
+
+      ctx.font = '9.5px ' + FONT_UI;
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillText(`${pData.totalRuns || 0}代族人`, cX + colW / 2, pY + 45);
+
+      ctx.font = '9px ' + FONT_UI;
+      ctx.fillStyle = pData.maxRank > 0 ? '#34d399' : '#9ca3af';
+      ctx.fillText(`品阶: ${pData.maxRank || 0}阶`, cX + colW / 2, pY + 66);
+
+      ctx.fillStyle = pData.maxRank > 0 ? '#fbbf24' : '#6b7280';
+      ctx.fillText(pData.maxRank > 0 ? pc.bonus : '待启', cX + colW / 2, pY + 86);
+    });
+  }
+  curY += card4H + 14;
+
   return curY;
 }
 
@@ -36517,7 +36690,7 @@ function drawActionBar() {
       if (state.youthPath === 'scholar') {
         labelText = isNarrowScreen ? `${adultPrefix}试策 ➔` : `${adultPrefix}成丁 · 登明堂试策对策 ➔`;
       } else if (state.youthPath === 'military') {
-        labelText = isNarrowScreen ? "授符统兵 ➔`" : `${adultPrefix}成丁 · 授符统领部曲 ➔`;
+        labelText = isNarrowScreen ? "授符统兵 ➔" : `${adultPrefix}成丁 · 授符统领部曲 ➔`;
       } else if (state.youthPath === 'commerce') {
         labelText = isNarrowScreen ? "掌理族产 ➔" : `${adultPrefix}成丁 · 掌理宗门家产 ➔`;
       } else if (state.youthPath === 'med') {
