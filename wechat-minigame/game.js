@@ -22961,15 +22961,14 @@ function drawTopSoundButton() {
 
 function drawChildhoodDashboard(padX, dashY, w, dH) {
   ctx.save();
-  // 仪表盘卡片外框与装饰 (Elevation 1: 物理悬浮柔和投影 + 琉璃倒角高光 + 玉带与金标)
+  // 仪表盘卡片外框与装饰 (纯正古雅玄木纸本，去除喧宾夺主的粗金边)
   drawElevatedCard(ctx, padX, dashY, w, dH, {
     elevation: 1,
-    borderColor: '#d97706',
-    borderWidth: 1.5,
-    hasCornerOrnaments: true,
-    cornerLength: 6,
-    headerBandColor: 'rgba(245, 158, 11, 0.15)',
-    leftAccentColor: '#f59e0b'
+    borderColor: 'rgba(133, 100, 71, 0.45)',
+    borderWidth: 1.0,
+    hasCornerOrnaments: false,
+    headerBandColor: 'transparent',
+    leftAccentColor: '#d97706'
   });
 
   // 1. 顶部时代箴言与天时 (dashY + 5)
@@ -27526,26 +27525,9 @@ function drawTopBar() {
   ctx.fillStyle = '#fef08a';
   ctx.fillText(ageStr, ageX + 6, statusY);
 
-  const trackInfo = TRACK_CONFIGS[state.track] || {};
-  let trackTitle = trackInfo.title || '门阀仕途';
-  if (state.age < 18) {
-    trackTitle = state.age <= 3 ? '〔 襁褓 〕' : (state.age <= 6 ? '〔 孩提 〕' : (state.age <= 14 ? '〔 总角 〕' : '〔 束发 〕'));
-  }
   const safeLeftW = capsule.left - 8;
   const cfgBtnW = 28;
-
-  let curX = ageX + ageW + 6;
-
-  // 3. 赛道朱砂篆刻印章标签 (L2 Track Crest)
-  ctx.font = 'bold 11.5px ' + FONT_CHRONICLE;
-  const tagW = ctx.measureText(trackTitle).width + 12;
-  if (curX + tagW + 4 <= safeLeftW - cfgBtnW) {
-    ctx.fillStyle = 'rgba(127, 29, 29, 0.75)';
-    roundRect(ctx, curX, statusY - 10, tagW, 20, 3, true, true, '#991b1b', 1);
-    ctx.fillStyle = '#fef2f2';
-    ctx.fillText(trackTitle, curX + 6, statusY);
-    curX += tagW + 6;
-  }
+  let curX = ageX + ageW + 8;
 
   // 🌾 V25 二十四节气朱砂流转篆刻印章 (Solar Term Dynamic Seal)
   const curTerm = getSolarTermInfo(state.year, state.age);
@@ -27736,88 +27718,22 @@ function drawCharacterDashboard() {
   // 18岁弱冠/及笄及岁后职务与散官正名归一化 (防止仍显示初生襁褓状态)
   ensureAdultRankAndTitle(state);
 
-  // 仪表盘卡片外框与装饰 (Elevation 1: 物理悬浮柔和投影 + 琉璃倒角高光 + 玄檀金玉质感)
+  // 仪表盘卡片外框与装饰 (纯正古雅玄木纸本，去除喧宾夺主的粗金边与角花)
   drawElevatedCard(ctx, padX, dashY, w, curDashH, {
     elevation: 1,
-    borderColor: '#856447',
+    borderColor: 'rgba(133, 100, 71, 0.45)',
     borderWidth: 1.0,
-    hasCornerOrnaments: true,
-    cornerLength: 5,
-    headerBandColor: 'rgba(217, 119, 6, 0.10)',
+    hasCornerOrnaments: false,
+    headerBandColor: 'transparent',
     leftAccentColor: '#d97706'
   });
 
-  // 1. 顶部战略流派共鸣横幅 / 时代箴言 (第 0 行: dashY + 5 到 dashY + 22)
-  const auraH = 17;
-  const auraY = dashY + 5;
-  const isFemaleDash = (state.gender === 'female' || state.gender === '女');
-  let lifeSeasonTag = isFemaleDash ? "〔 及笄 · 笃道 〕" : "〔 弱冠 · 笃道 〕";
-  let lifeSeasonColor = "#fef08a";
-  if (state.age >= 60) {
-    lifeSeasonTag = "〔 耳顺 · 垂宪 〕";
-    lifeSeasonColor = "#f59e0b";
-  } else if (state.age >= 49) {
-    lifeSeasonTag = "〔 知命 · 经纶 〕";
-    lifeSeasonColor = "#fb923c";
-  } else if (state.age >= 36) {
-    lifeSeasonTag = "〔 不惑 · 砥柱 〕";
-    lifeSeasonColor = "#34d399";
-  }
-
-  let eraMacroTrend = "〔 经学中兴 〕";
-  if (state.year >= 236) eraMacroTrend = "〔 魏晋擅变 〕";
-  else if (state.year >= 191) eraMacroTrend = "〔 群雄割据 〕";
-  else if (state.year >= 146) eraMacroTrend = "〔 党锢黄巾 〕";
-
-  // 二十四节气动态天时微视窗 (Solar Terms Pill)
-  const stTerm = getSolarTerm(state.year, state.age);
-  const stPillW = Math.min(68, Math.floor(w * 0.22));
-  const stPillX = padX + w - stPillW - 8;
-  drawTactileButton(ctx, {
-    id: 'solar_term_info_btn',
-    x: stPillX,
-    y: auraY,
-    w: stPillW,
-    h: auraH,
-    radius: 3,
-    bg: 'rgba(28, 22, 25, 0.85)',
-    border: '#856447',
-    borderWidth: 0.8,
-    text: `${stTerm.emblem} ${stTerm.name}`,
-    font: 'bold 11px ' + FONT_CHRONICLE,
-    textColor: '#fef08a',
-    priority: 30,
-    onClick: () => {
-      showToast(`【${stTerm.name}】${stTerm.motto} (${stTerm.buff})`, 'gold');
-      playSoundEffect('click');
-    }
-  });
-
-  const bannerMaxW = stPillX - (padX + 14) - 6;
-  if (state.activeAura) {
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.16)';
-    roundRect(ctx, padX + 8, auraY, w - 16, auraH, 4, true, false);
-    ctx.font = 'bold 11px ' + FONT_CHRONICLE;
-    ctx.fillStyle = state.activeAura.color || '#f59e0b';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(fitText(`${state.activeAura.icon} ${state.activeAura.title} · ${lifeSeasonTag}`, bannerMaxW, 'bold 11px ' + FONT_CHRONICLE), padX + 14, auraY + auraH / 2);
-  } else {
-    ctx.fillStyle = 'rgba(28, 22, 25, 0.7)';
-    roundRect(ctx, padX + 8, auraY, w - 16, auraH, 4, true, false);
-    ctx.font = 'bold 11px ' + FONT_CHRONICLE;
-    ctx.fillStyle = lifeSeasonColor;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(fitText(`${lifeSeasonTag} ✦ ${eraMacroTrend}`, bannerMaxW, 'bold 11px ' + FONT_CHRONICLE), padX + 14, auraY + auraH / 2);
-  }
-
-  // 2. 主角身份核心区 (第 1 行: dashY + 27 到 dashY + 72)
+  // 1. 主角身份核心区 (第 1 行: dashY + 12 到 dashY + 68)
   const avatarSize = 44;
-  const avX = padX + 10;
-  const avY = dashY + 27;
+  const avX = padX + 12;
+  const avY = dashY + 12;
 
-  // 头像与档案按钮
+  // 头像与档案按钮 (朱砂金石名章)
   const famSurname = (state.familyProfile && state.familyProfile.surname) ? state.familyProfile.surname[0] : '宗';
   drawTactileButton(ctx, {
     id: 'protagonist_dossier_btn',
@@ -27828,7 +27744,7 @@ function drawCharacterDashboard() {
     radius: 4,
     bg: '#7f1d1d',
     border: '#f59e0b',
-    borderWidth: 1.5,
+    borderWidth: 1.2,
     text: famSurname,
     font: 'bold 20px ' + FONT_CHRONICLE,
     textColor: '#fef08a',
@@ -27841,18 +27757,18 @@ function drawCharacterDashboard() {
     }
   });
 
-  const infoX = avX + avatarSize + 10;
+  const infoX = avX + avatarSize + 12;
   const hasHeadline = !!EPOCH_NEWSPAPER_HEADLINES[state.year];
   const isExpanded = !!state.dashboardExpanded;
 
-  // 右侧“详情 / 收起”微交互抽屉角标按钮
-  const headBtnW = 60;
+  // 右侧“详情 / 敛起”微交互抽屉角标按钮
+  const headBtnW = 56;
   const headBtnH = 20;
-  const toggleBtnW = hasHeadline ? 58 : 64;
+  const toggleBtnW = hasHeadline ? 56 : 60;
   const toggleBtnH = 20;
-  const headBtnX = padX + w - headBtnW - 8;
-  const toggleBtnX = hasHeadline ? (headBtnX - toggleBtnW - 6) : (padX + w - toggleBtnW - 8);
-  const toggleBtnY = dashY + 26;
+  const headBtnX = padX + w - headBtnW - 10;
+  const toggleBtnX = hasHeadline ? (headBtnX - toggleBtnW - 6) : (padX + w - toggleBtnW - 10);
+  const toggleBtnY = dashY + 12;
 
   drawTactileButton(ctx, {
     id: 'toggle_dashboard_fold_btn',
@@ -27861,10 +27777,10 @@ function drawCharacterDashboard() {
     w: toggleBtnW,
     h: toggleBtnH,
     radius: 3,
-    bg: isExpanded ? 'rgba(42, 30, 24, 0.95)' : 'rgba(245, 158, 11, 0.18)',
-    border: isExpanded ? '#d97706' : '#f59e0b',
-    borderWidth: 1,
-    text: isExpanded ? "〔 敛 〕" : "〔 详 〕",
+    bg: isExpanded ? 'rgba(42, 30, 24, 0.95)' : 'rgba(245, 158, 11, 0.12)',
+    border: isExpanded ? '#d97706' : '#856447',
+    borderWidth: 0.8,
+    text: isExpanded ? "〔 敛 ▴ 〕" : "〔 详 ▾ 〕",
     font: 'bold 11px ' + FONT_UI,
     textColor: '#fef08a',
     priority: 30,
@@ -27884,6 +27800,7 @@ function drawCharacterDashboard() {
       radius: 3,
       bg: '#78350f',
       border: '#f59e0b',
+      borderWidth: 0.8,
       text: "〔 邸报 〕",
       font: 'bold 11px ' + FONT_CHRONICLE,
       textColor: '#fef08a',
@@ -27897,14 +27814,14 @@ function drawCharacterDashboard() {
     });
   }
 
-  // 姓名与赛道标签 (y = dashY + 27)
+  // 姓名与门阀祖望 (y = dashY + 13)
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
   ctx.font = 'bold 16px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#fef08a';
-  const maxNameW = Math.max(60, toggleBtnX - infoX - 10);
+  const maxNameW = Math.max(50, toggleBtnX - infoX - 10);
   const safeName = fitText(state.name, maxNameW, 'bold 16px ' + FONT_CHRONICLE);
-  ctx.fillText(safeName, infoX, dashY + 27);
+  ctx.fillText(safeName, infoX, dashY + 13);
 
   const nameWidth = ctx.measureText(safeName).width;
   ctx.font = 'bold 11px ' + FONT_UI;
@@ -27915,14 +27832,14 @@ function drawCharacterDashboard() {
   const pillAvailW = toggleBtnX - (infoX + nameWidth + 14);
   if (pillAvailW >= 36) {
     ctx.fillStyle = 'rgba(127, 29, 29, 0.35)';
-    roundRect(ctx, infoX + nameWidth + 8, dashY + 28, trackPillW, 18, 3, true, true, '#991b1b', 0.8);
+    roundRect(ctx, infoX + nameWidth + 8, dashY + 14, trackPillW, 17, 3, true, true, '#991b1b', 0.8);
     ctx.fillStyle = '#fecaca';
     ctx.textAlign = 'center';
-    ctx.fillText(trackTitleStr, infoX + nameWidth + 8 + trackPillW / 2, dashY + 31);
+    ctx.fillText(trackTitleStr, infoX + nameWidth + 8 + trackPillW / 2, dashY + 16);
   }
 
-  // 职务与头衔 (y = dashY + 47)
-  const maxTitleW = toggleBtnX - infoX - 8;
+  // 职务与突围死线 (y = dashY + 34)
+  const maxTitleW = Math.max(80, padX + w - infoX - 90);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
   ctx.font = 'bold 12.5px ' + FONT_UI;
@@ -27930,21 +27847,32 @@ function drawCharacterDashboard() {
   const rankDisplay = (state.rankName && state.jobTitle && state.rankName !== state.jobTitle)
     ? `【${state.rankName}】· ${state.jobTitle}`
     : `【${state.rankName || state.jobTitle || '宗门子弟'}】`;
-  ctx.fillText(fitText(rankDisplay, maxTitleW, 'bold 12.5px ' + FONT_UI), infoX, dashY + 47);
+  ctx.fillText(fitText(rankDisplay, maxTitleW, 'bold 12.5px ' + FONT_UI), infoX, dashY + 34);
 
-  // 精力筹码与突围倒计时并列 (y = dashY + 62)
+  // 考课/诫示死线靠右显示
+  const dl = getNextCareerDeadline(state.age, state.track);
+  ctx.font = '11px ' + FONT_UI;
+  ctx.fillStyle = dl.remain <= 1 ? '#ef4444' : '#f59e0b';
+  ctx.textAlign = 'right';
+  const dlText = (state.year && state.year <= 500)
+    ? (dl.remain ? `〔考课〕余${dl.remain}载` : '〔大定〕')
+    : `〔诫〕${dl.text}`;
+  ctx.fillText(dlText, padX + w - 10, dashY + 34);
+
+  // 精力筹码与修身箴言 (y = dashY + 50)
+  ctx.textAlign = 'left';
   const apStr = `〔 筹 〕${state.ap || 0}/${state.maxAp || 3}`;
   ctx.font = 'bold 12px ' + FONT_UI;
   ctx.fillStyle = (state.ap || 0) > 0 ? '#fbbf24' : '#64748b';
-  ctx.fillText(apStr, infoX, dashY + 62);
+  ctx.fillText(apStr, infoX, dashY + 50);
 
   const apTextW = ctx.measureText(apStr).width;
   for (let i = 0; i < (state.maxAp || 3); i++) {
-    const dotX = infoX + apTextW + 5 + i * 9;
+    const dotX = infoX + apTextW + 6 + i * 10;
     const isLit = i < (state.ap || 0);
     ctx.fillStyle = isLit ? '#f59e0b' : '#334155';
     ctx.beginPath();
-    ctx.arc(dotX, dashY + 67, 3.2, 0, Math.PI * 2);
+    ctx.arc(dotX, dashY + 56, 3.2, 0, Math.PI * 2);
     ctx.fill();
     if (isLit) {
       ctx.strokeStyle = '#fef08a';
@@ -27953,18 +27881,26 @@ function drawCharacterDashboard() {
     }
   }
 
-  // 突围死线靠右紧凑显示
-  const dl = getNextCareerDeadline(state.age, state.track);
-  ctx.font = '11px ' + FONT_UI;
-  ctx.fillStyle = dl.remain <= 1 ? '#ef4444' : '#f59e0b';
+  // 年龄阶段微标识
+  const isFemaleDash = (state.gender === 'female' || state.gender === '女');
+  let stageBrief = isFemaleDash ? "及笄 · 笃道" : "弱冠 · 笃道";
+  if (state.age >= 60) stageBrief = "耳顺 · 垂宪";
+  else if (state.age >= 49) stageBrief = "知命 · 经纶";
+  else if (state.age >= 36) stageBrief = "不惑 · 砥柱";
+  ctx.font = '11px ' + FONT_CHRONICLE;
+  ctx.fillStyle = '#94a3b8';
   ctx.textAlign = 'right';
-  const dlText = (state.year && state.year <= 500)
-    ? (dl.remain ? `〔考课〕余${dl.remain}载` : '〔大定〕')
-    : `〔诫〕${dl.text}`;
-  const dlMaxW = Math.max(50, padX + w - 10 - (infoX + apTextW + 36));
-  ctx.fillText(fitText(dlText, dlMaxW, '11px ' + FONT_UI), padX + w - 10, dashY + 63);
+  ctx.fillText(`〔${stageBrief}〕`, padX + w - 10, dashY + 51);
 
-  // 3. 履职能力与核心四维/六维渲染 (降噪折叠态 122px vs 全量展开态 186px)
+  // 雅致内衬横隔墨线 (dashY + 68)
+  ctx.strokeStyle = 'rgba(133, 100, 71, 0.25)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(padX + 10, dashY + 68);
+  ctx.lineTo(padX + w - 10, dashY + 68);
+  ctx.stroke();
+
+  // 2. 履职能力与核心四维/六维渲染 (降噪折叠态 122px vs 全量展开态 186px)
   const iqVal = typeof getStat === 'function' ? getStat('iq', 50) : (state.iq || 50);
   const eqVal = typeof getStat === 'function' ? getStat('eq', 50) : (state.eq || 50);
   const courageVal = typeof getStat === 'function' ? getStat('courage', 50) : (state.courage || 50);
@@ -27973,86 +27909,35 @@ function drawCharacterDashboard() {
 
   if (!isExpanded) {
     // ----------------------------------------------------
-    // 【折叠降噪常驻态】：声望、清廉、体魄、资金、核心能力均值 (释放34px给主内容区)
+    // 【折叠降噪常驻态】：名望、操守、体魄、五铢 (四列雅致石刻数字，剔除条形码进度条噪点)
     // ----------------------------------------------------
-    const barStartY = dashY + 76;
-    const colW3 = Math.floor((w - 20) / 3);
-
-    // 第 1 行：声望、清廉、体魄 (3列)
-    const coreThree = [
-      { label: "宗族声誉", key: 'rep', val: state.rep, max: 100, color: '#f59e0b' },
-      { label: "清廉操守", key: 'clean', val: state.clean, max: 100, color: '#10b981' },
-      { label: "元神体魄", key: 'health', val: state.health, max: 100, color: '#f43f5e' }
-    ];
-
-    for (let c = 0; c < 3; c++) {
-      const st = coreThree[c];
-      const bx = padX + 10 + c * colW3;
-      const by = barStartY;
-
-      ctx.font = '10.5px ' + FONT_UI;
-      ctx.fillStyle = '#94a3b8';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText(st.label, bx, by);
-
-      ctx.font = 'bold 12.5px ' + FONT_MONO;
-      ctx.fillStyle = st.color;
-      ctx.textAlign = 'right';
-      ctx.fillText(st.val, bx + colW3 - 8, by);
-
-      const pW = colW3 - 10;
-      const pH = 3.5;
-      ctx.fillStyle = '#140f13';
-      roundRect(ctx, bx, by + 13, pW, pH, 1.5, true, false);
-      const fillW = Math.max(2, Math.min(pW, (st.val / st.max) * pW));
-      ctx.fillStyle = st.color;
-      roundRect(ctx, bx, by + 13, fillW, pH, 1.5, true, false);
-
-      // 金色流光脉冲边框
-      drawStatPulseBorder(ctx, bx - 2, by - 2, colW3 - 4, 19, st.key);
-    }
-
-    // 第 2 行：现金资本 (左侧) + 核心能力均值 (右侧)
-    const by2 = dashY + 97;
-    const colW2 = Math.floor((w - 24) / 2);
-
-    // 现金资本
-    const bxCap = padX + 10;
     const capValStr = formatCurrency(state.displayCapital !== undefined ? state.displayCapital : state.capital);
-    ctx.font = '10px ' + FONT_UI;
-    ctx.fillStyle = '#94a3b8';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText("〔 资 本 〕", bxCap, by2);
+    const coreFour = [
+      { label: "宗族声望", key: 'rep', val: state.rep, color: '#f59e0b' },
+      { label: "清廉操守", key: 'clean', val: state.clean, color: '#10b981' },
+      { label: "元神体魄", key: 'health', val: state.health, color: '#f43f5e' },
+      { label: "结余资财", key: 'capital', val: capValStr, color: '#34d399' }
+    ];
+    const colW4 = Math.floor((w - 20) / 4);
+    const statY1 = dashY + 76;
+    const statY2 = dashY + 95;
 
-    ctx.font = 'bold 12px ' + FONT_MONO;
-    ctx.fillStyle = '#34d399';
-    ctx.textAlign = 'right';
-    ctx.fillText(fitText(capValStr, colW2 - 58, 'bold 12px ' + FONT_MONO), bxCap + colW2 - 8, by2);
-    drawStatPulseBorder(ctx, bxCap - 2, by2 - 2, colW2 - 4, 18, 'capital');
+    for (let c = 0; c < 4; c++) {
+      const st = coreFour[c];
+      const bx = padX + 10 + c * colW4;
 
-    // 核心能力均值
-    const bxComp = padX + 10 + colW2 + 10;
-    ctx.font = '10px ' + FONT_UI;
-    ctx.fillStyle = '#94a3b8';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText("〔 能 略 〕", bxComp, by2);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.font = '10.5px ' + FONT_CHRONICLE;
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(`〔${st.label}〕`, bx + colW4 / 2, statY1);
 
-    ctx.font = 'bold 12px ' + FONT_MONO;
-    ctx.fillStyle = '#d97706';
-    ctx.textAlign = 'right';
-    ctx.fillText(`${compAvg}`, bxComp + colW2 - 8, by2);
+      ctx.font = 'bold 14px ' + FONT_MONO;
+      ctx.fillStyle = st.color;
+      ctx.fillText(fitText(String(st.val), colW4 - 4, 'bold 14px ' + FONT_MONO), bx + colW4 / 2, statY2);
 
-    const compPw = Math.max(16, colW2 - 84);
-    ctx.fillStyle = '#140f13';
-    roundRect(ctx, bxComp + 52, by2 + 4, compPw, 3.5, 1.5, true, false);
-    const cFillW = Math.max(2, Math.min(compPw, (compAvg / 100) * compPw));
-    ctx.fillStyle = '#d97706';
-    roundRect(ctx, bxComp + 52, by2 + 4, cFillW, 3.5, 1.5, true, false);
-    drawStatPulseBorder(ctx, bxComp - 2, by2 - 2, colW2 - 4, 18, 'competency');
-
+      drawStatPulseBorder(ctx, bx + 1, statY1 - 2, colW4 - 2, 38, st.key);
+    }
   } else {
     // ----------------------------------------------------
     // 【全量展开抽屉态】：全 8 项属性 + 核心均值 (3x3 精准九宫格矩阵)
@@ -28454,40 +28339,30 @@ function drawTimelineTab(startY) {
     curY += bannerH + 8;
   }
 
-  // 0.00 童年阶段前置启蒙横幅 (0~17岁，独立标志位不遮蔽18岁成年三步引导，双行完整显示不截断)
+  // 0.00 童年阶段前置启蒙横幅 (0~17岁轻量单行提示，不挤占首屏空间)
   if ((state.age || 0) < 18 && !state.childhoodTutorialDismissed && !state.tutorialCompleted) {
-    const childTutH = 68;
-    ctx.fillStyle = 'rgba(28, 20, 24, 0.95)';
-    roundRect(ctx, padX, curY, w, childTutH, 4, true, true, '#856447', 1.2);
+    const childTutH = 34;
+    ctx.fillStyle = 'rgba(28, 20, 24, 0.88)';
+    roundRect(ctx, padX, curY, w, childTutH, 4, true, true, 'rgba(133, 100, 71, 0.35)', 1);
     const childTitle = state.age <= 2
-      ? '🧭 幼学发祥 · 周岁识器与天命伏脉'
-      : '🧭 少年励学 · 积跬求精与立志分流';
-    const childDesc = state.age <= 2
-      ? '周岁抓周以定志趣风骨；待及冠入仕主政，若觉神疲体乏，当自反内省以摄养心神。'
-      : '年少当惜寸阴，勤勉研习以积蓄底蕴；十五及笄分流择道，弱冠之年方能昂首逐浪！';
+      ? '🧭 幼学发祥 · 周岁抓周以定志趣风骨'
+      : '🧭 少年励学 · 积跬求精，十五及笄束发择道';
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.font = 'bold 12.5px ' + FONT_CHRONICLE;
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 12px ' + FONT_CHRONICLE;
     ctx.fillStyle = '#fde047';
-    ctx.fillText(fitText(childTitle, w - 76, 'bold 12.5px ' + FONT_CHRONICLE), padX + 10, curY + 6);
-    ctx.font = '11.5px ' + FONT_CHRONICLE;
-    ctx.fillStyle = '#d4c7b8';
-    const childLines = wrapTextLines(childDesc, w - 82, '11.5px ' + FONT_CHRONICLE);
-    ctx.fillText(childLines[0] || '', padX + 10, curY + 25);
-    if (childLines[1]) {
-      ctx.fillText(fitText(childLines.slice(1).join(''), w - 82, '11.5px ' + FONT_CHRONICLE), padX + 10, curY + 44);
-    }
+    ctx.fillText(fitText(childTitle, w - 74, 'bold 12px ' + FONT_CHRONICLE), padX + 10, curY + childTutH / 2);
     drawTactileButton(ctx, {
       id: 'btn_child_tutorial_skip',
-      x: padX + w - 66,
-      y: curY + 21,
-      w: 56,
-      h: 26,
+      x: padX + w - 58,
+      y: curY + 5,
+      w: 48,
+      h: 24,
       radius: 3,
       bg: 'rgba(38, 28, 20, 0.9)',
-      border: '#d97706',
+      border: '#856447',
       text: '领会',
-      font: '12px ' + FONT_CHRONICLE,
+      font: '11px ' + FONT_CHRONICLE,
       textColor: '#fef08a',
       isScroll: true,
       priority: 30,
@@ -28498,7 +28373,7 @@ function drawTimelineTab(startY) {
         requestRender();
       }
     });
-    curY += childTutH + 8;
+    curY += childTutH + 6;
   }
 
   // 0. 童年自主精力分配面板 (3 ~ 17 岁)
@@ -28547,12 +28422,11 @@ function drawTimelineTab(startY) {
     }
   }
 
-  // 2. 编年长卷分类筛选器 (Filter Bar)
-  const filterH = 26;
-  const filterGap = 4;
-  const filW = Math.floor((w - (CHRONICLE_FILTERS.length - 1) * filterGap) / CHRONICLE_FILTERS.length);
+  // 2. 编年长卷分类筛选器 (轻量水墨横卷，剔除笨重黑方块边框，融于宣纸背景)
+  const filterH = 22;
+  const filW = Math.floor(w / CHRONICLE_FILTERS.length);
   CHRONICLE_FILTERS.forEach((flt, fIdx) => {
-    const fx = padX + fIdx * (filW + filterGap);
+    const fx = padX + fIdx * filW;
     const isAct = (state.chronicleFilter || 'all') === flt.key;
     const filterId = `filter_chronicle_${flt.key}`;
 
@@ -28562,17 +28436,23 @@ function drawTimelineTab(startY) {
       y: curY,
       w: filW,
       h: filterH,
-      radius: 3,
-      bg: isAct ? '#78350f' : 'rgba(32, 24, 27, 0.9)',
-      pressedBg: isAct ? '#451a03' : '#140f13',
-      border: isAct ? '#d97706' : '#6b4f3b',
-      pressedBorder: isAct ? '#f59e0b' : '#856447',
-      text: flt.label,
-      font: isAct ? 'bold 12px ' + FONT_CHRONICLE : '11.5px ' + FONT_CHRONICLE,
-      textColor: isAct ? '#fef08a' : '#d4c7b8',
-      pressedTextColor: '#fef08a',
+      radius: 2,
+      bg: 'transparent',
+      pressedBg: 'rgba(255, 255, 255, 0.05)',
+      border: null,
       isScroll: true,
       priority: 25,
+      renderContent: (c) => {
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.font = isAct ? 'bold 12.5px ' + FONT_CHRONICLE : '11.5px ' + FONT_CHRONICLE;
+        c.fillStyle = isAct ? '#fef08a' : '#8c7b75';
+        c.fillText(isAct ? `• ${flt.label}` : flt.label, fx + filW / 2, curY + filterH / 2);
+        if (isAct) {
+          c.fillStyle = '#d97706';
+          c.fillRect(fx + filW / 2 - 12, curY + filterH - 2, 24, 1.5);
+        }
+      },
       onClick: () => {
         state.chronicleFilter = flt.key;
         playSoundEffect('click');
@@ -28581,7 +28461,7 @@ function drawTimelineTab(startY) {
     });
   });
 
-  curY += filterH + 12;
+  curY += filterH + 8;
 
   if (state.chronicleHistory.length === 0) {
     ctx.textAlign = 'center';
@@ -28634,8 +28514,8 @@ function drawTimelineTab(startY) {
 
     const isPromo = item.type === 'promo';
     const isCrisis = item.type === 'crisis';
-    const borderColor = isPromo ? '#d97706' : (isCrisis ? '#ef4444' : '#856447');
-    const bgColor = isPromo ? '#221518' : (isCrisis ? '#261013' : '#1a1418');
+    const borderColor = isPromo ? '#d97706' : (isCrisis ? '#ef4444' : 'rgba(133, 100, 71, 0.25)');
+    const bgColor = isPromo ? '#221518' : (isCrisis ? '#261013' : 'rgba(26, 20, 24, 0.72)');
     const lines = item._lines;
 
     // 导轨节点圆环
@@ -28644,13 +28524,13 @@ function drawTimelineTab(startY) {
     ctx.arc(conduitX, curY + 14, 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // 纪事卡片 (Elevation 1 悬浮宣纸印记)
+    // 纪事卡片 (Elevation 1 悬浮宣纸印记，常态纪事柔和淡雅，大考与变局醒目出挑)
     drawElevatedCard(ctx, cardX, curY, cardW, cardH, {
       elevation: 1,
       radius: 4,
       fill: bgColor,
       borderColor: borderColor,
-      borderWidth: isPromo || isCrisis ? 1.5 : 1
+      borderWidth: isPromo || isCrisis ? 1.5 : 0.8
     });
 
     ctx.textAlign = 'left';
