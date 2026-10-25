@@ -1,7 +1,7 @@
 /**
  * 《风华年代：沧海沉浮录》字节跳动 / 抖音小游戏自动化构建产物
  * 由 scripts/build_douyin.js 从 wechat-minigame 单一真源自动生成
- * 生成时间: 2026-10-24T16:48:48.507Z
+ * 生成时间: 2026-10-25T09:21:33.058Z
  */
 /**
  * 《风华年代：沧海沉浮录》微信小游戏 (Game Core Edition)
@@ -1704,16 +1704,20 @@ function drawElevatedCard(context, x, y, width, height, opts = {}) {
 
   context.save();
 
-  // 1. 东方画屏极淡墨晕微投影 (极克制宣纸层叠感，绝无西式大模糊扩散黑影)
+  // 1. 东方画屏金石承托底影 (彻底消除移动端 Canvas 原生 shadowBlur 导致的浑浊脏黑晕与高DPR杂色)
   if (elevation > 0 && !isInset) {
     context.save();
-    context.shadowColor = 'rgba(0, 0, 0, 0.22)';
-    context.shadowOffsetY = 1.5;
-    context.shadowBlur = 3;
-    context.fillStyle = 'rgba(16, 13, 17, 0.96)';
-    roundRect(context, x, y, width, height, radius, true, false);
+    // 采用宋代装帧 1.2px 徽墨沉刻衬底，提供纯净微立体层次，绝无移动端高分辨率下的发虚脏边与双重抗锯齿黑边
+    context.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    roundRect(context, x, y + 1.2, width, height, radius, true, false);
     context.restore();
   }
+
+  // 严格重置阴影状态，杜绝任何平台级原生 Canvas 上下文状态泄漏污染
+  context.shadowColor = 'transparent';
+  context.shadowBlur = 0;
+  context.shadowOffsetX = 0;
+  context.shadowOffsetY = 0;
 
   // 2. 徽墨古砚/宋瓷温润微渐变底板 (平挺沉稳，墨分五色)
   if (bg) {
@@ -1790,6 +1794,10 @@ function drawElevatedCard(context, x, y, width, height, opts = {}) {
     drawCornerOrnaments(context, x, y, width, height, cornerLength, finalBorder || '#856447');
   }
 
+  context.shadowColor = 'transparent';
+  context.shadowBlur = 0;
+  context.shadowOffsetX = 0;
+  context.shadowOffsetY = 0;
   context.restore();
 }
 
@@ -5882,6 +5890,10 @@ function drawStatPulseBorder(ctx, x, y, w, h, key) {
   ctx.textBaseline = 'top';
   ctx.fillText('⚡', x + w - 2, y);
 
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
   ctx.restore();
 }
 
@@ -22130,6 +22142,12 @@ function _safeDrawFrame() {
   recycleHitboxes(scrollHitboxes);
   if (!ctx) return;
 
+  // 严格重置全局阴影状态，杜绝跨帧或原生 Canvas 状态残留导致的脏灰色晕染
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+
   ctx.save();
   if (screenShakeX !== 0 || screenShakeY !== 0) {
     ctx.translate(screenShakeX, screenShakeY);
@@ -22303,15 +22321,24 @@ function drawTitleScreen() {
   ctx.fillStyle = '#f59e0b';
   ctx.fillText("✦ 华夏世家大系 · 第一赛季 ✦", screenWidth / 2, sealY);
 
-  // 2. 烫金大字《华夏世家》(Epic Headline) - 国风金石书法质感
+  // 2. 烫金大字《华夏世家》(Epic Headline) - 国风金石双层刻印 (彻底消除移动端模糊脏光晕与颜色畸变)
   const mainTitleY = sealY + 24;
   const mainTitleSize = Math.round(34 * titleScale);
   ctx.font = `bold ${mainTitleSize}px ` + FONT_CHRONICLE;
+
+  // 底层：金石深色阴影沉刻 (1.5px 纯净立体浮雕)
+  ctx.fillStyle = '#78350f';
+  ctx.fillText("华 夏 世 家", screenWidth / 2, mainTitleY + 1.5);
+
+  // 表层：璀璨烫金金石阳文
   ctx.fillStyle = '#fef08a';
-  ctx.shadowColor = 'rgba(245, 158, 11, 0.55)';
-  ctx.shadowBlur = 14;
   ctx.fillText("华 夏 世 家", screenWidth / 2, mainTitleY);
+
+  // 严格清除全局阴影状态，杜绝任何平台状态泄漏
+  ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
 
   // 3. 标金小字《汉魏风骨 · 坞壁筑基》(Sub-Headline)
   const subTitleY = mainTitleY + mainTitleSize + 4;
