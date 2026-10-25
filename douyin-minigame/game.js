@@ -1,7 +1,7 @@
 /**
  * 《风华年代：沧海沉浮录》字节跳动 / 抖音小游戏自动化构建产物
  * 由 scripts/build_douyin.js 从 wechat-minigame 单一真源自动生成
- * 生成时间: 2026-10-25T12:46:19.716Z
+ * 生成时间: 2026-10-25T13:48:48.069Z
  */
 /**
  * 《风华年代：沧海沉浮录》微信小游戏 (Game Core Edition)
@@ -6545,6 +6545,37 @@ function loadClanProfile() {
   return null;
 }
 
+function compactGenealogyForStorage(profile) {
+  if (!profile || !Array.isArray(profile.genealogyList) || profile.genealogyList.length <= 80) {
+    return profile;
+  }
+  const cloned = { ...profile };
+  const total = cloned.genealogyList.length;
+  const recentThreshold = total - 50; // 最近 50 世保留全部详细字段
+
+  cloned.genealogyList = cloned.genealogyList.map((anc, idx) => {
+    // 最近 50 世或名垂青史（S级/四品以上显官）保留完整字段
+    if (idx >= recentThreshold || anc.evaluationTier === 'S' || (anc.rankLevel && anc.rankLevel >= 4)) {
+      return anc;
+    }
+    // 早期世代剥离冗余明细字段，体积缩减 80%，彻底防范 1MB LocalStorage 爆仓
+    return {
+      generation: anc.generation,
+      name: anc.name,
+      ziHao: anc.ziHao,
+      reignYears: anc.reignYears,
+      officialTitle: anc.officialTitle,
+      track: anc.track,
+      rankLevel: anc.rankLevel,
+      bequeathedMoney: anc.bequeathedMoney,
+      prestigeGain: anc.prestigeGain,
+      evaluationTier: anc.evaluationTier || 'A',
+      compacted: true
+    };
+  });
+  return cloned;
+}
+
 function saveClanProfile(profile) {
   if (!profile) return;
   if (typeof state !== 'undefined' && state && state.familyProfile && state.familyProfile.isImmutable) {
@@ -6555,7 +6586,8 @@ function saveClanProfile(profile) {
   }
   profile.isImmutable = true;
   try {
-    const json = JSON.stringify(profile);
+    const compactProfile = compactGenealogyForStorage(profile);
+    const json = JSON.stringify(compactProfile);
     if (typeof wx !== 'undefined' && typeof wx.setStorageSync === 'function') {
       wx.setStorageSync(CLAN_PROFILE_STORAGE_KEY, json);
     } else if (typeof localStorage !== 'undefined') {
@@ -6566,7 +6598,8 @@ function saveClanProfile(profile) {
   }
   // 触发异步云端同步与防篡改签名上行 (处理服务端防重拒斥并自愈迎回)
   if (_clanCloudMod && typeof _clanCloudMod.syncFamily === 'function') {
-    _clanCloudMod.syncFamily(profile, (err, res) => {
+    const cloudPayload = compactGenealogyForStorage(profile);
+    _clanCloudMod.syncFamily(cloudPayload, (err, res) => {
       if (err && err.message === 'CLAN_ALREADY_EXISTS' && res && res.existingProfile) {
         console.warn('[ClanProfile] 云端已存在传世宗门，客户端以云端档案为准纠偏迎回');
         if (typeof state !== 'undefined' && state) {
@@ -15261,10 +15294,11 @@ function triggerVicissitudesEvent() {
 // 🎯 连续性与上瘾感核心引擎：三年攻坚军令状与下一阶段大考倒计时
 // ==========================================
 const HAN_WEI_THREE_YEAR_PACT_TEMPLATES = [
-  { id: 'pact_hw_agri', title: '劝农修渠 · 仓廪充盈三年督课状', statKey: 'iq', statLabel: '智谋', delta: 4, rewardCap: 6500, rewardRep: 4, desc: '批办案头机要、垦荒拓田或修缮水碓可推进治郡功绩' },
-  { id: 'pact_hw_clean', title: '澄清吏治 · 冰心玉壶三年考绩状', statKey: 'clean', statLabel: '清廉', delta: 3, rewardCap: 5500, rewardRep: 4, desc: '明察暗访、正肃风宪或端本澄源可推进考课声誉' },
-  { id: 'pact_hw_fortress', title: '整饬坞壁 · 部曲精锐三年备战状', statKey: 'courage', statLabel: '魄力', delta: 4, rewardCap: 7500, rewardRep: 4, desc: '整饬兵戈、招募部曲或修筑高垒可推进防务战备' },
-  { id: 'pact_hw_classics', title: '立德立言 · 儒宗清议三年成德状', statKey: 'rep', statLabel: '声誉', delta: 4, rewardCap: 7000, rewardRep: 5, desc: '讲经延儒、名仕私晤或敦睦宗亲可增进四海乡评' }
+  { id: 'pact_hw_clean', track: 'official', title: '澄清吏治 · 冰心玉壶三年考绩状', statKey: 'clean', statLabel: '清廉', delta: 3, rewardCap: 5500, rewardRep: 4, desc: '密奏签批、巡抚郡国或察举辟雍可推进治郡考绩' },
+  { id: 'pact_hw_classics', track: 'scholar', title: '立德立言 · 儒宗清议三年成德状', statKey: 'rep', statLabel: '声誉', delta: 4, rewardCap: 7000, rewardRep: 5, desc: '校勘经义、升堂讲学或兰台典藏可增进四海乡评' },
+  { id: 'pact_hw_agri', track: 'merchant', title: '辟田开肆 · 仓廪充盈三年督课状', statKey: 'iq', statLabel: '智谋', delta: 4, rewardCap: 6500, rewardRep: 4, desc: '平准行市、丝绢商道或拓筑庄园可推进商贾实业' },
+  { id: 'pact_hw_fortress', track: 'military', title: '整饬坞壁 · 部曲精锐三年备战状', statKey: 'courage', statLabel: '魄力', delta: 4, rewardCap: 7500, rewardRep: 4, desc: '操演部曲、巡防关防或督造军械可推进防务战备' },
+  { id: 'pact_hw_recluse', track: 'recluse', title: '岐黄问药 · 终南辟谷三年养生状', statKey: 'resilience', statLabel: '心性', delta: 4, rewardCap: 6000, rewardRep: 4, desc: '采药修真、悬壶义诊或竹林清谈可涵养元神仙风' }
 ];
 
 const THREE_YEAR_PACT_TEMPLATES = [
@@ -15277,11 +15311,17 @@ const THREE_YEAR_PACT_TEMPLATES = [
 function ensureThreeYearPact() {
   if ((state.age || 0) < 18) return null;
   const isDynastic = typeof isDynasticEra === 'function' ? isDynasticEra(state.year) : (state.year && state.year <= 500);
-  const pool = isDynastic ? HAN_WEI_THREE_YEAR_PACT_TEMPLATES : THREE_YEAR_PACT_TEMPLATES;
 
   if (!state.activeThreeYearPact || state.age > state.activeThreeYearPact.endAge || state.activeThreeYearPact.completed || (isDynastic && state.activeThreeYearPact.title.includes('阳光工程'))) {
-    const idx = Math.abs(Math.floor((state.age - 18) / 3)) % pool.length;
-    const tpl = pool[idx];
+    let tpl;
+    if (isDynastic) {
+      const curTrack = state.track || 'official';
+      tpl = HAN_WEI_THREE_YEAR_PACT_TEMPLATES.find(p => p.track === curTrack) || HAN_WEI_THREE_YEAR_PACT_TEMPLATES[0];
+    } else {
+      const pool = THREE_YEAR_PACT_TEMPLATES;
+      const idx = Math.abs(Math.floor((state.age - 18) / 3)) % pool.length;
+      tpl = pool[idx];
+    }
     const curStat = state[tpl.statKey] || 48;
     state.activeThreeYearPact = {
       id: `${tpl.id}_${state.age}`,
@@ -18028,15 +18068,27 @@ const LIFE_AMBITION_TARGETS = {
     desc: '清廉≥88、心性≥85、体魄≥60，超脱名缰利锁',
     check: (s) => getStat('clean', 0, s) >= 88 && getStat('resilience', 0, s) >= 85 && getStat('health', 0, s) >= 60,
     progress: (s) => Math.min(100, Math.round((Math.min(88, getStat('clean', 0, s)) / 88) * 40 + (Math.min(85, getStat('resilience', 0, s)) / 85) * 35 + (Math.min(60, getStat('health', 0, s)) / 60) * 25))
+  },
+  hw_military: {
+    id: 'ambition_hw_military',
+    title: '搴旗斩将 · 虎贲折冲',
+    desc: '胆魄≥88、体魄≥70、声望≥82，执节统领精锐部曲守土安民',
+    check: (s) => getStat('courage', 0, s) >= 88 && getStat('health', 0, s) >= 70 && getStat('rep', 0, s) >= 82,
+    progress: (s) => Math.min(100, Math.round((Math.min(88, getStat('courage', 0, s)) / 88) * 40 + (Math.min(70, getStat('health', 0, s)) / 70) * 35 + (Math.min(82, getStat('rep', 0, s)) / 82) * 25))
   }
 };
 
 function ensureLifeAmbition(st) {
   const s = st || state;
   if (!s) return null;
-  const rawTrack = s.track || 'gov';
-  const mapKey = LIFE_AMBITION_TARGETS[rawTrack] ? rawTrack : 'gov';
-  const tpl = LIFE_AMBITION_TARGETS[mapKey] || LIFE_AMBITION_TARGETS.gov;
+  const isAncient = (typeof isDynasticEra === 'function' && isDynasticEra(s.year)) || (s.year && s.year <= 500);
+  let rawTrack = s.track || 'gov';
+  if (isAncient) {
+    if (rawTrack === 'military') rawTrack = 'hw_military';
+    else if (rawTrack === 'gov') rawTrack = 'official';
+  }
+  const mapKey = LIFE_AMBITION_TARGETS[rawTrack] ? rawTrack : (isAncient ? 'official' : 'gov');
+  const tpl = LIFE_AMBITION_TARGETS[mapKey] || (isAncient ? LIFE_AMBITION_TARGETS.official : LIFE_AMBITION_TARGETS.gov);
   const achieved = tpl.check(s);
   s.lifeAmbition = {
     id: tpl.id,
@@ -24821,7 +24873,7 @@ const MASTER_INKSTONE_HERITAGE_DATABASE = _heritageData.MASTER_INKSTONE_HERITAGE
 const HERITAGE_CATEGORIES = {
   intangible: {
     id: 'intangible',
-    title: '🏺 【天工非遗 · 华夏百工绝艺典藏阁】',
+    title: '🏺 【天工百工 · 汉魏传世绝艺典藏阁】',
     modalId: 'intangible_heritage',
     stateKey: 'heritageCrafts',
     studiedField: 'studied',
@@ -24851,7 +24903,7 @@ const HERITAGE_CATEGORIES = {
   },
   kiln: {
     id: 'kiln',
-    title: '🏺 【传世瓷韵 · 华夏五大名窑雅鉴阁】',
+    title: '🏺 【传世名陶 · 汉魏古瓷名陶雅鉴阁】',
     modalId: 'famous_kiln',
     stateKey: 'kilnPorcelains',
     studiedField: 'porcelains',
@@ -24861,12 +24913,12 @@ const HERITAGE_CATEGORIES = {
     actionVerb: '雅鉴品评 ➔',
     actionSound: 'click',
     fxColor: '#14b8a6',
-    closeText: '青白入骨 · 雅室生辉 ➔',
+    closeText: '古瓷生辉 · 汉陶千秋 ➔',
     database: FAMOUS_KILN_PORCELAIN_DATABASE
   },
   tea: {
     id: 'tea',
-    title: '🍵 【传世茶道 · 华夏名茶点瀹清心阁】',
+    title: '🍵 【传世茶道 · 华夏古茶茗饮清心阁】',
     modalId: 'master_tea_way',
     stateKey: 'masterTeas',
     studiedField: 'teas',
@@ -24881,7 +24933,7 @@ const HERITAGE_CATEGORIES = {
   },
   brocade: {
     id: 'brocade',
-    title: '🧵 【神州锦绣 · 华夏四大名锦缂丝秘府】',
+    title: '🧵 【传世丝锦 · 汉锦魏绣织造秘府】',
     modalId: 'master_brocade',
     stateKey: 'masterBrocades',
     studiedField: 'brocades',
@@ -24891,12 +24943,12 @@ const HERITAGE_CATEGORIES = {
     actionVerb: '织造品鉴 ➔',
     actionSound: 'click',
     fxColor: '#f472b6',
-    closeText: '霓裳羽衣 · 锦绣千秋 ➔',
+    closeText: '汉锦威仪 · 锦绣千秋 ➔',
     database: MASTER_BROCADE_HERITAGE_DATABASE
   },
   guqin: {
     id: 'guqin',
-    title: '🎵 【神州琴道 · 华夏传世古琴雅乐阁】',
+    title: '🎵 【太古正音 · 华夏传世名琴雅乐阁】',
     modalId: 'master_guqin',
     stateKey: 'masterGuqins',
     studiedField: 'guqins',
@@ -24911,7 +24963,7 @@ const HERITAGE_CATEGORIES = {
   },
   inkstone: {
     id: 'inkstone',
-    title: '🖋️ 【神州砚道 · 华夏四大名砚文房宝阁】',
+    title: '🖋️ 【传世文房 · 汉魏古砚名墨宝阁】',
     modalId: 'master_inkstone',
     stateKey: 'masterInkstones',
     studiedField: 'inkstones',
@@ -28904,34 +28956,278 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
 
   // 1. 年度履职精力操盘指挥部 (Command Center — 置顶第一屏核心交互)
   const cmdH = isHanWeiDeskOps ? 92 : 100;
-  const operations = isHanWeiDeskOps ? [
-    { key: 'frontline', seal: '密', title: '密奏签批', sub: '裁决公文', action: () => openFrontlineEvent() },
-    { key: 'tour', seal: '巡', title: '巡抚郡国', sub: '劝课农桑', action: () => openProvincialTourModal() },
-    { key: 'recommend', seal: '辟', title: '察举辟雍', sub: '举贤纳士', action: () => {
-      if ((state.ap || 0) < 1) {
-        showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert');
-        return;
-      }
-      if ((state.capital || 0) < 500) {
-        showToast('〔 五铢不足 〕察举俊彦置办行装需 500 五铢钱！', 'alert');
-        return;
-      }
-      state.ap -= 1;
-      state.capital -= 500;
-      addStat('rep', 15);
-      playSoundEffect('fanfare');
-      triggerHaptic('medium');
-      showToast('〔 辟举得贤 〕察举俊彦为孝廉，士林传颂，家族声望+15！', 'gold');
-      requestRender();
-    } }
-  ] : [
-    { key: 'frontline', seal: '督', title: '督战', sub: '一线', action: () => openFrontlineEvent() },
-    { key: 'tour', seal: '巡', title: '巡访', sub: '调研', action: () => openProvincialTourModal() },
-    { key: 'social', seal: '晤', title: '私晤', sub: '结交', tab: 'contacts' },
-    { key: 'family', seal: '治', title: '治家', sub: '门庭', action: () => openFamilyEvent() },
-    { key: 'calligraphy', seal: '墨', title: '挥毫', sub: '题字', action: () => openCalligraphyModal() },
-    { key: 'wellness', seal: '养', title: '内省', sub: '修身', action: () => triggerWellnessAction() }
-  ];
+  const curTrack = state.track || 'official';
+  let deskOpsTitle = isHanWeiDeskOps ? "〔 郡府三大理政要务 〕" : "〔 日常政务与要务署理 〕";
+  let operations;
+
+  if (isHanWeiDeskOps) {
+    if (curTrack === 'scholar') {
+      deskOpsTitle = "〔 太学治经三大修撰 〕";
+      operations = [
+        {
+          key: 'hw_collate',
+          seal: '校',
+          title: '校勘经义',
+          sub: '正定章句',
+          action: () => {
+            if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
+            state.ap -= 1;
+            addStat('iq', 8);
+            addStat('rep', 5);
+            progressThreeYearPact(25, '校勘经义');
+            playSoundEffect('paper');
+            triggerHaptic('medium');
+            showToast('〔 经学纯正 〕校理经传章句，考订脱误，智谋+8，声望+5！', 'good');
+            requestRender();
+          }
+        },
+        {
+          key: 'hw_lecture',
+          seal: '讲',
+          title: '升堂讲学',
+          sub: '传道授业',
+          action: () => {
+            if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
+            state.ap -= 1;
+            addStat('rep', 12);
+            addStat('eq', 4);
+            progressThreeYearPact(25, '升堂讲学');
+            playSoundEffect('fanfare');
+            triggerHaptic('medium');
+            showToast('〔 桃李满门 〕开坛授徒论辩，远近学子负笈来听，声望+12，情商+4！', 'gold');
+            requestRender();
+          }
+        },
+        {
+          key: 'hw_library',
+          seal: '藏',
+          title: '兰台典藏',
+          sub: '编撰群书',
+          action: () => {
+            if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
+            if ((state.capital || 0) < 300) { showToast('〔 五铢不足 〕购置竹帛抄录需 300 五铢钱！', 'alert'); return; }
+            state.ap -= 1;
+            state.capital -= 300;
+            addStat('iq', 10);
+            addStat('clean', 5);
+            progressThreeYearPact(30, '兰台典藏');
+            playSoundEffect('fanfare');
+            triggerHaptic('medium');
+            showToast('〔 文渊广博 〕受邀修撰东观兰台藏书，智谋+10，清廉+5！', 'good');
+            requestRender();
+          }
+        }
+      ];
+    } else if (curTrack === 'merchant') {
+      deskOpsTitle = "〔 庄园货殖三大营生 〕";
+      operations = [
+        {
+          key: 'hw_market',
+          seal: '市',
+          title: '平准行市',
+          sub: '低买高卖',
+          action: () => {
+            if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
+            state.ap -= 1;
+            const earn = 800 + Math.floor(seededRandom() * 800);
+            state.capital = (state.capital || 0) + earn;
+            addStat('eq', 6);
+            progressThreeYearPact(25, '平准行市');
+            playSoundEffect('coin');
+            triggerHaptic('medium');
+            showToast(`〔 邸阁称盈 〕低吸高抛平抑物价，获利 ${earn} 五铢，情商+6！`, 'gold');
+            requestRender();
+          }
+        },
+        {
+          key: 'hw_caravan',
+          seal: '行',
+          title: '丝绢商道',
+          sub: '行贩郡国',
+          action: () => {
+            if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
+            if ((state.capital || 0) < 1000) { showToast('〔 五铢不足 〕组织远行商队需 1,000 五铢本钱！', 'alert'); return; }
+            state.ap -= 1;
+            state.capital -= 1000;
+            const earn = 2600 + Math.floor(seededRandom() * 1200);
+            state.capital += earn;
+            addStat('courage', 6);
+            progressThreeYearPact(30, '丝绢商道');
+            playSoundEffect('coin');
+            triggerHaptic('medium');
+            showToast(`〔 商道亨通 〕商队贯通水陆关津，净利 ${earn - 1000} 五铢，胆魄+6！`, 'gold');
+            requestRender();
+          }
+        },
+        {
+          key: 'hw_manor_farm',
+          seal: '辟',
+          title: '拓筑庄园',
+          sub: '修水碓仓廪',
+          action: () => {
+            if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
+            if ((state.capital || 0) < 600) { showToast('〔 五铢不足 〕营造庄园设施需 600 五铢钱！', 'alert'); return; }
+            state.ap -= 1;
+            state.capital -= 600;
+            if (state.manor) {
+              state.manor.farmlandAcres = (state.manor.farmlandAcres || 40) + 2;
+              state.manor.granaryStoredGrain = (state.manor.granaryStoredGrain || 400) + 60;
+            }
+            addStat('resilience', 6);
+            progressThreeYearPact(25, '拓筑庄园');
+            playSoundEffect('fanfare');
+            triggerHaptic('medium');
+            showToast('〔 膏腴日增 〕拓辟良田2顷、存粮+60斛，抗逆心性+6！', 'good');
+            requestRender();
+          }
+        }
+      ];
+    } else if (curTrack === 'military') {
+      deskOpsTitle = "〔 营垒治兵三大戎务 〕";
+      operations = [
+        {
+          key: 'hw_drill',
+          seal: '演',
+          title: '操演部曲',
+          sub: '阵法严饬',
+          action: () => {
+            if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
+            state.ap -= 1;
+            if (state.manor) {
+              state.manor.armedRetainers = (state.manor.armedRetainers || 30) + 6;
+            }
+            addStat('courage', 8);
+            addStat('health', 4);
+            progressThreeYearPact(25, '操演部曲');
+            playSoundEffect('drum_battle_charge');
+            triggerHaptic('heavy');
+            showToast('〔 纪律森严 〕校场大阅，部曲私兵+6，胆魄+8，体魄+4！', 'good');
+            requestRender();
+          }
+        },
+        {
+          key: 'hw_patrol',
+          seal: '巡',
+          title: '巡防关防',
+          sub: '加固堡垒',
+          action: () => {
+            if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
+            state.ap -= 1;
+            addStat('resilience', 8);
+            addStat('courage', 4);
+            progressThreeYearPact(25, '巡防关防');
+            playSoundEffect('drum_battle_charge');
+            triggerHaptic('medium');
+            showToast('〔 金城汤池 〕巡视坞壁关隘烽燧，哨戒严备，抗逆+8，胆魄+4！', 'good');
+            requestRender();
+          }
+        },
+        {
+          key: 'hw_armory',
+          seal: '械',
+          title: '督造军械',
+          sub: '淬砺刀弓',
+          action: () => {
+            if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
+            if ((state.capital || 0) < 500) { showToast('〔 五铢不足 〕采购精铁锻打需 500 五铢钱！', 'alert'); return; }
+            state.ap -= 1;
+            state.capital -= 500;
+            addStat('courage', 10);
+            addStat('rep', 8);
+            progressThreeYearPact(30, '督造军械');
+            playSoundEffect('fanfare');
+            triggerHaptic('medium');
+            showToast('〔 兵甲犀利 〕督造百炼环首神刀与连弩，胆魄+10，军功声望+8！', 'gold');
+            requestRender();
+          }
+        }
+      ];
+    } else if (curTrack === 'recluse') {
+      deskOpsTitle = "〔 幽居修真三大清业 〕";
+      operations = [
+        {
+          key: 'hw_herbs',
+          seal: '采',
+          title: '采药修真',
+          sub: '研制丹方',
+          action: () => {
+            if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
+            state.ap -= 1;
+            addStat('health', 6);
+            addStat('resilience', 6);
+            progressThreeYearPact(25, '采药修真');
+            playSoundEffect('potion_drink');
+            triggerHaptic('light');
+            showToast('〔 灵台澄澈 〕终南深山采撷黄精何首乌，调和鼎炉，体魄+6，心性+6！', 'good');
+            requestRender();
+          }
+        },
+        {
+          key: 'hw_clinic',
+          seal: '医',
+          title: '悬壶义诊',
+          sub: '广济黎庶',
+          action: () => {
+            if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
+            state.ap -= 1;
+            addStat('clean', 8);
+            addStat('rep', 10);
+            progressThreeYearPact(25, '悬壶义诊');
+            playSoundEffect('fanfare');
+            triggerHaptic('medium');
+            showToast('〔 仁心妙手 〕设案施药救助贫疾乡民，清廉操守+8，乡党声望+10！', 'gold');
+            requestRender();
+          }
+        },
+        {
+          key: 'hw_qin_dao',
+          seal: '琴',
+          title: '竹林清谈',
+          sub: '抚弄焦尾',
+          action: () => {
+            if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
+            state.ap -= 1;
+            addStat('resilience', 10);
+            addStat('eq', 6);
+            state.san = Math.min(100, (state.san || 80) + 15);
+            progressThreeYearPact(25, '竹林清谈');
+            playSoundEffect('guqin_string_pluck');
+            triggerHaptic('light');
+            showToast('〔 超然物外 〕竹林抚琴清谈，七弦古意，抗逆心性+10，心境通达！', 'good');
+            requestRender();
+          }
+        }
+      ];
+    } else {
+      // 默认 official (仕途朝堂)
+      deskOpsTitle = "〔 郡府三大理政要务 〕";
+      operations = [
+        { key: 'frontline', seal: '密', title: '密奏签批', sub: '裁决公文', action: () => openFrontlineEvent() },
+        { key: 'tour', seal: '巡', title: '巡抚郡国', sub: '劝课农桑', action: () => openProvincialTourModal() },
+        { key: 'recommend', seal: '辟', title: '察举辟雍', sub: '举贤纳士', action: () => {
+          if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
+          if ((state.capital || 0) < 500) { showToast('〔 五铢不足 〕察举俊彦置办行装需 500 五铢钱！', 'alert'); return; }
+          state.ap -= 1;
+          state.capital -= 500;
+          addStat('rep', 15);
+          playSoundEffect('fanfare');
+          triggerHaptic('medium');
+          showToast('〔 辟举得贤 〕察举俊彦为孝廉，士林传颂，家族声望+15！', 'gold');
+          requestRender();
+        } }
+      ];
+    }
+  } else {
+    // 现代/其他模式
+    operations = [
+      { key: 'frontline', seal: '督', title: '督战', sub: '一线', action: () => openFrontlineEvent() },
+      { key: 'tour', seal: '巡', title: '巡访', sub: '调研', action: () => openProvincialTourModal() },
+      { key: 'social', seal: '晤', title: '私晤', sub: '结交', tab: 'contacts' },
+      { key: 'family', seal: '治', title: '治家', sub: '门庭', action: () => openFamilyEvent() },
+      { key: 'calligraphy', seal: '墨', title: '挥毫', sub: '题字', action: () => openCalligraphyModal() },
+      { key: 'wellness', seal: '养', title: '内省', sub: '修身', action: () => triggerWellnessAction() }
+    ];
+  }
 
   if (isDeskCardVisible(curY, cmdH)) {
     drawElevatedCard(ctx, padX, curY, w, cmdH, {
@@ -28949,7 +29245,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
     ctx.textBaseline = 'top';
     ctx.font = 'bold 13.5px ' + FONT_CHRONICLE;
     ctx.fillStyle = '#fef08a';
-    ctx.fillText(isHanWeiDeskOps ? "〔 郡府三大理政要务 〕" : "〔 日常政务与要务署理 〕", padX + 12, curY + 8);
+    ctx.fillText(deskOpsTitle, padX + 12, curY + 8);
 
     ctx.font = 'bold 12px ' + FONT_MONO;
     ctx.fillStyle = (state.ap || 0) > 0 ? '#34d399' : '#94a3b8';
@@ -29827,11 +30123,11 @@ function drawDeskTab(startY) {
           c.textBaseline = 'top';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#f3e8ff';
-          c.fillText(fitText(`〔百工〕【天工非遗 · 华夏百工绝艺典藏阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+          c.fillText(fitText(`〔百工〕【天工百工 · 汉魏传世绝艺典藏阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
 
           c.font = '13.5px ' + FONT_UI;
           c.fillStyle = '#d8b4fe';
-          c.fillText(fitText(`华夏百工绝艺: 已精研 ${studiedCnt}/${INTANGIBLE_HERITAGE_DATABASE.length} 项绝艺 ✦ 文脉绵长`, w - 95, '13.5px ' + FONT_UI), padX + 10, curY + 23);
+          c.fillText(fitText(`汉魏百工绝艺: 已精研 ${studiedCnt}/${INTANGIBLE_HERITAGE_DATABASE.length} 项绝艺 ✦ 文脉绵长`, w - 95, '13.5px ' + FONT_UI), padX + 10, curY + 23);
 
           c.textAlign = 'right';
           c.font = 'bold 14px ' + FONT_UI;
@@ -29915,16 +30211,16 @@ function drawDeskTab(startY) {
           c.textBaseline = 'top';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#ccfbf1';
-          c.fillText(fitText(`〔名瓷〕【传世瓷韵 · 华夏五大名窑雅鉴阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+          c.fillText(fitText(`〔名陶〕【传世名陶 · 汉魏古瓷名陶雅鉴阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
 
           c.font = '13.5px ' + FONT_UI;
           c.fillStyle = '#5eead4';
-          c.fillText(fitText(`宋瓷千载天青: 已雅鉴 ${appreciatedCnt}/${FAMOUS_KILN_PORCELAIN_DATABASE.length} 尊名瓷 ✦ 雨过天青`, w - 95, '13.5px ' + FONT_UI), padX + 10, curY + 23);
+          c.fillText(fitText(`汉魏名陶古瓷: 已雅鉴 ${appreciatedCnt}/${FAMOUS_KILN_PORCELAIN_DATABASE.length} 尊名陶 ✦ 越瓷古韵`, w - 95, '13.5px ' + FONT_UI), padX + 10, curY + 23);
 
           c.textAlign = 'right';
           c.font = 'bold 14px ' + FONT_UI;
           c.fillStyle = '#99f6e4';
-          c.fillText('品鉴瓷韵 ➔', padX + w - 10, curY + 15);
+          c.fillText('品鉴名陶 ➔', padX + w - 10, curY + 15);
         }
       });
     }
@@ -29959,11 +30255,11 @@ function drawDeskTab(startY) {
           c.textBaseline = 'top';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#ecfdf5';
-          c.fillText(fitText(`〔茶道〕【神州茶道 · 传世茶圣茗经七碗清风阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+          c.fillText(fitText(`〔茶道〕【传世茶道 · 华夏古茶茗饮清心阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
 
           c.font = '13.5px ' + FONT_UI;
           c.fillStyle = '#6ee7b7';
-          c.fillText(fitText(`茶禅一味养生: 已烹试 ${brewedCnt}/${MASTER_TEA_WAY_DATABASE.length} 种名茶 ✦ 两腋清风`, w - 95, '13.5px ' + FONT_UI), padX + 10, curY + 23);
+          c.fillText(fitText(`汉魏清饮茗道: 已烹试 ${brewedCnt}/${MASTER_TEA_WAY_DATABASE.length} 种古茶 ✦ 两腋清风`, w - 95, '13.5px ' + FONT_UI), padX + 10, curY + 23);
 
           c.textAlign = 'right';
           c.font = 'bold 14px ' + FONT_UI;
@@ -29975,7 +30271,7 @@ function drawDeskTab(startY) {
     curY += teaH + 8;
   }
 
-  // 0.AN V45 神州锦绣 · 传世四大名锦与缂丝秘府 HUD (Master Brocade Heritage Card)
+  // 0.AN V45 神州锦绣 · 汉锦魏绣织造秘府 HUD (Master Brocade Heritage Card)
   if (state.age >= 32) {
     const brocH = 44;
     if (isDeskCardVisible(curY, brocH)) {
@@ -30003,7 +30299,7 @@ function drawDeskTab(startY) {
           c.textBaseline = 'top';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#fef3c7';
-          c.fillText(fitText(`〔锦绣〕【神州锦绣 · 传世四大名锦缂丝秘府】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+          c.fillText(fitText(`〔丝锦〕【神州锦绣 · 汉锦魏绣织造秘府】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
 
           c.font = '13.5px ' + FONT_UI;
           c.fillStyle = '#fde68a';
@@ -30019,7 +30315,7 @@ function drawDeskTab(startY) {
     curY += brocH + 8;
   }
 
-  // 0.AO V46 神州琴道 · 华夏传世古琴七弦高山流水阁 HUD (Master Guqin Card)
+  // 0.AO V46 太古正音 · 华夏传世名琴雅乐阁 HUD (Master Guqin Card)
   if (state.age >= 36) {
     const qinH = 44;
     if (isDeskCardVisible(curY, qinH)) {
@@ -30047,7 +30343,7 @@ function drawDeskTab(startY) {
           c.textBaseline = 'top';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#fef3c7';
-          c.fillText(fitText(`〔琴道〕【神州琴道 · 华夏传世古琴七弦高山流水阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+          c.fillText(fitText(`〔琴道〕【太古正音 · 华夏传世名琴雅乐阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
 
           c.font = '13.5px ' + FONT_UI;
           c.fillStyle = '#fde68a';
@@ -30063,7 +30359,7 @@ function drawDeskTab(startY) {
     curY += qinH + 8;
   }
 
-  // 0.AP V47 神州砚道 · 传世四大名砚与石渠金匮阁 HUD (Master Inkstone Card)
+  // 0.AP V47 传世文房 · 汉魏古砚名墨宝阁 HUD (Master Inkstone Card)
   if (state.age >= 40) {
     const inkH = 44;
     if (isDeskCardVisible(curY, inkH)) {
@@ -30091,11 +30387,11 @@ function drawDeskTab(startY) {
           c.textBaseline = 'top';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#f3e8ff';
-          c.fillText(fitText(`〔砚道〕【神州砚道 · 传世四大名砚石渠金匮阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+          c.fillText(fitText(`〔文房〕【汉魏文房 · 传世古砚名墨宝阁】`, w - 95, 'bold 14px ' + FONT_CHRONICLE), padX + 10, curY + 6);
 
           c.font = '13.5px ' + FONT_UI;
           c.fillStyle = '#e9d5ff';
-          c.fillText(fitText(`水岩金星润如玉: 已试磨雅鉴 ${groundCnt}/${MASTER_INKSTONE_HERITAGE_DATABASE.length} 方名砚 ✦ 呵气成墨`, w - 95, '13.5px ' + FONT_UI), padX + 10, curY + 23);
+          c.fillText(fitText(`呵气研墨发墨生光: 已题铭研拭 ${groundCnt}/${MASTER_INKSTONE_HERITAGE_DATABASE.length} 方名砚 ✦ 砚田生香`, w - 95, '13.5px ' + FONT_UI), padX + 10, curY + 23);
 
           c.textAlign = 'right';
           c.font = 'bold 14px ' + FONT_UI;
@@ -35131,7 +35427,9 @@ function drawDynasticEstateSection(curY, isCardVisible) {
 
     // 按钮 2：支取族产年金
     const clanFund = (trust && trust.trustFundMoney) || 5000;
-    const annualDiv = Math.max(800, Math.round(clanFund * (0.04 + templeTier * 0.01)));
+    const annualDiv = (_familySystemMod && typeof _familySystemMod.calculateClanTrustAnnualDividend === 'function')
+      ? _familySystemMod.calculateClanTrustAnnualDividend(famProfile)
+      : Math.max(800, Math.round(clanFund * (0.04 + templeTier * 0.01)));
     const hasClaimedDiv = !!(trust && trust.lastDividendYear === state.year);
     drawTactileButton({
       id: 'fam_act_claim_trust_div',

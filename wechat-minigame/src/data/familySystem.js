@@ -629,8 +629,17 @@ function calculateClanTrustAnnualDividend(family) {
   if (!family || !family.clanTrust) return 0;
   const tier = family.clanTrust.ancestralTempleTier || 1;
   const fund = family.clanTrust.trustFundMoney || 5000;
-  const rate = 0.04 + tier * 0.01;
-  return Math.max(1000, Math.round(fund * rate));
+  const baseRate = 0.04 + tier * 0.01;
+
+  // 10万及以内按宗祠阶梯标准足额分红；超额部分实施边际平抑防通胀
+  if (fund <= 100000) {
+    return Math.max(1000, Math.round(fund * baseRate));
+  }
+
+  const baseDiv = Math.round(100000 * baseRate);
+  const excess = fund - 100000;
+  const diminishingExcess = Math.min(25000, Math.round(Math.sqrt(excess) * (baseRate * 350)));
+  return Math.min(35000, baseDiv + diminishingExcess);
 }
 
 function addClanAlliance(family, allianceHouse, currentYear) {
