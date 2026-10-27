@@ -1,7 +1,7 @@
 /**
  * 《风华年代：沧海沉浮录》字节跳动 / 抖音小游戏自动化构建产物
  * 由 scripts/build_douyin.js 从 wechat-minigame 单一真源自动生成
- * 生成时间: 2026-10-26T16:39:18.879Z
+ * 生成时间: 2026-10-27T11:49:53.125Z
  */
 /**
  * 《风华年代：沧海沉浮录》微信小游戏 (Game Core Edition)
@@ -6593,13 +6593,23 @@ function compactGenealogyForStorage(profile) {
     if (idx >= recentThreshold || anc.evaluationTier === 'S' || (anc.rankLevel && anc.rankLevel >= 4)) {
       return anc;
     }
-    // 早期世代剥离冗余明细字段，体积缩减 80%，彻底防范 1MB LocalStorage 爆仓
+    // 早期世代剥离冗余明细字段，保留完整宗族世系档案，彻底防范 1MB LocalStorage 爆仓
     return {
+      recordId: anc.recordId,
+      playOrder: anc.playOrder,
       generation: anc.generation,
-      name: anc.name,
+      branchName: anc.branchName,
+      eraIndex: anc.eraIndex,
+      eraName: anc.eraName,
+      successorOrigin: anc.successorOrigin,
+      successorRole: anc.successorRole,
+      fullName: anc.fullName || anc.name,
+      name: anc.fullName || anc.name,
       ziHao: anc.ziHao,
-      reignYears: anc.reignYears,
+      lifespan: anc.lifespan || anc.reignYears,
+      reignYears: anc.reignYears || anc.lifespan,
       officialTitle: anc.officialTitle,
+      posthumousTitle: anc.posthumousTitle,
       track: anc.track,
       rankLevel: anc.rankLevel,
       bequeathedMoney: anc.bequeathedMoney,
@@ -8703,8 +8713,12 @@ function startCharacterCreation(isSuccession = false) {
     }
   }
 
-  state.activeModal = 'fate';
-  playSoundEffect('bell');
+  if (!isSuccession) {
+    state.activeModal = 'fate';
+    playSoundEffect('bell');
+  } else {
+    state.activeModal = null;
+  }
   requestRender();
 }
 
@@ -8917,8 +8931,8 @@ function finishCharacterCreation(opts = {}) {
     const inh = state.dynasticInheritance;
     const cand = inh.successorCandidate || {};
     state.age = inh.startingAge || cand.startingAge || 18;
-    state.year = inh.handoverYear || 168;
-    state.birthYear = inh.nextBirthYear || (state.year - state.age);
+    state.birthYear = inh.nextBirthYear || ((inh.handoverYear || 168) - state.age);
+    state.year = state.birthYear + state.age;
     state.lifeStage = 'adult';
     state.studyProgress = 100;
     state.gaokaoRepeats = 0;
@@ -11292,15 +11306,25 @@ function executeDiceChoice(choiceOrIdx, baseRate) {
 
   let roll = seededRandom() * 100;
   let finalRate = resolvedBaseRate;
+
+  // 兑现界面“成算在胸 · 稳操胜券 ✓”承诺：属性达标、常规基础胜率>=80%或无门槛选项强制 100% 确定成功
+  const statKey = choice.statReq || 'iq';
+  const pVal = getStat(statKey, 50, state);
+  const rawReq = typeof choice.reqVal === 'number' ? choice.reqVal : 55;
+  const isGuaranteedSuccess = (typeof choice.reqVal === 'number' && choice.reqVal <= 0) || (pVal >= rawReq) || (resolvedBaseRate >= 80) || (choice.isGuaranteed === true);
+  if (isGuaranteedSuccess) {
+    finalRate = 100;
+  }
+
   const wv = state.worldVolatility || {};
   const rawSectorOffset = (wv.sectorBias && typeof wv.sectorBias[state.track] === 'number') ? wv.sectorBias[state.track] : 0;
   const trackMult = Math.max(0.75, Math.min(1.30, 1.0 + rawSectorOffset));
 
-  if (state.insightBuff) {
+  if (!isGuaranteedSuccess && state.insightBuff) {
     finalRate = Math.min(94, finalRate + 15);
     state.insightBuff = false;
   }
-  if (hasTalent('breakthrough') && typeof baseRate === 'number') {
+  if (!isGuaranteedSuccess && hasTalent('breakthrough') && typeof baseRate === 'number') {
     finalRate = Math.min(91, finalRate + 2);
   }
 
@@ -11452,7 +11476,9 @@ function executeDiceChoice(choiceOrIdx, baseRate) {
       } else if (sideRoll < 0.67) {
         const extraCost = Math.min(Math.max(600, Math.round(Math.abs(state.capital || 2000) * 0.04)), 9000);
         state.capital = (state.capital || 0) - extraCost;
-        pyrrhicSuffix = `（⚠️ 惨胜代价：周转协调超支，资金-¥${extraCost.toLocaleString()}）`;
+        const isHanWei = (state.year || 100) <= 500;
+        const costStr = isHanWei ? `${extraCost.toLocaleString()}五铢` : `¥${extraCost.toLocaleString()}`;
+        pyrrhicSuffix = `（⚠️ 惨胜代价：周转协调超支，资金-${costStr}）`;
       } else {
         addStat('resilience', -1);
         addStat('eq', -1);
@@ -28946,6 +28972,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             progressThreeYearPact(25, '校勘经义');
             playSoundEffect('paper');
             triggerHaptic('medium');
+            addFloatingText('+8 智谋 / +5 声望', undefined, undefined, '#34d399');
             showToast('〔 经学纯正 〕校理经传章句，考订脱误，智谋+8，声望+5！', 'good');
             requestRender();
           }
@@ -28963,6 +28990,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             progressThreeYearPact(25, '升堂讲学');
             playSoundEffect('fanfare');
             triggerHaptic('medium');
+            addFloatingText('+12 声望 / +4 练达', undefined, undefined, '#f59e0b');
             showToast('〔 桃李满门 〕开坛授徒论辩，远近学子负笈来听，声望+12，情商+4！', 'gold');
             requestRender();
           }
@@ -28982,6 +29010,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             progressThreeYearPact(30, '兰台典藏');
             playSoundEffect('fanfare');
             triggerHaptic('medium');
+            addFloatingText('+10 智谋 / +5 清廉', undefined, undefined, '#34d399');
             showToast('〔 文渊广博 〕受邀修撰东观兰台藏书，智谋+10，清廉+5！', 'good');
             requestRender();
           }
@@ -29004,6 +29033,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             progressThreeYearPact(25, '平准行市');
             playSoundEffect('coin');
             triggerHaptic('medium');
+            addFloatingText(`+${earn} 铢 / +6 练达`, undefined, undefined, '#f59e0b');
             showToast(`〔 邸阁称盈 〕低吸高抛平抑物价，获利 ${earn} 五铢，情商+6！`, 'gold');
             requestRender();
           }
@@ -29024,6 +29054,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             progressThreeYearPact(30, '丝绢商道');
             playSoundEffect('coin');
             triggerHaptic('medium');
+            addFloatingText(`+${earn - 1000} 铢 / +6 魄力`, undefined, undefined, '#f59e0b');
             showToast(`〔 商道亨通 〕商队贯通水陆关津，净利 ${earn - 1000} 五铢，胆魄+6！`, 'gold');
             requestRender();
           }
@@ -29046,6 +29077,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             progressThreeYearPact(25, '拓筑庄园');
             playSoundEffect('fanfare');
             triggerHaptic('medium');
+            addFloatingText('+2顷 田 / +60斛 粮 / +6 心性', undefined, undefined, '#34d399');
             showToast('〔 膏腴日增 〕拓辟良田2顷、存粮+60斛，抗逆心性+6！', 'good');
             requestRender();
           }
@@ -29070,6 +29102,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             progressThreeYearPact(25, '操演部曲');
             playSoundEffect('drum_battle_charge');
             triggerHaptic('heavy');
+            addFloatingText('+6 部曲 / +8 魄力 / +4 体魄', undefined, undefined, '#f59e0b');
             showToast('〔 纪律森严 〕校场大阅，部曲私兵+6，胆魄+8，体魄+4！', 'good');
             requestRender();
           }
@@ -29087,6 +29120,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             progressThreeYearPact(25, '巡防关防');
             playSoundEffect('drum_battle_charge');
             triggerHaptic('medium');
+            addFloatingText('+8 抗逆 / +4 魄力', undefined, undefined, '#34d399');
             showToast('〔 金城汤池 〕巡视坞壁关隘烽燧，哨戒严备，抗逆+8，胆魄+4！', 'good');
             requestRender();
           }
@@ -29106,6 +29140,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             progressThreeYearPact(30, '督造军械');
             playSoundEffect('fanfare');
             triggerHaptic('medium');
+            addFloatingText('+10 魄力 / +8 军功', undefined, undefined, '#f59e0b');
             showToast('〔 兵甲犀利 〕督造百炼环首神刀与连弩，胆魄+10，军功声望+8！', 'gold');
             requestRender();
           }
@@ -29127,6 +29162,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             progressThreeYearPact(25, '采药修真');
             playSoundEffect('potion_drink');
             triggerHaptic('light');
+            addFloatingText('+6 体魄 / +6 心性', undefined, undefined, '#34d399');
             showToast('〔 灵台澄澈 〕终南深山采撷黄精何首乌，调和鼎炉，体魄+6，心性+6！', 'good');
             requestRender();
           }
@@ -29144,6 +29180,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             progressThreeYearPact(25, '悬壶义诊');
             playSoundEffect('fanfare');
             triggerHaptic('medium');
+            addFloatingText('+8 操守 / +10 声望', undefined, undefined, '#f59e0b');
             showToast('〔 仁心妙手 〕设案施药救助贫疾乡民，清廉操守+8，乡党声望+10！', 'gold');
             requestRender();
           }
@@ -29162,6 +29199,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             progressThreeYearPact(25, '竹林清谈');
             playSoundEffect('guqin_string_pluck');
             triggerHaptic('light');
+            addFloatingText('+10 心性 / +6 练达', undefined, undefined, '#34d399');
             showToast('〔 超然物外 〕竹林抚琴清谈，七弦古意，抗逆心性+10，心境通达！', 'good');
             requestRender();
           }
@@ -29181,6 +29219,7 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
           addStat('rep', 15);
           playSoundEffect('fanfare');
           triggerHaptic('medium');
+          addFloatingText('+15 家族声望', undefined, undefined, '#f59e0b');
           showToast('〔 辟举得贤 〕察举俊彦为孝廉，士林传颂，家族声望+15！', 'gold');
           requestRender();
         } }
@@ -29671,43 +29710,28 @@ function drawDeskTab(startY) {
   // ★ 核心交互置顶：大考倒计时 + 精力操盘指挥部 + 主动韬略神技 + 待签办机要公文
   curY = drawDeskCoreCommandSection(curY, isDeskCardVisible);
 
-  // 0.AA 时代赛道印信徽章 (汉魏世家官职 vs 现代赛道)
+  // 0.AA 现代赛道印信徽章 (仅非汉魏现代赛道展示；汉魏官爵与三年考课已由置顶指挥部专属呈现)
   const isHanWeiDesk = (state.year && state.year <= 500) || (typeof isDynasticEra === 'function' && isDynasticEra(state.year));
-  const trackKey = state.track || 'gov';
-  const trackObj = (typeof VOCATIONAL_MASTER_TRACKS !== 'undefined' && VOCATIONAL_MASTER_TRACKS[trackKey]) ? VOCATIONAL_MASTER_TRACKS[trackKey] : { badge: '〔 官 〕', name: '郡国治中从事', seal: '尚书台铜印墨绶', color: '#d97706', mission: '敷政优优，实边拓土。' };
-  const crestH = 68;
-  if (isDeskCardVisible(curY, crestH)) {
-    drawElevatedCard(ctx, padX, curY, w, crestH, {
-      elevation: 1,
-      radius: 4,
-      fill: 'rgba(26, 20, 24, 0.95)',
-      borderColor: '#856447',
-      borderWidth: 1.2,
-      showCorners: true,
-      cornerLength: 6,
-      cornerColor: '#d97706'
-    });
+  if (!isHanWeiDesk) {
+    const trackKey = state.track || 'gov';
+    const trackObj = (typeof VOCATIONAL_MASTER_TRACKS !== 'undefined' && VOCATIONAL_MASTER_TRACKS[trackKey]) ? VOCATIONAL_MASTER_TRACKS[trackKey] : { badge: '〔 官 〕', name: '基层实干骨干', seal: '公章印信', color: '#d97706', mission: '敷政优优，履职尽责。' };
+    const crestH = 68;
+    if (isDeskCardVisible(curY, crestH)) {
+      drawElevatedCard(ctx, padX, curY, w, crestH, {
+        elevation: 1,
+        radius: 4,
+        fill: 'rgba(26, 20, 24, 0.95)',
+        borderColor: '#856447',
+        borderWidth: 1.2,
+        showCorners: true,
+        cornerLength: 6,
+        cornerColor: '#d97706'
+      });
 
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.font = 'bold 14px ' + FONT_CHRONICLE;
-    ctx.fillStyle = '#fef08a';
-
-    if (isHanWeiDesk) {
-      const officeTitle = state.jobTitle || '州郡治中从事';
-      const rankGrade = state.govLevel ? (10 - state.govLevel) : 7;
-      ctx.fillText(`〔 官爵 〕【汉 · ${officeTitle}】· 品秩 ${rankGrade} 品`, padX + 12, curY + 8);
-
-      ctx.font = '11.5px ' + FONT_CHRONICLE;
-      ctx.fillStyle = '#d4c7b8';
-      ctx.fillText(fitText('奉命主政州郡抚绥兆民 · 尚书台督责考绩 · 声闻朝野', w - 24, '11.5px ' + FONT_CHRONICLE), padX + 12, curY + 28);
-
-      const yearsToExam = 4 - ((state.year || 100) % 4);
-      const perf = state.performance || 60;
-      ctx.font = 'bold 12.5px ' + FONT_CHRONICLE;
-      ctx.fillStyle = '#34d399';
-      ctx.fillText(`〔 考课 〕距三年郡国大考尚余 ${yearsToExam} 年 · 当期考绩评分 ${perf} 分 (考绩入优可拔擢进京)`, padX + 12, curY + 46);
-    } else {
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.font = 'bold 14px ' + FONT_CHRONICLE;
+      ctx.fillStyle = '#fef08a';
       ctx.fillText(trackObj.badge + ' 【' + trackObj.name + '】 · ' + (state.jobTitle || '履职骨干'), padX + 12, curY + 8);
 
       ctx.font = '11.5px ' + FONT_CHRONICLE;
@@ -29728,11 +29752,11 @@ function drawDeskTab(startY) {
       ctx.font = 'bold 12.5px ' + FONT_CHRONICLE;
       ctx.fillStyle = '#fef08a';
       ctx.fillText(fitText(exclusiveStatus, w - 24, 'bold 12.5px ' + FONT_CHRONICLE), padX + 12, curY + 44);
+      curY += crestH + 8;
     }
   }
-  curY += crestH + 8;
 
-  // 仅在非汉魏赛季展示现代/通用拓展卡片（气象、文房、非遗、战略枢纽矩阵等，避免汉魏案牍假复杂堆叠）
+  // 仅在非汉魏赛季展示现代专属微气象与修身心法卡片
   if (!isHanWeiDesk) {
   // 0.A0 V35 四时心境天时微气象 HUD (Life Weather & Atmosphere)
   const atmo = getLifeAtmosphere(state.age, state.resilience || 50, state.health || 80, state.happiness || 80);
@@ -29930,8 +29954,9 @@ function drawDeskTab(startY) {
     }
     curY += stdH + 8;
   }
+  } // end if (!isHanWeiDesk) 现代休闲修身拓展卡片结束
 
-  // 0.AG2 东方文博雅集 · 八大传世典藏阁折叠总枢 (仅成年立业26岁后开放，避免童年案头冗长失焦)
+  // 0.AG2 汉魏/东方文博雅集 · 传世绝艺典藏阁折叠总枢 (成年立业26岁后开放，汉魏与历代均可鉴赏)
   if (state.age >= 26) {
     const vaultBtnH = 38;
     if (isDeskCardVisible(curY, vaultBtnH)) {
@@ -29961,7 +29986,8 @@ function drawDeskTab(startY) {
           c.textBaseline = 'middle';
           c.font = 'bold 14px ' + FONT_CHRONICLE;
           c.fillStyle = '#f3e8ff';
-          c.fillText('🏺 【东方文博雅集 · 八大传世非遗典藏阁】', padX + 10, curY + vaultBtnH / 2);
+          const vaultTitle = isHanWeiDesk ? '🏺 【汉魏文博雅集 · 传世绝艺典藏阁】' : '🏺 【东方文博雅集 · 八大传世非遗典藏阁】';
+          c.fillText(vaultTitle, padX + 10, curY + vaultBtnH / 2);
           c.textAlign = 'right';
           c.font = 'bold 14px ' + FONT_UI;
           c.fillStyle = '#fef08a';
@@ -30600,9 +30626,10 @@ function drawDeskTab(startY) {
   }
   curY += mottoBarH + 10;
 
-  // 0.C 经邦治世 · 国家战略枢机与传薪修心矩阵
-  const stratHubH = 128;
-  if (isDeskCardVisible(curY, stratHubH)) {
+  // 0.C 经邦治世 · 国家战略枢机与传薪修心矩阵 (仅非汉魏现代赛道开放)
+  if (!isHanWeiDesk) {
+    const stratHubH = 128;
+    if (isDeskCardVisible(curY, stratHubH)) {
     ctx.fillStyle = 'rgba(26, 20, 24, 0.95)';
     roundRect(ctx, padX, curY, w, stratHubH, 4, true, true, '#856447', 1.2);
     drawCornerOrnaments(ctx, padX, curY, w, stratHubH, 5, '#d97706');
@@ -43413,12 +43440,19 @@ function drawDecisionModal() {
   const evt = state.activeDecisionEvent;
   if (!evt) return;
 
+  const isDoneResult = state.diceResult && state.diceResult.isDone;
+  drawModalBackdrop(ctx, () => {
+    if (isDoneResult) {
+      state._preRollSnapshot = null;
+      dismissDecisionModal();
+    }
+  });
+
   const choices = evt.choices || [
     { text: "稳妥应对 · 按部就班", successRate: 85, successText: "经受住了风浪考验，履职扎实稳健。", failText: "略有曲折，但守住了基本盘。" },
     { text: "力排众议 · 敢为人先", successRate: 55, successText: "惊天破局！赢得上级首肯与全行业声望飞升！", failText: "阻力重重，背负了一定组织非议。" }
   ];
 
-  const isDoneResult = state.diceResult && state.diceResult.isDone;
   const isRolling = state.isRollingDice;
   const contentCardH = isDoneResult ? 410 : (isRolling ? 390 : Math.max(430, 160 + choices.length * 84));
   const { x: cardX, y: cardY, w: cardW, h: cardH } = getModalSafeRect(350, contentCardH);
@@ -47288,6 +47322,12 @@ if (__DEV__ && typeof GameGlobal !== "undefined") {
     triggerBreakthroughPromotion,
     getHistoricalRankTitle,
     checkAndTriggerHanWeiHistoricalEvent,
+    executeDiceChoice,
+    startCharacterCreation,
+    finishCharacterCreation,
+    compactGenealogyForStorage,
+    drawDeskTab,
+    drawDeskCoreCommandSection,
     getHitboxes: () => hitboxes,
     getScrollHitboxes: () => scrollHitboxes,
     drawEndgameModal,
