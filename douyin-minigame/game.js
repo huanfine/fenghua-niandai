@@ -1,7 +1,7 @@
 /**
  * 《风华年代：沧海沉浮录》字节跳动 / 抖音小游戏自动化构建产物
  * 由 scripts/build_douyin.js 从 wechat-minigame 单一真源自动生成
- * 生成时间: 2026-10-27T11:49:53.125Z
+ * 生成时间: 2026-10-27T15:04:45.914Z
  */
 /**
  * 《风华年代：沧海沉浮录》微信小游戏 (Game Core Edition)
@@ -748,6 +748,17 @@ const _eraMusicEngine = _loadModule('./src/audio/eraMusicEngine.js') || {};
 if (_soundMgr && typeof _soundMgr.setEraMusicEngine === 'function') {
   _soundMgr.setEraMusicEngine(_eraMusicEngine);
 }
+
+// 华夏世家大系 · 核心领域模块提前前置加载（避免 TDZ 暂时性死区与函数动态流转异常）
+const _familySystemMod = _loadModule('./src/data/familySystem.js', false) || {};
+const _epochOneMod = _loadModule('./src/data/epochOneEngine.js', false) || {};
+const _ancientMasterMod = _loadModule('./src/data/ancientChronicleMaster.js', false) || {};
+const _clanSocialMod = _loadModule('./src/data/clanSocialSystem.js', false) || {};
+const _seasonChronoMod = _loadModule('./src/data/seasonChronoPipeline.js', false) || {};
+const _seasonRegistryMod = _loadModule('./src/seasons/seasonRegistry.js', false) || {};
+const _historicalMilieuMod = _loadModule('./src/data/historicalMilieuHanWei.js', false) || {};
+const _seasonSettlementMod = _loadModule('./src/data/seasonSettlementEngine.js', false) || {};
+const _emergentNarrativeMod = _loadModule('./src/seasons/season_1_han_wei/emergentNarrativeEngine.js', false) || {};
 
 let audioCtx = null;
 let bgmEnabled = true;
@@ -7859,6 +7870,7 @@ function successionToNextGeneration(selectedCandidate = null) {
   // 记录继承数据 (每世最多传 3 件传世物，符合 Section 4.5 规划)
   state.dynasticInheritance = {
     ancestorName: state.name,
+    ancestorTrack: state.track || 'official',
     ancestorRank: state.rankName,
     ancestorSurname: sName,
     capital: inheritedWealth,
@@ -9068,15 +9080,58 @@ function finishCharacterCreation(opts = {}) {
   state.courage = 28 + Math.floor(seededRandom() * 8);
 
   const isDynastic = isDynasticEra(state.year);
-  state.track = isDynastic ? "official" : "gov";
+  let dynasticTrack = "official";
+  let dynasticPillar = "classics";
+  if (isDynasticSuccession) {
+    const cand = (state.dynasticInheritance && state.dynasticInheritance.successorCandidate) || {};
+    if (cand.mode === 'retainer') {
+      dynasticTrack = (state.dynasticInheritance.ancestorTrack === 'military') ? 'military' : 'official';
+      dynasticPillar = (dynasticTrack === 'military') ? 'military' : 'governance';
+    } else if (cand.mode === 'virtuous_manager') {
+      dynasticTrack = 'merchant';
+      dynasticPillar = 'commerce';
+    } else if (cand.mode === 'same_gen_brother') {
+      // 昆仲分支：探索不同道途
+      const altTracks = ['scholar', 'merchant', 'military', 'recluse'];
+      const prevTr = (state.dynasticInheritance && state.dynasticInheritance.ancestorTrack) || 'official';
+      const pickTr = altTracks.filter(t => t !== prevTr);
+      dynasticTrack = pickTr[Math.floor(seededRandom() * pickTr.length)] || 'scholar';
+      const pillarMap = { scholar: 'classics', merchant: 'commerce', military: 'military', recluse: 'medicine', official: 'governance' };
+      dynasticPillar = pillarMap[dynasticTrack] || 'classics';
+    } else if (cand.mode === 'foster_son') {
+      dynasticTrack = seededRandom() < 0.5 ? 'military' : 'recluse';
+      dynasticPillar = dynasticTrack === 'military' ? 'military' : 'medicine';
+    } else {
+      // 嫡长：默认继承先祖道途或仕途
+      dynasticTrack = (state.dynasticInheritance && state.dynasticInheritance.ancestorTrack) || 'official';
+      const pillarMap = { scholar: 'classics', merchant: 'commerce', military: 'military', recluse: 'medicine', official: 'governance' };
+      dynasticPillar = pillarMap[dynasticTrack] || 'classics';
+    }
+  }
+
+  state.track = isDynastic ? dynasticTrack : "gov";
   state.subTrack = null;
-  state.youthPath = isDynastic ? "scholar" : null;
+  state.youthPath = isDynastic ? (dynasticTrack === 'military' ? 'military' : 'scholar') : null;
   state._internalStrategySet = true;
   state.strategy = prevLockedStrategy || "balanced";
   state._internalStrategySet = false;
   state._lockedStrategy = prevLockedStrategy;
-  state.strategicPillar = isDynastic ? "classics" : "mfg";
+  state.strategicPillar = isDynastic ? dynasticPillar : "mfg";
   state.governancePolicy = { rd: 25, welfare: 25, infra: 25, audit: 25 };
+
+  // 初始化代际宿愿 (Generational Vow)
+  if (isDynastic) {
+    state.generationalVow = initGenerationalVow(state.track, state.dynasticGeneration || 1);
+    addChronicleItem(
+      state.age,
+      state.year,
+      `【立定宿愿】接掌第 ${state.dynasticGeneration || 1} 世家业，立下【${state.generationalVow.title}】代际宏愿：“${state.generationalVow.desc}”。`,
+      '代际宏愿',
+      'promo'
+    );
+  } else {
+    state.generationalVow = null;
+  }
   state.handledEvents = {};
   state.tags = {};
   state.talents = [];
@@ -17065,6 +17120,139 @@ function checkAndTriggerHanWeiHistoricalEvent() {
   return false;
 }
 
+// ==========================================
+// 🏛️ 华夏世家大系 · 先祖遗泽与代际宿愿系统 (Generational Vows & Ancestral Heritages)
+// ==========================================
+const HAN_WEI_GENERATIONAL_VOWS = [
+  {
+    id: 'vow_classics',
+    track: 'scholar',
+    title: '经明行修 · 刊正定本',
+    desc: '研读古今经学，著录家门章句，求达通经致用之境。',
+    targetDesc: '太学课业达100%且声望达50',
+    check: (s) => (s.studyProgress || 0) >= 100 && (s.rep || 0) >= 50,
+    reward: { rep: 12, iq: 8, clanTrust: 15, toast: '📜 经义通达，家塾声名远播！宗族声望大振！' }
+  },
+  {
+    id: 'vow_official',
+    track: 'official',
+    title: '簪缨济世 · 门生故吏',
+    desc: '立身朝堂，清廉奉公，达至州郡方伯或九卿重任。',
+    targetDesc: '官居三阶以上或从政满十五载',
+    check: (s) => (s.govLevel || 1) >= 3 || (s.careerTenureYears || 0) >= 15,
+    reward: { rep: 15, clean: 10, clanTrust: 18, toast: '🏛️ 治绩卓著，名动台阁！门生故吏遍天下！' }
+  },
+  {
+    id: 'vow_commerce',
+    track: 'merchant',
+    title: '陶朱猗顿 · 万斛归仓',
+    desc: '通商惠工，经营水碓盐铁，筑造富甲一方之庄园义庄。',
+    targetDesc: '积蓄突破20,000五铢',
+    check: (s) => (s.capital || 0) >= 20000,
+    reward: { capital: 6000, clanTrust: 15, toast: '💰 计通万方，仓廪大实！为宗族置下百亩义田！' }
+  },
+  {
+    id: 'vow_military',
+    track: 'military',
+    title: '百战严整 · 筑垒安民',
+    desc: '操练坞壁部曲，修固高堡深沟，御侮乱世护佑九族。',
+    targetDesc: '魄力达65且体魄保持70以上',
+    check: (s) => (s.courage || 0) >= 65 && (s.health || 0) >= 70,
+    reward: { courage: 12, rep: 10, clanTrust: 15, toast: '⚔️ 治军严整，部曲骁勇！乱世之中邻郡来附！' }
+  },
+  {
+    id: 'vow_recluse',
+    track: 'recluse',
+    title: '青囊悬壶 · 枕石漱流',
+    desc: '采芝名山，潜心医道针灸，寿登古稀济度百姓。',
+    targetDesc: '寿达60岁且体魄高于55',
+    check: (s) => (s.age || 0) >= 60 && (s.health || 0) >= 55,
+    reward: { health: 8, rep: 15, clanTrust: 20, toast: '🌿 德高寿劭，悬壶济世！郡中尊为长德耆宿！' }
+  }
+];
+
+function initGenerationalVow(track, generation) {
+  const matched = HAN_WEI_GENERATIONAL_VOWS.find(v => v.track === track) || HAN_WEI_GENERATIONAL_VOWS[0];
+  return {
+    id: matched.id,
+    track: matched.track,
+    title: matched.title,
+    desc: matched.desc,
+    targetDesc: matched.targetDesc,
+    reward: matched.reward,
+    generation: generation || 1,
+    completed: false
+  };
+}
+
+function checkAndProgressGenerationalVow(s) {
+  if (!s || !s.generationalVow || s.generationalVow.completed) return false;
+  const v = s.generationalVow;
+  const cfg = HAN_WEI_GENERATIONAL_VOWS.find(item => item.id === v.id);
+  if (cfg && typeof cfg.check === 'function' && cfg.check(s)) {
+    v.completed = true;
+    playSoundEffect('fanfare');
+    triggerHaptic('heavy');
+    if (cfg.reward) {
+      if (cfg.reward.rep && typeof addStat === 'function') addStat('rep', cfg.reward.rep);
+      if (cfg.reward.iq && typeof addStat === 'function') addStat('iq', cfg.reward.iq);
+      if (cfg.reward.courage && typeof addStat === 'function') addStat('courage', cfg.reward.courage);
+      if (cfg.reward.health && typeof addStat === 'function') addStat('health', cfg.reward.health);
+      if (cfg.reward.capital) s.capital = (s.capital || 0) + cfg.reward.capital;
+      if (cfg.reward.clanTrust && s.familyProfile && s.familyProfile.clanTrust) {
+        s.familyProfile.clanTrust.prestigeScore = (s.familyProfile.clanTrust.prestigeScore || 50) + cfg.reward.clanTrust;
+      }
+    }
+    showToast(cfg.reward.toast || `👑 告慰先贤！达成代际宿愿【${cfg.title}】！`, 'gold');
+    addChronicleItem(s.age, s.year, `【告慰先贤】历经磨砺，圆满完成第 ${s.dynasticGeneration || 1} 世代际宿愿【${cfg.title}】！家族声名隆盛！`, '代际宿愿', 'promo');
+    if (typeof addFloatingText === 'function') {
+      addFloatingText('✦ 宿愿达成 · 告慰先贤', (screenWidth || 375) * 0.5, (screenHeight || 667) * 0.42, '#fbbf24');
+    }
+    return true;
+  }
+  return false;
+}
+
+// ==========================================
+// 🌊 华夏岁序天象与四时气韵正反馈 (Annual Realm Omen & Seasonal Pulse)
+// ==========================================
+const HAN_WEI_ANNUAL_OMENS = [
+  { id: 'harvest', title: '岁时丰稔', text: '春雨润泽，宿麦两熟，仓廪殷实', float: '🌾 丰稔大吉 · 进粟+15斛', color: '#34d399', stat: 'capital', val: 80, pulse: 'capital' },
+  { id: 'silk_road', title: '丝路商潮', text: '凉州通衢，西域胡商互市，五铢流转', float: '🪙 丝路商潮 · 租利+150铢', color: '#f59e0b', stat: 'capital', val: 150, pulse: 'capital' },
+  { id: 'shilin', title: '士林清议', text: '月旦清谈，名士品题，天下瞩目', float: '📜 士林清议 · 声望+1', color: '#60a5fa', stat: 'rep', val: 1, pulse: 'rep' },
+  { id: 'taixue', title: '经明行修', text: '太学诸生负笈，名儒开讲郑氏古经', float: '📖 经明行修 · 智略+1', color: '#38bdf8', stat: 'iq', val: 1, pulse: 'iq' },
+  { id: 'harmony', title: '四时调和', text: '阴阳调匀，身无沉疴，精神饱满', float: '🌿 四时调和 · 体魄+1', color: '#a7f3d0', stat: 'health', val: 1, pulse: 'health' },
+  { id: 'reclaim', title: '拓荒经野', text: '坞壁招徕流民辟荒，人丁日盛', float: '🏛️ 拓荒经野 · 操守+1', color: '#fde047', stat: 'clean', val: 1, pulse: 'clean' },
+  { id: 'fortify', title: '弓马严整', text: '边防部曲操练严整，宵小敛迹', float: '⚔️ 弓马严整 · 魄力+1', color: '#fb923c', stat: 'courage', val: 1, pulse: 'courage' },
+  { id: 'frost', title: '围炉校雠', text: '朔风凛冽，名士围炉校书，经事从容', float: '❄️ 围炉校雠 · 坚韧+1', color: '#c084fc', stat: 'resilience', val: 1, pulse: 'resilience' }
+];
+
+function triggerAnnualRealmOmen(year, age, track, s) {
+  const hash = Math.abs((year * 31 + age * 17 + (s.runSeed || 101)) % HAN_WEI_ANNUAL_OMENS.length);
+  const omen = HAN_WEI_ANNUAL_OMENS[hash];
+
+  if (omen.stat === 'capital') {
+    s.capital = (s.capital || 0) + omen.val;
+  } else if (typeof addStat === 'function') {
+    addStat(omen.stat, omen.val);
+  }
+
+  if (typeof addFloatingText === 'function') {
+    addFloatingText(omen.float, (screenWidth || 375) * 0.48, (screenHeight || 667) * 0.44, omen.color);
+  }
+  if (typeof triggerStatPulse === 'function' && omen.pulse) {
+    triggerStatPulse(omen.pulse, omen.color);
+  }
+
+  showToast(`〔 ${omen.title} 〕${omen.text}`, 'gold');
+
+  if (age % 4 === 0) {
+    addChronicleItem(age, year, `【${omen.title}】${omen.text}。`, '岁序气韵', 'life');
+  }
+
+  return omen;
+}
+
 function tickOneYear() {
   if (!state.isStarted || state._needsSeedInit) {
     startCharacterCreation();
@@ -17296,6 +17484,20 @@ function tickOneYear() {
       state.handledEvents[`seasonal_fest_${age}`] = true;
       addStat('health', 1);
       addChronicleItem(age, yr, `【岁时佳节】与宗族子弟登高祭祖，感念祖德，身心俱得宽慰（体魄+1）。`, '岁时温情', 'history');
+    }
+
+    // 华夏四时气韵与岁序天象流转（每岁均有鲜活回响与多巴胺浮字，告别平年无反馈感）
+    triggerAnnualRealmOmen(yr, age, tr, state);
+
+    // 检查并推进代际宿愿
+    checkAndProgressGenerationalVow(state);
+
+    // 三年考绩倒计时微提醒（提供下一岁期待感）
+    if (age >= 18) {
+      const pactRem = 3 - ((age - 18) % 3);
+      if (pactRem === 1) {
+        showToast('⏳ 考课在迩：距三年大考仅余一载，宜早作绸缪！', 'info');
+      }
     }
     return;
   }
@@ -22803,15 +23005,26 @@ function drawTitleScreen() {
   const fam = state.familyProfile;
 
   if (hasSave) {
-    // 1. 续接前尘按钮 (红木漆面与古金边框)
+    const isSuccessionPending = !!(savedData && (savedData.endgameSettled || savedData.isRetired));
+    const nextGenNum = (state.familyProfile && state.familyProfile.genealogyList && state.familyProfile.genealogyList.length > 0)
+      ? state.familyProfile.genealogyList.length + 1
+      : ((savedData.dynasticGeneration || 1) + 1);
+
+    // 1. 续接前尘 / 宗门继祧主行动按钮 (红木金石漆面与古金边框)
     const resW = Math.min(288, screenWidth - 48);
     const resH = 46;
     const resX = (screenWidth - resW) / 2;
     const resY = screenHeight - getSafeBottomGap() - 96;
 
     const resGrad = ctx.createLinearGradient(resX, resY, resX, resY + resH);
-    resGrad.addColorStop(0, '#2b1619');
-    resGrad.addColorStop(1, '#160b0d');
+    if (isSuccessionPending) {
+      resGrad.addColorStop(0, '#78350f');
+      resGrad.addColorStop(0.5, '#451a03');
+      resGrad.addColorStop(1, '#1c0a00');
+    } else {
+      resGrad.addColorStop(0, '#2b1619');
+      resGrad.addColorStop(1, '#160b0d');
+    }
 
     drawTactileButton(ctx, {
       id: 'resume_game_button',
@@ -22822,22 +23035,31 @@ function drawTitleScreen() {
       radius: 4,
       bg: resGrad,
       pressedBg: '#100708',
-      border: '#d97706',
-      borderWidth: 1.5,
+      border: isSuccessionPending ? '#fbbf24' : '#d97706',
+      borderWidth: isSuccessionPending ? 1.8 : 1.5,
       priority: 100,
       renderContent: (c) => {
         c.font = 'bold 13px ' + FONT_CHRONICLE;
         c.fillStyle = '#fef08a';
         c.textAlign = 'center';
         c.textBaseline = 'middle';
-        c.fillText(fitText(`〔 翻开旧档 〕${savedData.year}年 · ${savedData.age}岁 · ${savedData.name}`, resW - 20, 'bold 13px ' + FONT_CHRONICLE), resX + resW / 2, resY + 15);
-
-        c.font = '11px ' + FONT_CHRONICLE;
-        c.fillStyle = '#a89988';
-        c.fillText(fitText(`时任「${savedData.jobTitle}」· 积蓄 ${formatCurrency(savedData.capital || 0, savedData.year)}`, resW - 20, '11px ' + FONT_CHRONICLE), resX + resW / 2, resY + 32);
+        if (isSuccessionPending) {
+          c.fillText(fitText(`👑〔 宗门继祧 · 承袭家业 (第 ${nextGenNum} 世) ➔ 〕`, resW - 20, 'bold 13px ' + FONT_CHRONICLE), resX + resW / 2, resY + 15);
+          c.font = '11px ' + FONT_CHRONICLE;
+          c.fillStyle = '#fde68a';
+          c.fillText(fitText(`先祖【${savedData.name}】寿考安宁 · 点击入祠择选接棒贤嗣`, resW - 20, '11px ' + FONT_CHRONICLE), resX + resW / 2, resY + 32);
+        } else {
+          c.fillText(fitText(`〔 翻开旧档 〕${savedData.year}年 · ${savedData.age}岁 · ${savedData.name}`, resW - 20, 'bold 13px ' + FONT_CHRONICLE), resX + resW / 2, resY + 15);
+          c.font = '11px ' + FONT_CHRONICLE;
+          c.fillStyle = '#a89988';
+          c.fillText(fitText(`时任「${savedData.jobTitle || '家主'}」· 积蓄 ${formatCurrency(savedData.capital || 0, savedData.year)}`, resW - 20, '11px ' + FONT_CHRONICLE), resX + resW / 2, resY + 32);
+        }
       },
       onClick: () => {
         resumeSavedGame();
+        if (isSuccessionPending) {
+          openSuccessorSelectionModal();
+        }
       }
     });
 
@@ -24941,17 +25163,10 @@ function drawHerbalApothecaryModal() {
 // 淘汰 1,980 行重复对象池与模板代码，以统一数据驱动模式驱动全部传世雅鉴
 // ==========================================
 const _heritageData = _loadModule('./src/data/heritage.js', true) || {};
-const _familySystemMod = _loadModule('./src/data/familySystem.js', false) || {};
-const _epochOneMod = _loadModule('./src/data/epochOneEngine.js', false) || {};
-const _ancientMasterMod = _loadModule('./src/data/ancientChronicleMaster.js', false) || {};
 const _futureFrontierMod = _loadModule('./subpackages/futureEpoch/game.js', false) || _loadModule('./subpackages/futureEpoch/futureFrontierEngine.js', false) || _loadModule('./src/data/futureFrontierEngine.js', false) || {};
-const _clanSocialMod = _loadModule('./src/data/clanSocialSystem.js', false) || {};
-const _seasonChronoMod = _loadModule('./src/data/seasonChronoPipeline.js', false) || {};
-const _seasonRegistryMod = _loadModule('./src/seasons/seasonRegistry.js', false) || {};
-// _seasonConfigMod 已在前置初始化并驱动运营赛季
-const _historicalMilieuMod = _loadModule('./src/data/historicalMilieuHanWei.js', false) || {};
-const _seasonSettlementMod = _loadModule('./src/data/seasonSettlementEngine.js', false) || {};
-const _emergentNarrativeMod = _loadModule('./src/seasons/season_1_han_wei/emergentNarrativeEngine.js', false) || {};
+// 注意：_familySystemMod, _epochOneMod, _ancientMasterMod, _clanSocialMod, _seasonChronoMod,
+// _seasonRegistryMod, _historicalMilieuMod, _seasonSettlementMod, _emergentNarrativeMod
+// 均已在顶部前置加载就绪，保证核心调度全局可用。
 const INTANGIBLE_HERITAGE_DATABASE = _heritageData.INTANGIBLE_HERITAGE_DATABASE || [];
 const BRONZE_EPIGRAPHY_DATABASE = _heritageData.BRONZE_EPIGRAPHY_DATABASE || [];
 const FAMOUS_KILN_PORCELAIN_DATABASE = _heritageData.FAMOUS_KILN_PORCELAIN_DATABASE || [];
@@ -28496,6 +28711,36 @@ function drawTimelineTab(startY) {
 
       curY += obH + 10;
     }
+  }
+
+  // 1.5 华夏世家 · 代际宿愿与先祖遗泽看板 (仅汉魏世家大系，凝聚每一世目标与代际差异)
+  if (isDynastic && state.generationalVow && state.age >= 18) {
+    const vow = state.generationalVow;
+    const vowH = 42;
+    ctx.fillStyle = 'rgba(28, 18, 22, 0.94)';
+    roundRect(ctx, padX, curY, w, vowH, 4, true, true, vow.completed ? '#10b981' : '#b45309', 1.2);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.font = 'bold 12px ' + FONT_CHRONICLE;
+    ctx.fillStyle = vow.completed ? '#6ee7b7' : '#fef08a';
+    const vowTitle = vow.completed
+      ? `👑【第 ${state.dynasticGeneration || 1} 世代际宿愿 · 告慰先贤】已达成！`
+      : `📜【第 ${state.dynasticGeneration || 1} 世代际宿愿 · ${vow.title}】`;
+    ctx.fillText(fitText(vowTitle, w - 88, 'bold 12px ' + FONT_CHRONICLE), padX + 10, curY + 6);
+
+    ctx.font = '10.5px ' + FONT_UI;
+    ctx.fillStyle = vow.completed ? '#a7f3d0' : '#cbd5e1';
+    const subVow = vow.completed ? (vow.reward && vow.reward.toast ? vow.reward.toast : '祖德流芳，光耀门楣') : `目标：${vow.targetDesc}`;
+    ctx.fillText(fitText(subVow, w - 88, '10.5px ' + FONT_UI), padX + 10, curY + 23);
+
+    // 右侧标签/状态
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 11px ' + FONT_CHRONICLE;
+    ctx.fillStyle = vow.completed ? '#34d399' : '#f59e0b';
+    ctx.fillText(vow.completed ? '〔功德圆满〕' : '〔承志〕', padX + w - 10, curY + 14);
+
+    curY += vowH + 6;
   }
 
   // 2. 编年长卷分类筛选器 (轻量水墨横卷，剔除笨重黑方块边框，融于宣纸背景)
@@ -33516,6 +33761,27 @@ function drawSuccessorSelectionModal() {
   ctx.fillStyle = '#18131e';
   roundRect(ctx, cardX, cardY, cardW, cardH, 8, true, true, '#d97706', 2);
   drawCornerOrnaments(ctx, cardX, cardY, cardW, cardH, 8, '#f59e0b');
+
+  // 安全归厅入口 (返回封面，支持随时回厅继续选拔)
+  drawTactileButton(ctx, {
+    id: 'successor_modal_home_corner_btn',
+    x: cardX + cardW - 56,
+    y: cardY + 8,
+    w: 46,
+    h: 22,
+    radius: 4,
+    bg: '#2b1619',
+    pressedBg: '#180d0f',
+    border: '#d97706',
+    borderWidth: 1,
+    text: '✕ 归厅',
+    font: '10.5px ' + FONT_CHRONICLE,
+    textColor: '#fef08a',
+    priority: 110,
+    onClick: () => {
+      returnToTitleFromEndgame();
+    }
+  });
 
   const fam = (typeof state !== 'undefined' && state && state.familyProfile) || ensureClanProfileForCurrentRun();
   const currentGen = (fam && fam.genealogyList && fam.genealogyList.length > 0) ? fam.genealogyList.length : (state.dynasticGeneration || 1);
@@ -44575,6 +44841,21 @@ function drawMemoirModal() {
   });
 }
 
+function returnToTitleFromEndgame() {
+  if (state.familyProfile && typeof saveClanProfile === 'function') {
+    saveClanProfile(state.familyProfile);
+  }
+  state.endgameSettled = true;
+  if (typeof saveGameState === 'function') {
+    saveGameState();
+  }
+  state.activeModal = null;
+  state.gameScene = 'title';
+  showToast('📜 宗门卷轴已妥善归档，可随时回厅承袭家业！', 'gold');
+  playSoundEffect('click');
+  requestRender();
+}
+
 function drawEndgameModal() {
   const { x: cardX, y: cardY, w: cardW, h: cardH } = getModalSafeRect(350, 520);
 
@@ -44589,6 +44870,27 @@ function drawEndgameModal() {
     cornerLength: 8,
     headerBandColor: 'rgba(133, 100, 71, 0.2)',
     leftAccentColor: '#d97706'
+  });
+
+  // 安全归厅入口 (返回桌面/封面，不丢失宗族与继祧档案)
+  drawTactileButton(ctx, {
+    id: 'endgame_back_to_title_corner_btn',
+    x: cardX + cardW - 58,
+    y: cardY + 8,
+    w: 48,
+    h: 22,
+    radius: 4,
+    bg: '#2b1619',
+    pressedBg: '#1f1015',
+    border: '#d97706',
+    borderWidth: 1,
+    text: '🏠 归厅',
+    font: 'bold 10.5px ' + FONT_CHRONICLE,
+    textColor: '#fef08a',
+    priority: 110,
+    onClick: () => {
+      returnToTitleFromEndgame();
+    }
   });
 
   const cursor = createFlowCursor(cardY + 12, 3);
@@ -44896,9 +45198,17 @@ function drawEndgameModal() {
     });
   }
 
-  // 子嗣接棒 (突出主行动，加宽加亮)
+  // 底部三大行动：1. 宗门继祧 (主推)  2. 返回封面/桌面 (安全归厅)  3. 终断世系 (红线告诫)
+  const totalActionW = cardW - 32;
+  const gap = 6;
+  const homeBtnW = Math.max(76, Math.floor(totalActionW * 0.26));
+  const abandonBtnW = Math.max(54, Math.floor(totalActionW * 0.18));
+  const sBtnW = totalActionW - homeBtnW - abandonBtnW - gap * 2;
   const sBtnX = cardX + 16;
-  const sBtnW = cardW - 32 - 108;
+  const homeBtnX = sBtnX + sBtnW + gap;
+  const abandonBtnX = homeBtnX + homeBtnW + gap;
+
+  // 1. 宗门继祧 (突出主行动，加宽加亮)
   drawTactileButton(ctx, {
     id: 'succession_heir_btn',
     x: sBtnX,
@@ -44909,8 +45219,8 @@ function drawEndgameModal() {
     bg: '#78350f',
     border: '#d97706',
     borderWidth: 1.5,
-    text: `👑 宗门继祧 · 传第 ${nextGenIdx} 世 ➔`,
-    font: 'bold 13px ' + FONT_CHRONICLE,
+    text: fitText(`👑 宗门继祧 · 传第 ${nextGenIdx} 世 ➔`, sBtnW - 12, 'bold 12.5px ' + FONT_CHRONICLE),
+    font: 'bold 12.5px ' + FONT_CHRONICLE,
     textColor: '#fef08a',
     priority: 100,
     onClick: () => {
@@ -44918,21 +45228,40 @@ function drawEndgameModal() {
     }
   });
 
-  // 终断世系告诫重开 (副行动，暗色弱化防误触)
-  const cBtnX = sBtnX + sBtnW + 8;
-  const cBtnW = 100;
+  // 2. 返回封面/桌面 (安全返回桌面，随时可继续选嗣接棒)
+  drawTactileButton(ctx, {
+    id: 'endgame_home_title_btn',
+    x: homeBtnX,
+    y: btnY,
+    w: homeBtnW,
+    h: btnH,
+    radius: 4,
+    bg: '#2b1619',
+    pressedBg: '#180d0f',
+    border: '#f59e0b',
+    borderWidth: 1.2,
+    text: '🏠 返回封面',
+    font: 'bold 11px ' + FONT_CHRONICLE,
+    textColor: '#fef08a',
+    priority: 100,
+    onClick: () => {
+      returnToTitleFromEndgame();
+    }
+  });
+
+  // 3. 终断世系告诫重开 (副行动，暗色弱化防误触)
   drawTactileButton(ctx, {
     id: 'restart_game_btn',
-    x: cBtnX,
+    x: abandonBtnX,
     y: btnY,
-    w: cBtnW,
+    w: abandonBtnW,
     h: btnH,
     radius: 4,
     bg: '#2b1318',
     border: '#7f1d1d',
     borderWidth: 1,
-    text: "⚠️ 终断重开",
-    font: '11px ' + FONT_CHRONICLE,
+    text: "⚠️ 终断",
+    font: '10.5px ' + FONT_CHRONICLE,
     textColor: '#fca5a5',
     priority: 100,
     onClick: () => {
@@ -47331,6 +47660,14 @@ if (__DEV__ && typeof GameGlobal !== "undefined") {
     getHitboxes: () => hitboxes,
     getScrollHitboxes: () => scrollHitboxes,
     drawEndgameModal,
+    drawSuccessorSelectionModal,
+    drawTitleScreen,
+    returnToTitleFromEndgame,
+    initGenerationalVow,
+    checkAndProgressGenerationalVow,
+    triggerAnnualRealmOmen,
+    HAN_WEI_GENERATIONAL_VOWS,
+    HAN_WEI_ANNUAL_OMENS,
     confirmAbandonClanRun,
     drawConfirmAbandonClanModal,
   };
