@@ -1,7 +1,7 @@
 /**
  * 《风华年代：沧海沉浮录》字节跳动 / 抖音小游戏自动化构建产物
  * 由 scripts/build_douyin.js 从 wechat-minigame 单一真源自动生成
- * 生成时间: 2026-10-27T15:04:45.914Z
+ * 生成时间: 2026-10-27T15:49:26.205Z
  */
 /**
  * 《风华年代：沧海沉浮录》微信小游戏 (Game Core Edition)
@@ -17036,7 +17036,14 @@ function checkAndTriggerHanWeiHistoricalEvent() {
           failText: (opt.failPenalty && opt.failPenalty.text) || (opt.failPenalty && opt.failPenalty.chronicleText) || '行事受阻，未能功成，折损甚众。',
           outcomeText: (opt.successReward && opt.successReward.text) || (opt.successReward && opt.successReward.chronicleText) || opt.text,
           action: (st) => {
-            const fam = (st && st.familyProfile) || state.familyProfile;
+            let fam = (st && st.familyProfile) || state.familyProfile;
+            if (!fam && typeof ensureClanProfileForCurrentRun === 'function') {
+              fam = ensureClanProfileForCurrentRun(true);
+            }
+            if (fam) {
+              if (st && !st.familyProfile) st.familyProfile = fam;
+              if (!state.familyProfile) state.familyProfile = fam;
+            }
             // 单一数据源：若未在上层扣款，在此执行原子扣费
             if (costVal > 0 && !opt._costPaid) {
               executeChoiceCostDeduction(costVal, st);
@@ -17074,8 +17081,6 @@ function checkAndTriggerHanWeiHistoricalEvent() {
               }
               if (opt.successReward.relicId || opt.successReward.heirloom) {
                 const targetKey = String(opt.successReward.relicId || opt.successReward.heirloom).toLowerCase();
-                fam.clanTrust = fam.clanTrust || {};
-                fam.clanTrust.relics = fam.clanTrust.relics || [];
                 const relicDb = (_historicalMilieuMod && _historicalMilieuMod.HAN_WEI_RELICS_DATABASE) || [];
                 const matchedRelic = relicDb.find(r =>
                   r.id === targetKey ||
@@ -17083,15 +17088,23 @@ function checkAndTriggerHanWeiHistoricalEvent() {
                   targetKey.includes(r.id.replace('relic_', ''))
                 ) || { id: targetKey, name: `${getDynastyEraName(hEvt.year)}传家重宝` };
 
-                if (!fam.clanTrust.relics.some(r => r.id === matchedRelic.id)) {
-                  fam.clanTrust.relics.push(matchedRelic);
-                  showToast(`🏆 荣获传世重宝【${matchedRelic.name}】！入藏宗祠公积！`, 'gold');
+                if (fam) {
+                  fam.clanTrust = fam.clanTrust || {};
+                  fam.clanTrust.relics = fam.clanTrust.relics || [];
+                  if (!fam.clanTrust.relics.some(r => r.id === matchedRelic.id)) {
+                    fam.clanTrust.relics.push(matchedRelic);
+                  }
                 }
+                state.unlockedHeirlooms = state.unlockedHeirlooms || [];
+                if (!state.unlockedHeirlooms.includes(matchedRelic.id)) {
+                  state.unlockedHeirlooms.push(matchedRelic.id);
+                }
+                showToast(`🏆 荣获传世重宝【${matchedRelic.name}】！入藏宗祠公积！`, 'gold');
               }
             }
           },
           onFail: (st) => {
-            const fam = (st && st.familyProfile) || state.familyProfile;
+            const fam = (st && st.familyProfile) || state.familyProfile || (typeof ensureClanProfileForCurrentRun === 'function' ? ensureClanProfileForCurrentRun(true) : null);
             // 单一数据源：若未在上层扣款，在此执行原子扣费
             if (costVal > 0 && !opt._costPaid) {
               executeChoiceCostDeduction(costVal, st);
@@ -22987,7 +23000,9 @@ function drawTitleScreen() {
         c.fillText(`〔 门阀 〕【${fam.province}·${fam.surname}氏·${safeHall}】`, clanCardX + clanCardW / 2, clanCardY + 4);
         c.font = '10px ' + FONT_UI;
         c.fillStyle = '#cbd5e1';
-        c.fillText(`已传 ${fam.genealogyList.length || 1} 世 · 声望 ${fam.clanTrust.prestigeScore} 分 · 点击拜谒宗祠`, clanCardX + clanCardW / 2, clanCardY + 18);
+        const curGenCount = (fam.genealogyList && fam.genealogyList.length) || 1;
+        const curPrestige = (fam.clanTrust && fam.clanTrust.prestigeScore) || 50;
+        c.fillText(`已传 ${curGenCount} 世 · 声望 ${curPrestige} 分 · 点击拜谒宗祠`, clanCardX + clanCardW / 2, clanCardY + 18);
       },
       onClick: () => {
         state.gameScene = 'game';
@@ -32244,8 +32259,8 @@ function drawMarriageInvitationModal() {
   ctx.font = '12px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#ffe4e6';
   const famName = myFam ? myFam.fullName : '华夏名门';
-  const genNum = myFam ? (myFam.genealogyList.length || 1) : 1;
-  const prest = myFam ? myFam.clanTrust.prestigeScore : 50;
+  const genNum = (myFam && myFam.genealogyList && myFam.genealogyList.length) ? myFam.genealogyList.length : 1;
+  const prest = (myFam && myFam.clanTrust && typeof myFam.clanTrust.prestigeScore === 'number') ? myFam.clanTrust.prestigeScore : 50;
 
   ctx.fillText(`缔约门第：${famName}`, cardX + 26, curY + 34);
   ctx.fillText(`世系渊源：已传世 ${genNum} 代 · 宗族声望：${prest} 分`, cardX + 26, curY + 54);
@@ -32505,6 +32520,7 @@ function performClanDailyIncense() {
   } else if (typeof localStorage !== 'undefined') {
     localStorage.setItem(cacheKey, 'true');
   }
+  fam.clanTrust = fam.clanTrust || { prestigeScore: 50, trustFundMoney: 5000 };
   fam.clanTrust.prestigeScore = (fam.clanTrust.prestigeScore || 50) + 15;
   fam.clanTrust.trustFundMoney = (fam.clanTrust.trustFundMoney || 5000) + 500;
   saveClanProfile(fam);
@@ -32519,6 +32535,7 @@ function performHomelandMutualAid() {
     showToast("请先完成立族大典！", "error");
     return;
   }
+  fam.clanTrust = fam.clanTrust || { prestigeScore: 50, trustFundMoney: 5000 };
   const cap = state.capital || 0;
   if (cap < 3000) {
     // 救济
@@ -35899,8 +35916,11 @@ function drawFamilyTab(startY) {
   const vocName = state.familyProfile.vocationName || vocMap[state.familyProfile.vocationId] || '诗书传家 · 累代簪缨';
   ctx.font = '12px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#e2e8f0';
-  ctx.fillText(`家业底色：${vocName} · 已传世 ${state.familyProfile.genealogyList.length || 1} 世`, padX + 14, curY + 32);
-  ctx.fillText(`族产公积：${(state.familyProfile.clanTrust ? state.familyProfile.clanTrust.trustFundMoney : 5000).toLocaleString()} 五铢 · 声望：${(state.familyProfile.clanTrust ? state.familyProfile.clanTrust.prestigeScore : 50)} 分`, padX + 14, curY + 52);
+  const curGenealogyCount = (state.familyProfile && state.familyProfile.genealogyList) ? state.familyProfile.genealogyList.length : 1;
+  const curClanTrustFund = (state.familyProfile && state.familyProfile.clanTrust && typeof state.familyProfile.clanTrust.trustFundMoney === 'number') ? state.familyProfile.clanTrust.trustFundMoney : 5000;
+  const curClanPrestige = (state.familyProfile && state.familyProfile.clanTrust && typeof state.familyProfile.clanTrust.prestigeScore === 'number') ? state.familyProfile.clanTrust.prestigeScore : 50;
+  ctx.fillText(`家业底色：${vocName} · 已传世 ${curGenealogyCount} 世`, padX + 14, curY + 32);
+  ctx.fillText(`族产公积：${curClanTrustFund.toLocaleString()} 五铢 · 声望：${curClanPrestige} 分`, padX + 14, curY + 52);
 
   curY += plaqueH + 10;
 

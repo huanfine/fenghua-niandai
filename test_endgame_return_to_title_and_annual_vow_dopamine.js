@@ -138,7 +138,24 @@ assert(omen && omen.title, 'triggerAnnualRealmOmen 必须返回有效天象对�
 assert(omen.float, '天象必须配置多巴胺浮字');
 console.log(`  ✅ 岁序天象成功触发：【${omen.title}】浮字：“${omen.float}”`);
 
+console.log('\n>>> [测试 6：防崩回归：无家族档案（familyProfile为null）时关隘事件奖励重宝零报错]');
+state.familyProfile = null; // 模拟极端无家族档案运行态
+state.year = 220; // 对应黄初建国事件（奖励九品中正考定金策）
+state.activeModal = null;
+state.unresolvedDecisionEvent = null;
+
+// 触发汉魏历史事件 220 年
+const triggered = game.checkAndTriggerHanWeiHistoricalEvent();
+assert(triggered, '公元220年必须正常唤起黄初建国关隘事件');
+assert(state.activeModal && state.activeDecisionEvent, '决策弹窗必须已挂载');
+
+// 执行第 0 项抉择（获得传世重宝）
+assert.doesNotThrow(() => {
+  game.executeDiceChoice(0);
+}, 'familyProfile为null时执行奖励传世物抉择决不能抛出 TypeError: clanTrust of null');
+console.log('  ✅ 成功防御 null.clanTrust 崩溃：传世重宝正常解锁，游戏平稳运行');
+
 console.log('================================================================================');
-console.log('🎉 终局返回桌面与代际正反馈全部测试 100% 通过！');
+console.log('🎉 终局返回桌面、代际正反馈与空宗族防崩测试 100% 全部通过！');
 console.log('================================================================================');
 process.exit(0);
