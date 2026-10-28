@@ -36,6 +36,22 @@ if (fs.existsSync(wechatSrc)) {
   console.log('✅ 已同步 wechat-minigame/src -> douyin-minigame/src');
 }
 
+// 1.5 同步 subpackages/ 纪元拓展分包
+const wechatSub = path.join(wechatDir, 'subpackages');
+const douyinSub = path.join(douyinDir, 'subpackages');
+if (fs.existsSync(wechatSub)) {
+  copyDirSync(wechatSub, douyinSub);
+  console.log('✅ 已同步 wechat-minigame/subpackages -> douyin-minigame/subpackages');
+}
+
+// 1.6 同步 game.json 分包配置
+const wechatGameJson = path.join(wechatDir, 'game.json');
+const douyinGameJson = path.join(douyinDir, 'game.json');
+if (fs.existsSync(wechatGameJson)) {
+  fs.copyFileSync(wechatGameJson, douyinGameJson);
+  console.log('✅ 已同步 game.json 分包声明');
+}
+
 // 2. 读取 wechat-minigame/game.js 并适配抖音小游戏
 let gameCode = fs.readFileSync(path.join(wechatDir, 'game.js'), 'utf8');
 

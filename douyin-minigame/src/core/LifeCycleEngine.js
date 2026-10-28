@@ -18,12 +18,23 @@ class LifeCycleEngine {
     const boundedKeys = ['health', 'iq', 'eq', 'courage', 'clean', 'rep', 'resilience'];
     boundedKeys.forEach(k => {
       if (typeof state[k] === 'number') {
-        state[k] = Math.max(0, Math.min(100, Math.round(state[k])));
+        const maxCap = (k === 'iq' && state.clanIqCapBonus) ? (100 + state.clanIqCapBonus) : 100;
+        state[k] = Math.max(0, Math.min(maxCap, Math.round(state[k])));
       }
     });
     if (typeof state.ap === 'number') {
-      const maxAp = state.maxAp || 100;
+      const maxAp = (state.maxAp || 100) + (state.bonusMaxAp || 0);
       state.ap = Math.max(0, Math.min(maxAp, state.ap));
+    }
+    if ((state.age || 0) < 18) {
+      state.govLevel = 0;
+      state.rankIndex = 0;
+      state.lifetimeMaxRank = 0;
+    } else if (typeof state.govLevel === 'number' || typeof state.rankIndex === 'number') {
+      const lvl = Math.max(1, Math.min(5, Math.round(state.govLevel || state.rankIndex || 1)));
+      state.govLevel = lvl;
+      state.rankIndex = lvl;
+      state.lifetimeMaxRank = Math.max(state.lifetimeMaxRank || 1, lvl);
     }
   }
 

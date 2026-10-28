@@ -7,8 +7,15 @@
  * 4. 读写节流与闪存磨损保护，版本迁移兼容。
  */
 
-const SAVE_STORAGE_KEY = 'LIFESIM_ARCHIVE_DATA_V2';
-const SAVE_VERSION = 20261015;
+const SAVE_STORAGE_KEY = 'life_sim_grand_masterpiece_save_v5';
+const SAVE_VERSION = 5;
+const LEGACY_SAVE_STORAGE_KEYS = [
+  'life_sim_grand_masterpiece_save_v4',
+  'life_sim_grand_masterpiece_save_v3',
+  'life_sim_grand_masterpiece_save_v2',
+  'LIFESIM_ARCHIVE_DATA_V2',
+  'LIFESIM_ARCHIVE_DATA_V1'
+];
 
 class ArchiveService {
   constructor() {
@@ -52,15 +59,23 @@ class ArchiveService {
     if (!state || typeof state !== 'object') return {};
     return {
       version: SAVE_VERSION,
+      mode: state.mode || 'clan_season_v1',
       savedAt: Date.now(),
       isStarted: state.isStarted || false,
       endgameSettled: !!state.endgameSettled,
+      isRetired: !!state.isRetired,
+      earlyRetireReason: state.earlyRetireReason || null,
+      bgmEnabled: typeof state.bgmEnabled !== 'undefined' ? state.bgmEnabled : true,
+      sfxEnabled: typeof state.sfxEnabled !== 'undefined' ? state.sfxEnabled : true,
+      hapticEnabled: state.hapticEnabled !== false,
       year: state.year,
       age: state.age,
       track: state.track,
       originKey: state.originKey,
       regionKey: state.regionKey,
       name: state.name,
+      gender: state.gender,
+      elementDestiny: state.elementDestiny,
       jobTitle: state.jobTitle,
       rankName: state.rankName,
       capital: state.capital,
@@ -74,13 +89,74 @@ class ArchiveService {
       resilience: state.resilience || 50,
       ap: state.ap,
       maxAp: state.maxAp,
+      bonusMaxAp: state.bonusMaxAp || 0,
+      completedPactsCount: state.completedPactsCount || 0,
+      inactionYears: state.inactionYears || 0,
       strategy: state.strategy,
+      strategicPillar: state.strategicPillar,
+      generationalVow: state.generationalVow || null,
+      dynasticGeneration: state.dynasticGeneration || 1,
+      familyProfile: state.familyProfile || null,
+      lifespanCeiling: state.lifespanCeiling || 75,
+      baseLifespanSeed: state.baseLifespanSeed || state.lifespanCeiling || 75,
+      overworkYears: state.overworkYears || 0,
+      wellnessYears: state.wellnessYears || 0,
+      decisionSuccessCount: state.decisionSuccessCount || 0,
+      decisionFailCount: state.decisionFailCount || 0,
+      auditCrisisCount: state.auditCrisisCount || 0,
+      debtCrisisCount: state.debtCrisisCount || 0,
+      healthCrisisCount: state.healthCrisisCount || 0,
+      tutorialStep: state.tutorialStep || 0,
+      tutorialCompleted: !!state.tutorialCompleted,
+      talentPoints: state.talentPoints,
+      unlockedTalents: state.unlockedTalents || [],
+      karmaPledges: state.karmaPledges || {},
+      karmaHistory: state.karmaHistory || [],
+      unlockedHeirlooms: state.unlockedHeirlooms || [],
+      awardedMedals: state.awardedMedals || [],
+      unlockedRelics: state.unlockedRelics || [],
+      ownedCurios: state.ownedCurios || [],
+      activeMotto: state.activeMotto || 'shishi',
+      activeCalligraphyInscription: state.activeCalligraphyInscription || null,
+      inscribedMonuments: state.inscribedMonuments || {},
+      herbalWellness: state.herbalWellness || null,
+      heritageCrafts: state.heritageCrafts || null,
+      epigraphyRubbings: state.epigraphyRubbings || null,
+      kilnPorcelains: state.kilnPorcelains || null,
+      teaWayRecords: state.teaWayRecords || null,
+      brocadeRecords: state.brocadeRecords || null,
+      guqinRecords: state.guqinRecords || null,
+      inkstoneRecords: state.inkstoneRecords || null,
+      masterStudio: state.masterStudio || null,
+      handledTours: state.handledTours || [],
+      handledLectures: state.handledLectures || {},
+      handledMotions: state.handledMotions || [],
+      govLevel: state.govLevel || 1,
+      rankIndex: state.rankIndex || 0,
+      lifetimeMaxRank: state.lifetimeMaxRank || state.rankIndex || state.govLevel || 1,
+      governancePolicy: state.governancePolicy || { rd: 25, welfare: 25, infra: 25, audit: 25 },
+      governanceScore: state.governanceScore || 76,
+      lifeAmbition: state.lifeAmbition || null,
+      investments: state.investments || { realEstate: 0, bonds: 0, ventureTech: 0 },
+      heritageRuns: state.heritageRuns || 0,
+      heritageBonusTalents: state.heritageBonusTalents || 0,
+      rewardedAdWatchedThisRun: state.rewardedAdWatchedThisRun || 0,
+      lastRewardedAdTs: state.lastRewardedAdTs || 0,
+      runSeed: state.runSeed || null,
+      sponsorEditionUnlocked: !!state.sponsorEditionUnlocked,
+      leaderboardHistory: (state.leaderboardHistory || []).slice(0, 10),
+      childhoodTutorialDismissed: !!state.childhoodTutorialDismissed,
       family: state.family || {},
       contacts: (state.contacts || []).slice(0, 40),
       handledEvents: state.handledEvents || {},
       chronicleHistory: (state.chronicleHistory || []).slice(0, 100),
       unlockedAchievements: (state.unlockedAchievements || []).slice(0, 30),
+      onboardingTasks: state.onboardingTasks || [],
+      memoryAlbum: (state.memoryAlbum || []).slice(0, 15),
+      collectedClippings: (state.collectedClippings || []).slice(0, 20),
+      fortuneHexagram: state.fortuneHexagram || null,
       heldAssets: state.heldAssets || {},
+      marketTrends: state.marketTrends || {},
       dynasticInheritance: state.dynasticInheritance || null
     };
   }
@@ -140,8 +216,20 @@ class ArchiveService {
       let raw = null;
       if (typeof wx !== 'undefined' && typeof wx.getStorageSync === 'function') {
         raw = wx.getStorageSync(SAVE_STORAGE_KEY);
+        if (!raw) {
+          for (let i = 0; i < LEGACY_SAVE_STORAGE_KEYS.length; i++) {
+            const oldRaw = wx.getStorageSync(LEGACY_SAVE_STORAGE_KEYS[i]);
+            if (oldRaw) { raw = oldRaw; break; }
+          }
+        }
       } else if (typeof localStorage !== 'undefined') {
         raw = localStorage.getItem(SAVE_STORAGE_KEY);
+        if (!raw) {
+          for (let i = 0; i < LEGACY_SAVE_STORAGE_KEYS.length; i++) {
+            const oldRaw = localStorage.getItem(LEGACY_SAVE_STORAGE_KEYS[i]);
+            if (oldRaw) { raw = oldRaw; break; }
+          }
+        }
       } else {
         raw = this._memoryFallback.get(SAVE_STORAGE_KEY) || this._cachedSaveRaw;
       }
@@ -163,16 +251,34 @@ class ArchiveService {
     this._cachedSaveRaw = null;
     this._cachedSaveParsed = null;
     this._memoryFallback.delete(SAVE_STORAGE_KEY);
+    LEGACY_SAVE_STORAGE_KEYS.forEach(k => {
+      this._memoryFallback.delete(k);
+    });
     try {
       if (typeof wx !== 'undefined' && typeof wx.removeStorageSync === 'function') {
         wx.removeStorageSync(SAVE_STORAGE_KEY);
+        LEGACY_SAVE_STORAGE_KEYS.forEach(k => {
+          try { wx.removeStorageSync(k); } catch (_) {}
+        });
       } else if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(SAVE_STORAGE_KEY);
+        LEGACY_SAVE_STORAGE_KEYS.forEach(k => {
+          try { localStorage.removeItem(k); } catch (_) {}
+        });
       }
       return true;
     } catch (_) {
       return false;
     }
+  }
+
+  clearSavedGame() {
+    return this.clearSaveData();
+  }
+
+  hasSavedGame() {
+    const s = this.loadGameState();
+    return !!(s && s.isStarted && s.name);
   }
 
   /**
@@ -235,5 +341,6 @@ module.exports = {
   ArchiveService,
   archiveService,
   SAVE_STORAGE_KEY,
-  SAVE_VERSION
+  SAVE_VERSION,
+  LEGACY_SAVE_STORAGE_KEYS
 };

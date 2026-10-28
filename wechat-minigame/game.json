@@ -10,6 +10,14 @@
   },
   "subpackages": [
     {
+      "name": "season1_hanwei",
+      "root": "subpackages/season1_hanwei"
+    },
+    {
+      "name": "season10_modern",
+      "root": "subpackages/season10_modern"
+    },
+    {
       "name": "futureEpoch",
       "root": "subpackages/futureEpoch"
     },
@@ -17,5 +25,11 @@
       "name": "deepSpaceLore",
       "root": "subpackages/deepSpaceLore"
     }
-  ]
+  ],
+  "preloadRule": {
+    "game": {
+      "network": "all",
+      "packages": ["season1_hanwei"]
+    }
+  }
 }

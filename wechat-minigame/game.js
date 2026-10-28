@@ -314,6 +314,10 @@ function bindReactiveStatClamping(st) {
 function clampCoreStats(st) {
   const target = st || (typeof state !== 'undefined' ? state : null);
   if (!target) return;
+  if (typeof lifeCycleEngine !== 'undefined' && lifeCycleEngine && typeof lifeCycleEngine.clampStats === 'function') {
+    lifeCycleEngine.clampStats(target);
+    return target;
+  }
   const boundedKeys = Object.keys(CORE_BOUNDED_STATS);
   for (let i = 0; i < boundedKeys.length; i++) {
     const k = boundedKeys[i];
@@ -754,6 +758,17 @@ const _seasonRegistryMod = _loadModule('./src/seasons/seasonRegistry.js', false)
 const _historicalMilieuMod = _loadModule('./src/data/historicalMilieuHanWei.js', false) || {};
 const _seasonSettlementMod = _loadModule('./src/data/seasonSettlementEngine.js', false) || {};
 const _emergentNarrativeMod = _loadModule('./src/seasons/season_1_han_wei/emergentNarrativeEngine.js', false) || {};
+
+// 华夏世家大系 · 核心解耦架构服务 (Core Services & Era Registry)
+const _archiveMod = _loadModule('./src/core/ArchiveService.js', false) || {};
+const _timeAuthMod = _loadModule('./src/core/TimeAuthorityService.js', false) || {};
+const _lifeCycleMod = _loadModule('./src/core/LifeCycleEngine.js', false) || {};
+const _eraRegistryMod = _loadModule('./src/era/EraRegistry.js', false) || {};
+
+const archiveService = _archiveMod.archiveService || (_archiveMod.ArchiveService ? new _archiveMod.ArchiveService() : null);
+const timeAuthority = _timeAuthMod.timeAuthority || _timeAuthMod.timeAuthorityService || (_timeAuthMod.TimeAuthorityService ? new _timeAuthMod.TimeAuthorityService() : null);
+const lifeCycleEngine = _lifeCycleMod.lifeCycleEngine || (_lifeCycleMod.LifeCycleEngine ? new _lifeCycleMod.LifeCycleEngine() : null);
+const eraRegistry = _eraRegistryMod.eraRegistry || (_eraRegistryMod.EraRegistry ? new _eraRegistryMod.EraRegistry() : null);
 
 let audioCtx = null;
 let bgmEnabled = true;
@@ -2368,6 +2383,19 @@ function saveGameState(force = false) {
     }
     lastSaveTimestamp = now;
 
+    if (typeof archiveService !== 'undefined' && archiveService && typeof archiveService.saveGameState === 'function') {
+      const ok = archiveService.saveGameState(state, force, {
+        extraFields: {
+          mode: CLAN_SEASON_MODE_V1,
+          bgmEnabled: typeof bgmEnabled !== 'undefined' ? bgmEnabled : true,
+          sfxEnabled: typeof sfxEnabled !== 'undefined' ? sfxEnabled : true
+        }
+      });
+      _cachedSaveRaw = archiveService._cachedSaveRaw;
+      _cachedSaveParsed = archiveService._cachedSaveParsed;
+      return ok;
+    }
+
     const saveData = {
       version: SAVE_VERSION,
       mode: CLAN_SEASON_MODE_V1,
@@ -2595,6 +2623,28 @@ function loadGameState(forceReload = false) {
     return _cachedSaveParsed;
   }
   try {
+    if (typeof archiveService !== 'undefined' && archiveService && typeof archiveService.loadGameState === 'function') {
+      const parsed = archiveService.loadGameState();
+      if (!parsed) {
+        _cachedSaveRaw = null;
+        _cachedSaveParsed = null;
+        _cachedSaveSource = 'none';
+        restoreFromCloudSave();
+        return null;
+      }
+      if (parsed && ((parsed.year && parsed.year >= 1900) || (parsed.birthYear && parsed.birthYear >= 1900) || (parsed.mode && parsed.mode !== CLAN_SEASON_MODE_V1))) {
+        archiveLegacySaveData(parsed, 'mode_or_year_mismatch');
+        clearSavedGame();
+        _cachedSaveRaw = null;
+        _cachedSaveParsed = null;
+        _cachedSaveSource = 'none';
+        return null;
+      }
+      _cachedSaveRaw = JSON.stringify(parsed);
+      _cachedSaveParsed = parsed;
+      _cachedSaveSource = 'archive_service';
+      return parsed;
+    }
     let json = null;
     let migratedFromLegacyKey = false;
     if (typeof wx !== 'undefined' && typeof wx.getStorageSync === 'function') {
@@ -2671,6 +2721,10 @@ function loadGameState(forceReload = false) {
 }
 
 function hasSavedGame() {
+  if (typeof archiveService !== 'undefined' && archiveService && typeof archiveService.hasSavedGame === 'function') {
+    const s = archiveService.loadGameState();
+    return s !== null && !!s.year;
+  }
   const s = _cachedSaveRaw !== undefined ? _cachedSaveParsed : loadGameState();
   return s !== null && !!s.year;
 }
@@ -2750,6 +2804,9 @@ function resumeSavedGame() {
 function clearSavedGame() {
   _cachedSaveRaw = null;
   _cachedSaveParsed = null;
+  if (typeof archiveService !== 'undefined' && archiveService && typeof archiveService.clearSavedGame === 'function') {
+    archiveService.clearSavedGame();
+  }
   try {
     if (typeof wx !== 'undefined' && typeof wx.removeStorageSync === 'function') {
       wx.removeStorageSync(SAVE_STORAGE_KEY);
@@ -4033,6 +4090,12 @@ function checkTextContentSafety(inputStr, callback, fallbackText = '陈守正') 
 // 🏛️ 华夏通史与纪元时代判定工具集
 function isDynasticEra(year) {
   const y = (year !== undefined && year !== null) ? year : (typeof state !== 'undefined' && state && state.year ? state.year : 100);
+  if (typeof eraRegistry !== 'undefined' && eraRegistry && typeof eraRegistry.resolvePackByYear === 'function') {
+    const pack = eraRegistry.resolvePackByYear(y);
+    if (pack && typeof pack.getSeasonIndex === 'function') {
+      return pack.getSeasonIndex() <= 9;
+    }
+  }
   return y < 1912;
 }
 
@@ -9982,6 +10045,7 @@ function openFamilyEvent() {
     const spGender = state.gender === 'female' ? 'male' : 'female';
     const isAncient = isDynasticEra(state.year);
     const curYearVal = state.year || 100;
+    const isLiuChao = curYearVal > 300 && curYearVal <= 500;
 
     let cand1, cand2, cand3;
     if (isAncient) {
@@ -16277,8 +16341,43 @@ function settleAnnualCoreProgression() {
   const elderCareCost = Math.round(((state.age >= 38 && state.age <= 66) ? 2800 : 0) * eraScale);
   const seniorMedCost = Math.round(((state.age >= 56) ? 3200 : 0) * eraScale);
   const capVal = state.capital || 0;
+  const isDynClanProgression = isDynasticEra(state.year) || (state.year && state.year <= 500);
+  let clanEstateUpkeep = 0;
+  if (isDynClanProgression && (state.age >= 25 || (state.dynasticGeneration || 1) >= 2)) {
+    if (capVal > 25000) {
+      clanEstateUpkeep = Math.round(capVal * 0.038) + ((state.manor && state.manor.dockLevel) ? state.manor.dockLevel * 300 : 0);
+      if (state.age % 6 === 0 && clanEstateUpkeep > 600) {
+        addChronicleItem(
+          state.age,
+          state.year,
+          `【宗族营缮】岁暮整饬坞壁庄园、支发部曲兵饷并赡恤九族，岁费${clanEstateUpkeep}铢，门楣整肃。`,
+          '修缮持家',
+          'clan'
+        );
+      }
+    }
+    // 汉魏重大战乱战火折损（黄巾、董卓乱京、三国战祸、魏灭蜀）
+    const warYears = [184, 189, 195, 200, 208, 219, 263];
+    if (warYears.includes(state.year)) {
+      const hasDef = state.manor && state.manor.dockLevel >= 2;
+      const warRate = hasDef ? 0.04 : 0.12;
+      const warHit = Math.round(capVal * warRate);
+      if (warHit > 600) {
+        state.capital = Math.max(0, capVal - warHit);
+        addChronicleItem(
+          state.age,
+          state.year,
+          `【乱世战火】逢天下兵燹，官府征调与兵马过境，坞壁支出防务与粮秣${warHit}铢${hasDef ? '（坞壁深固，折损大减）' : '（防务空虚，折损较巨）'}。`,
+          '战乱波及',
+          'crisis'
+        );
+      }
+    }
+  }
+
   const assetMaintCost = (capVal > 320000 ? Math.round((capVal - 320000) * 0.022) : 0)
-    + (capVal > 680000 ? Math.round((capVal - 680000) * 0.032) : 0);
+    + (capVal > 680000 ? Math.round((capVal - 680000) * 0.032) : 0)
+    + clanEstateUpkeep;
   let annualLivingCost = Math.round((11800 + Math.max(0, state.age - 18) * 310 + rankLvl * 1450 + Math.floor(seededRandom() * 1500)) * eraScale) + childEduCost + elderCareCost + seniorMedCost + assetMaintCost;
   if (state.isRetired) {
     annualLivingCost = Math.round(annualLivingCost * 0.78);
@@ -17507,6 +17606,32 @@ function tickOneYear() {
         showToast('⏳ 考课在迩：距三年大考仅余一载，宜早作绸缪！', 'info');
       }
     }
+
+    // 汉魏察举征辟、九品品题与职阶拔擢 (Han-Wei Rank Progression)
+    const hwPromoAges = [24, 32, 40, 48, 56];
+    if (hwPromoAges.includes(age) && !state.handledEvents[`hw_promo_${age}`]) {
+      state.handledEvents[`hw_promo_${age}`] = true;
+      const hwLadders = _historicalMilieuMod && _historicalMilieuMod.HAN_WEI_OFFICIAL_LADDERS;
+      const s1Track = ['official', 'scholar', 'merchant', 'military', 'recluse'].includes(tr) ? tr : 'official';
+      const ladder = (hwLadders && hwLadders[s1Track]) || [];
+      const curLvl = state.govLevel || state.rankIndex || 1;
+      const nextLvl = Math.min(5, curLvl + 1);
+      const reqRep = (nextLvl - 1) * 16 + 20;
+      const reqClean = 60 + nextLvl * 3;
+      if (getStat('rep', 0) >= reqRep && getStat('clean', 0) >= reqClean && (state.capital || 0) >= (nextLvl - 1) * 2000) {
+        syncRankProgression(nextLvl, state);
+        const nextRankObj = ladder[nextLvl] || ladder[ladder.length - 1];
+        if (nextRankObj) {
+          state.rankName = nextRankObj.title;
+          state.jobTitle = nextRankObj.title;
+        }
+        addStat('rep', 3);
+        state.talentPoints = (state.talentPoints || 0) + 1;
+        playSoundEffect('fanfare');
+        showToast(`🏛️ 察举拔擢！履新【${state.rankName}】（品秩升阶）！`, 'gold');
+        addChronicleItem(age, yr, `【察举拔擢】州郡中正官与士林清议品题卓异，拔擢受任【${state.rankName}】，名显州闾。`, '察举除官', 'promo');
+      }
+    }
     return;
   }
 
@@ -18244,6 +18369,250 @@ function tickOneYear() {
   saveGameState();
   playSoundEffect('click');
   requestRender();
+}
+
+// ==========================================
+// ⏳ 华夏世家大系 · 五年回合总控与三级事件分流引擎 (Turn Pacing & Event Tiering Engine)
+// ==========================================
+const EVENT_TIER_TABLE = {
+  // A级：必须玩家亲自批红落印的核心主线（历史关隘大案、生死危机、大考、重大晋升、终局）
+  A_MODALS: [
+    'decision',
+    'crisis',
+    'audit_crisis',
+    'debt_crisis',
+    'health_crisis',
+    'black_swan',
+    'endgame',
+    'nine_rank_assessment',
+    'clan_establishment',
+    'successor_selection'
+  ],
+  A_EVENT_PREFIXES: [
+    'dyn_chrono_hw_event_',
+    'arc_',
+    'epic_',
+    'crossroads_age_22',
+    'crossroads_age_38',
+    'crossroads_age_54',
+    'magnum_',
+    'crisis_'
+  ],
+  // C级：纯阅览/确认类岁月回响（自动归档入回合小结，不阻断主流程）
+  C_MODALS: [
+    'appraisal',
+    'karma_nexus',
+    'rival_showdown',
+    'grassroots_letter',
+    'decade_historian',
+    'spousal_resonance',
+    'national_laurel',
+    'century_benchmark',
+    'senior_statesman',
+    'seasonal_festival',
+    'echo_legacy_modal',
+    'title_milestone',
+    'adult_ceremony_notice',
+    'toast',
+    'notification'
+  ]
+};
+
+function classifyEventTier(modalName, eventObj) {
+  if (!modalName) return 'C';
+  if (modalName === 'endgame') return 'A';
+  if (modalName === 'audit_crisis' || modalName === 'debt_crisis' || modalName === 'health_crisis') return 'A';
+  if (modalName === 'clan_establishment' || modalName === 'successor_selection') return 'A';
+  if (EVENT_TIER_TABLE.C_MODALS.includes(modalName)) return 'C';
+
+  if (modalName === 'decision' && eventObj && eventObj.id) {
+    const id = String(eventObj.id);
+    if (EVENT_TIER_TABLE.A_EVENT_PREFIXES.some(prefix => id.startsWith(prefix))) {
+      return 'A';
+    }
+    if (id.includes('danggu') || id.includes('huangjin') || id.includes('chibi') || id.includes('jiupin')) {
+      return 'A';
+    }
+  }
+
+  // 默认其他未特别声明的决策归入 B 级（幕僚代办或日常要务）
+  return 'B';
+}
+
+function delegateEventOrModal(tier, modalName, eventObj) {
+  if (!modalName) return;
+  state.delegatedDecisionsCount = (state.delegatedDecisionsCount || 0) + 1;
+  if (!Array.isArray(state.turnDigest)) state.turnDigest = [];
+
+  if (modalName === 'phone') {
+    if (typeof answerRedPhone === 'function') answerRedPhone();
+    return;
+  }
+
+  if (modalName === 'decision') {
+    const ev = eventObj || state.activeDecisionEvent;
+    if (ev && Array.isArray(ev.choices) && ev.choices.length > 0) {
+      let bestIdx = 0;
+      let minPenalty = 999;
+      for (let i = 0; i < ev.choices.length; i++) {
+        const c = ev.choices[i];
+        const cost = Math.abs((c.costs && c.costs.capital) || c.cost || 0);
+        if (cost < minPenalty) {
+          minPenalty = cost;
+          bestIdx = i;
+        }
+      }
+      const chosen = ev.choices[bestIdx];
+      state.turnDigest.push({
+        type: 'decision',
+        year: state.year,
+        age: state.age,
+        title: ev.title || '案牍要务',
+        choice: (chosen && (chosen.title || chosen.text)) || '稳健处置'
+      });
+      if (typeof executeDiceChoice === 'function') {
+        executeDiceChoice(bestIdx);
+      }
+      if (typeof dismissDecisionModal === 'function') {
+        dismissDecisionModal();
+      } else {
+        state.activeModal = null;
+      }
+      state.unresolvedDecisionEvent = null;
+      return;
+    }
+  }
+
+  if (modalName === 'audit_crisis') {
+    state.turnDigest.push({
+      type: 'crisis',
+      year: state.year,
+      age: state.age,
+      title: '合规自律',
+      choice: '如实陈述·严肃整改'
+    });
+    if (typeof executeAuditChoice === 'function') executeAuditChoice(0);
+    state.activeModal = null;
+    return;
+  }
+
+  if (modalName === 'debt_crisis') {
+    state.turnDigest.push({
+      type: 'crisis',
+      year: state.year,
+      age: state.age,
+      title: '债务重组',
+      choice: '平账自救'
+    });
+    if (typeof executeDebtChoice === 'function') executeDebtChoice(0);
+    state.activeModal = null;
+    return;
+  }
+
+  if (modalName === 'health_crisis') {
+    state.turnDigest.push({
+      type: 'crisis',
+      year: state.year,
+      age: state.age,
+      title: '突发疾恙',
+      choice: '送医调摄'
+    });
+    if (typeof executeHealthChoice === 'function') executeHealthChoice();
+    state.activeModal = null;
+    return;
+  }
+
+  if (modalName === 'promotion') {
+    const verdict = (typeof evaluatePromotionStepVerdict === 'function') ? evaluatePromotionStepVerdict(4) : true;
+    if (typeof finishPromotionProcess === 'function') {
+      finishPromotionProcess(verdict);
+    } else {
+      state.activeModal = null;
+    }
+    state.turnDigest.push({
+      type: 'promotion',
+      year: state.year,
+      age: state.age,
+      title: '晋升考察',
+      choice: verdict ? '荣获晋升' : '留任蓄力'
+    });
+    return;
+  }
+
+  state.turnDigest.push({
+    type: modalName,
+    year: state.year,
+    age: state.age,
+    title: (eventObj && eventObj.title) || modalName
+  });
+  state.activeModal = null;
+  state.unresolvedDecisionEvent = null;
+  state.unresolvedCrisis = null;
+}
+
+function runTurn() {
+  if (!state.isStarted || state._needsSeedInit) {
+    if (typeof startCharacterCreation === 'function') startCharacterCreation();
+    return;
+  }
+  if (state.endgameSettled || state.activeModal === 'endgame') {
+    state.activeModal = 'endgame';
+    return;
+  }
+  if (state.activeModal || state.pendingPhoneCrisis) {
+    return;
+  }
+
+  if (!state.turn || state.turn.yearsLeft <= 0) {
+    const turnLength = (state.age < 18) ? Math.min(5, Math.max(1, 18 - (state.age || 0))) : 5;
+    state.turn = {
+      index: ((state.turn && state.turn.index) || 0) + 1,
+      startAge: state.age,
+      yearsLeft: turnLength,
+      aBeats: 0
+    };
+  }
+  if (!Array.isArray(state.turnDigest)) {
+    state.turnDigest = [];
+  }
+
+  const A_CAP_PER_TURN = 1;
+
+  while (state.turn.yearsLeft > 0) {
+    if (state.endgameSettled || state.activeModal === 'endgame') {
+      state.activeModal = 'endgame';
+      return;
+    }
+
+    tickOneYear();
+    state.turn.yearsLeft--;
+
+    let modalGuard = 0;
+    while ((state.activeModal || state.pendingPhoneCrisis) && modalGuard++ < 15) {
+      if (state.activeModal === 'endgame') return;
+
+      const modal = state.activeModal || 'phone';
+      const eventObj = state.activeDecisionEvent;
+      const tier = classifyEventTier(modal, eventObj);
+
+      if (tier === 'A' && state.turn.aBeats < A_CAP_PER_TURN) {
+        state.turn.aBeats++;
+        return; // 停步等待玩家抉择
+      }
+
+      delegateEventOrModal(tier, modal, eventObj);
+    }
+    if (state.activeModal && state.activeModal !== 'endgame') {
+      state.activeModal = null;
+      state.pendingPhoneCrisis = null;
+    }
+
+    if (typeof flushNextQueuedModal === 'function') {
+      flushNextQueuedModal();
+    }
+  }
+
+  state.turn.yearsLeft = 0;
 }
 
 // ==========================================
@@ -20075,6 +20444,11 @@ function recordMaxObservedTime(ts, forceUpdate = false) {
 }
 
 function getEffectiveTimestampMs() {
+  if (typeof timeAuthority !== 'undefined' && timeAuthority && typeof timeAuthority.getAuthoritativeNow === 'function') {
+    const authTs = timeAuthority.getAuthoritativeNow();
+    recordMaxObservedTime(authTs);
+    return authTs;
+  }
   const now = Date.now() + _serverTimeOffsetMs;
   let maxTime = 0;
   try {
@@ -46403,7 +46777,7 @@ function executeAuditChoice(choiceIdx) {
     // 方案一：如实陈述·严肃整改·补齐缺口
     state.resolvedCrisesCount = (state.resolvedCrisesCount || 0) + 1;
     state.capital = Math.round(state.capital * 0.78);
-    state.clean = Math.max(state.clean, 74);
+    state.clean = Math.max(25, getStat('clean', 50) - 10);
     state.rep = Math.max(15, getStat('rep', 50) - 8);
     state.rankName = "整改督导专员";
     playSoundEffect('gong');
@@ -46443,7 +46817,7 @@ function executeDebtChoice(choiceIdx) {
       state.family.livingLevel = 1;
       state.family.residenceName = '查封安置筒子楼';
     }
-    state.capital = Math.max(32000, Math.round((state.capital || 0) * 0.72));
+    state.capital = Math.max(1000, Math.round((state.capital || 0) * 0.45));
     state.rep = Math.max(15, getStat('rep', 50) - 8);
     playSoundEffect('gong');
     showToast("变卖抵押居所平息债务，平账自救成功化解清算！", "alert");
@@ -46480,6 +46854,7 @@ function executeHealthChoice() {
   state.resolvedCrisesCount = (state.resolvedCrisesCount || 0) + 1;
   state.lifespanCeiling = Math.max(60, (state.lifespanCeiling || 74) - 2);
   state.healthCooldownUntil = (state.year || 1992) + 6;
+  state.healthCapBonus = (state.healthCapBonus || 0) - 4;
   const medScale = typeof getEraInflationScale === 'function' ? getEraInflationScale(state.year) : 1.0;
   state.capital = Math.max(0, state.capital - Math.round(15000 * medScale));
   state.health = Math.max(state.health || 44, state.healthCrisisCount >= 2 ? 44 : 54);
@@ -46539,6 +46914,17 @@ function resolveCurrentModalByPolicy(policy = 'strategic') {
     state.strategy = stratKeys[seedHash % stratKeys.length];
   }
   state._internalStrategySet = false;
+
+  if (m === 'clan_establishment') {
+    if (!state.familyProfile && typeof ensureClanProfileForCurrentRun === 'function') {
+      ensureClanProfileForCurrentRun(true);
+    }
+    state.activeModal = null;
+    state._pendingCreationAfterClanEstablishment = false;
+    state.gameScene = 'game';
+    startCharacterCreation(false);
+    return 'clan_established';
+  }
 
   if (m === 'fate') {
     if (!state._disableAutoTalentPurchase && (policy === 'strategic' || policy === 'normal' || policy === 'auto')) {
@@ -47685,6 +48071,10 @@ if (__DEV__ && typeof GameGlobal !== "undefined") {
     HAN_WEI_ANNUAL_OMENS,
     confirmAbandonClanRun,
     drawConfirmAbandonClanModal,
+    runTurn,
+    EVENT_TIER_TABLE,
+    classifyEventTier,
+    delegateEventOrModal,
   };
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = global.__gameEngine;
@@ -47740,6 +48130,9 @@ if (typeof console !== 'undefined' && typeof console.log === 'function') {
 if (typeof global !== 'undefined' && __DEV__) {
   global.state = state;
   global.tickOneYear = tickOneYear;
+  global.runTurn = runTurn;
+  global.EVENT_TIER_TABLE = EVENT_TIER_TABLE;
+  global.classifyEventTier = classifyEventTier;
   global.generateProceduralBirth = generateProceduralBirth;
   global.setRandomSeed = setRandomSeed;
   global.seededRandom = seededRandom;

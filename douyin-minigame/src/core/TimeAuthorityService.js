@@ -106,6 +106,7 @@ const timeAuthority = new TimeAuthorityService();
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     TimeAuthorityService,
-    timeAuthority
+    timeAuthority,
+    timeAuthorityService: timeAuthority
   };
 }
