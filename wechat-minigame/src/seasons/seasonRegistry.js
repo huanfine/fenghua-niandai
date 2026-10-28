@@ -87,6 +87,19 @@ class SeasonRegistry {
     }
     return list;
   }
+
+  /**
+   * 统一桥接：根据年份决议纪元包
+   */
+  resolvePackByYear(year) {
+    try {
+      const { eraRegistry } = require('../era/EraRegistry.js');
+      if (eraRegistry && typeof eraRegistry.resolvePackByYear === 'function') {
+        return eraRegistry.resolvePackByYear(year);
+      }
+    } catch (_) {}
+    return this.getActiveSeason({ year });
+  }
 }
 
 // 单例模式导出

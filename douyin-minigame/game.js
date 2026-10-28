@@ -1,7 +1,7 @@
 /**
  * 《风华年代：沧海沉浮录》字节跳动 / 抖音小游戏自动化构建产物
  * 由 scripts/build_douyin.js 从 wechat-minigame 单一真源自动生成
- * 生成时间: 2026-10-28T07:17:54.339Z
+ * 生成时间: 2026-10-28T08:21:15.545Z
  */
 /**
  * 《风华年代：沧海沉浮录》微信小游戏 (Game Core Edition)
@@ -768,11 +768,13 @@ const _emergentNarrativeMod = _loadModule('./src/seasons/season_1_han_wei/emerge
 const _archiveMod = _loadModule('./src/core/ArchiveService.js', false) || {};
 const _timeAuthMod = _loadModule('./src/core/TimeAuthorityService.js', false) || {};
 const _lifeCycleMod = _loadModule('./src/core/LifeCycleEngine.js', false) || {};
+const _clanSystemMod = _loadModule('./src/core/ClanSystem.js', false) || {};
 const _eraRegistryMod = _loadModule('./src/era/EraRegistry.js', false) || {};
 
 const archiveService = _archiveMod.archiveService || (_archiveMod.ArchiveService ? new _archiveMod.ArchiveService() : null);
 const timeAuthority = _timeAuthMod.timeAuthority || _timeAuthMod.timeAuthorityService || (_timeAuthMod.TimeAuthorityService ? new _timeAuthMod.TimeAuthorityService() : null);
 const lifeCycleEngine = _lifeCycleMod.lifeCycleEngine || (_lifeCycleMod.LifeCycleEngine ? new _lifeCycleMod.LifeCycleEngine() : null);
+const clanSystem = _clanSystemMod.clanSystem || (_clanSystemMod.ClanSystem ? new _clanSystemMod.ClanSystem() : null);
 const eraRegistry = _eraRegistryMod.eraRegistry || (_eraRegistryMod.EraRegistry ? new _eraRegistryMod.EraRegistry() : null);
 
 let audioCtx = null;
@@ -1943,7 +1945,11 @@ function fitText(text, maxWidth, font) {
   const effectiveFont = elevateFontSize(font, 10);
   const cacheKey = effectiveFont + '||' + maxWidth + '||' + text;
   const cached = FIT_TEXT_CACHE.get(cacheKey);
-  if (cached !== undefined) return cached;
+  if (cached !== undefined) {
+    FIT_TEXT_CACHE.delete(cacheKey);
+    FIT_TEXT_CACHE.set(cacheKey, cached);
+    return cached;
+  }
 
   ctx.save();
   ctx.font = effectiveFont;
@@ -3969,7 +3975,12 @@ const _measureTextCache = new Map();
 const MEASURE_TEXT_CACHE = _measureTextCache;
 function measureTextMemo(context, text, font) {
   const key = (font || '') + '::' + String(text || '');
-  if (MEASURE_TEXT_CACHE.has(key)) return MEASURE_TEXT_CACHE.get(key);
+  if (MEASURE_TEXT_CACHE.has(key)) {
+    const val = MEASURE_TEXT_CACHE.get(key);
+    MEASURE_TEXT_CACHE.delete(key);
+    MEASURE_TEXT_CACHE.set(key, val);
+    return val;
+  }
   if (context && typeof context.measureText === 'function') {
     if (font) context.font = font;
     const res = context.measureText(text) || { width: 0 };
@@ -4106,6 +4117,12 @@ function isDynasticEra(year) {
 
 function isAncientEra(year) {
   const y = (year !== undefined && year !== null) ? year : (typeof state !== 'undefined' && state && state.year ? state.year : 100);
+  if (typeof eraRegistry !== 'undefined' && eraRegistry && typeof eraRegistry.resolvePackByYear === 'function') {
+    const pack = eraRegistry.resolvePackByYear(y);
+    if (pack && typeof pack.getSeasonIndex === 'function') {
+      return pack.getSeasonIndex() < 10;
+    }
+  }
   return y < 1978;
 }
 
@@ -4987,241 +5004,9 @@ const CALLIGRAPHY_INSCRIPTIONS = [
   }
 ];
 
-// 5. 十二大赛道专属终身大考 (Track-Specific Magnum Opus Crossroads)
-const TRACK_MAGNUM_OPUS_DATABASE = {
-  gov: {
-    id: 'magnum_gov',
-    title: '🏛️ 【时代大考】特大综合改革示范区的战略抉择',
-    desc: '重点改革试验迈入攻坚克难的关键期，面对盘根错节的发展阻力。在总体统筹决策协调会上各方激烈论证，关键时刻由你牵头拍板定夺：',
-    choices: [
-      {
-        text: "以职业声誉作保 · 顶住压力坚决推进阳光公开与管理机制创新",
-        outcomeText: "你以无私无畏的魄力打破利益藩篱！群众自发拉起横幅致敬，清廉+8，大局声誉+10！",
-        effects: { clean: 8, rep: 10, courage: 6 },
-        tag: '中流砥柱'
-      },
-      {
-        text: "求真务实稳妥统筹 · 采取渐进试点与利益补偿机制分步化解",
-        outcomeText: "方案平稳落地未起风波，兼顾各方诉求，人情+8，智谋+6，深得组织器重！",
-        effects: { eq: 8, iq: 6, clean: 5 },
-        tag: '老成谋国'
-      }
-    ]
-  },
-  industry: {
-    id: 'magnum_corp',
-    title: '🏭 【制造大考】跨国资本恶意绞杀与全链自主保卫战',
-    desc: '海外垄断财团以三倍溢价发起恶意要约收购，并威胁断供关键工业母机核心轴承，民族先进制造生死存亡系于一线：',
-    choices: [
-      {
-        text: "立下军令状死战不退 · 联合全国数千家上下游发起全链自主反击",
-        outcomeText: "历经九百个日夜闭关攻坚，自主高端轴承全面投产，击溃外资做空！资本+¥25,000，魄力+8！",
-        effects: { capital: 25000, courage: 8, rep: 8 },
-        tag: '大国脊梁'
-      },
-      {
-        text: "引入国家制造业转型升级基金战略入股 · 实施产学研协同破局",
-        outcomeText: "核心工业资产大幅保值增值，引入顶尖管理体制，声誉+8，资本+¥20,000！",
-        effects: { rep: 8, capital: 20000, iq: 6 },
-        tag: '重器强基'
-      }
-    ]
-  },
-  tech: {
-    id: 'magnum_sci',
-    title: '🔬 【科研大考】国之重器试验参数千钧一发的放行抉择',
-    desc: '耗资数百亿的国家绝密超级工程即将进行首飞试验，总装车间深夜发现一组边缘公差存在0.003毫米微小离散：',
-    choices: [
-      {
-        text: "以总师身份担起全部责任 · 运用深厚力学机理判定安全并签字放行",
-        outcomeText: "大国重器破空而起圆满成功！国家领导人亲赴现场拥抱祝贺，智谋+10，荣获国家特级功勋！",
-        effects: { iq: 10, rep: 10, courage: 8 },
-        tag: '国之巨匠'
-      },
-      {
-        text: "坚持科学求真一票否决 · 顶住各方压力推迟试验三个月彻底归零",
-        outcomeText: "全面归零排查竟意外发现一处隐蔽材料疲劳隐患，避免了灾难性后果！清廉+8，智谋+8！",
-        effects: { clean: 8, iq: 8, rep: 8 },
-        tag: '严谨治学'
-      }
-    ]
-  },
-  biz: {
-    id: 'magnum_biz',
-    title: '💰 【商界大考】国际金融风暴突袭与民营产业互保大联盟',
-    desc: '国际空头突袭外贸大省，汇率巨震与银根紧缩导致本地数百家中小微制造企业面临资金链断裂暴雷：',
-    choices: [
-      {
-        text: "牵头成立百亿民营企业互助应急基金 · 抵押个人全部股权担保",
-        outcomeText: "你以一己之力扛起全行业脊梁，保住了数十万产业工人的生计！全省工商界奉你为商圣，声誉+10！",
-        effects: { rep: 10, capital: 18000, courage: 8 },
-        tag: '义薄云天'
-      },
-      {
-        text: "顺势整合产业链上下游破产资产 · 打造全球化垂直一体化巨无霸",
-        outcomeText: "危机之后公司一跃成为全球行业龙头，资本增进 ¥30,000，商界话语权跃升！",
-        effects: { capital: 30000, iq: 8, courage: 6 },
-        tag: '商海霸主'
-      }
-    ]
-  },
-  trade: {
-    id: 'magnum_diplo',
-    title: '🌐 【丝路大考】日内瓦多边经贸公约破裂前夕的四十八小时斡旋',
-    desc: '关键多边数字贸易与绿色关税公约在最后关头遭遇保护主义阵营联合阻击，各方代表拂袖而去，跨国商贸通道面临停摆：',
-    choices: [
-      {
-        text: "开展不眠不休的48小时穿梭密会 · 提出互利共赢中国折中方案力挽狂澜",
-        outcomeText: "五大洲代表起立为你鼓掌！新公约成功签署并命名为中国丝路倡议，大局声誉+10！",
-        effects: { rep: 10, eq: 8, capital: 22000 },
-        tag: '丝路领航'
-      },
-      {
-        text: "坚决捍卫新兴市场与发展中国家核心利益底线 · 联合五十国开通自主清算网",
-        outcomeText: "掷地有声的大国商道赢得亚非拉万国同钦！清廉+8，魄力+8，跨境订单逆势翻番！",
-        effects: { rep: 8, courage: 8, clean: 8, capital: 18000 },
-        tag: '铮铮铁骨'
-      }
-    ]
-  },
-  art: {
-    id: 'magnum_cult',
-    title: '📜 【文化大考】流失海外国宝孤本的跨国抢救竞购',
-    desc: '流落海外近百年的敦煌盛唐孤本残卷突现苏富比夜拍，西方投机财团恶意哄抬价格，企图将国宝拆分牟利：',
-    choices: [
-      {
-        text: "变卖毕生珍藏并号召海内外华商筹款 · 一锤定音将国宝完璧归赵",
-        outcomeText: "故宫博物院举行隆重入藏仪式，万人空巷瞻仰国宝！万古流芳，声誉+10，清廉+8！",
-        effects: { rep: 10, clean: 8, courage: 6 },
-        tag: '文脉薪传'
-      },
-      {
-        text: "运用国际公约与文物法典展开长线法律追索 · 联合教科文组织施压",
-        outcomeText: "法理严密证据确凿，拍卖行迫于国际道义无偿归还国宝，智谋+8，名震全球学术界！",
-        effects: { iq: 8, rep: 8, eq: 6 },
-        tag: '法理卫道'
-      }
-    ]
-  },
-  military: {
-    id: 'magnum_military',
-    title: '🪖 【铁血大考】高原极寒超级桥隧震后复合险情生死总决战',
-    desc: '高寒无人区突发强震引发冰川堰塞湖管涌， threatens 下游百亿战略通道与十万群众安全，余震飞石不断、黄金排险窗口仅剩二十四小时：',
-    choices: [
-      {
-        text: "亲率党员敢死突击队索降核心坝体 · 手工安放定向爆破药包精准泄洪",
-        outcomeText: "惊天巨响后洪峰顺导流槽平稳下泄，下游十万百姓与大国工程安然无恙！荣立个人特等功！",
-        effects: { courage: 10, rep: 10, resilience: 8 },
-        tag: '铁血柱石'
-      },
-      {
-        text: "坐镇前指统筹三维雷达监测与重型机械集群 · 分梯次立体围堰锁死管涌",
-        outcomeText: "零伤亡创造世界工程抢险奇迹！教科书级指挥被收入国防工程典范，智谋+8，声誉+10！",
-        effects: { iq: 8, rep: 10, clean: 6 },
-        tag: '大国统帅'
-      }
-    ]
-  },
-  agri: {
-    id: 'magnum_agri',
-    title: '🌾 【种业大考】跨国粮商专利围剿与中华耐盐碱母种保卫战',
-    desc: '海外四大粮商借极端气候抬高国际粮价，并对我国自主杂交良种发起跨国专利诉讼，企图卡住中国种业咽喉：',
-    choices: [
-      {
-        text: "公开三十年原始田间繁育谱系铁证 · 向全国盐碱荒滩免费推广高产自主新良种",
-        outcomeText: "亿亩盐碱滩化作金色粮仓，跨国粮商做空阴谋彻底粉碎！万民感念，声誉+10，清廉+8！",
-        effects: { rep: 10, clean: 8, capital: 20000 },
-        tag: '天下粮仓'
-      },
-      {
-        text: "牵头组建国家种业种质资源大联盟 · 建立全基因组分子育种自主专利池",
-        outcomeText: "以科技利剑筑起种业安全万里长城，海外粮商不得不反过来高价购买我方授权！",
-        effects: { iq: 8, rep: 9, capital: 26000 },
-        tag: '神农铸盾'
-      }
-    ]
-  },
-  grassroots: {
-    id: 'magnum_grassroots',
-    title: '🏡 【民生大考】百年流域行蓄洪区十万乡亲搬迁与共富安居抉择',
-    desc: '国家启动跨流域世纪防洪与生态共富工程，涉及百余个古老村落搬迁与十万乡亲生计转型，故土难离的乡亲们眼巴巴望着你这位老带头人：',
-    choices: [
-      {
-        text: "立下军令状先建好配套名校医院与共富产业园再搬迁 · 挨家挨户算透阳光明白账",
-        outcomeText: "十万乡亲敲锣打鼓喜迁新居，三年内人均收入翻番，无一人上访掉队！铸就万民口碑丰碑！",
-        effects: { rep: 10, clean: 9, eq: 8 },
-        tag: '万民福泽'
-      },
-      {
-        text: "将腾退滩涂统筹改造成国家级生态湿地与现代农旅合作社 · 让老乡世世代代拿分红",
-        outcomeText: "昔日水患之地化作聚宝盆，生态与富民双赢模式响彻全国，声誉+9，集体与个人收益丰厚！",
-        effects: { rep: 9, iq: 8, capital: 20000 },
-        tag: '共富楷模'
-      }
-    ]
-  },
-  med: {
-    id: 'magnum_med',
-    title: '🩺 【杏林大考】突发未知高危变异重症潮与原研特效药破局',
-    desc: '罕见高致病性呼吸综合征在多地零星暴发，跨国药企的天价靶向药不仅供应杯水车薪且伴随严重心衰副作用，全国危重病房焦急等待国家医学中心定夺：',
-    choices: [
-      {
-        text: "披挂进驻重症红区一线主刀领衔 · 启用自主研发中西医协同靶向救治方案",
-        outcomeText: "重症抢救成功率跃升至96%，治疗费用不足进口药十分之一！大医精诚，荣膺国士无双殊荣！",
-        effects: { rep: 10, clean: 9, courage: 8 },
-        tag: '大医国士'
-      },
-      {
-        text: "统筹全国百家三甲医院共享临床大数据 · 七十二小时锁定致病机理并开源诊疗指南",
-        outcomeText: "全球医疗界采用中国诊疗金标准，挽救海内外无数苍生，智谋+9，声望享誉世界！",
-        effects: { iq: 9, rep: 10, eq: 6 },
-        tag: '济世苍生'
-      }
-    ]
-  },
-  law: {
-    id: 'magnum_law',
-    title: '⚖️ 【法治大考】海外百亿主权资产恶意冻结与国际法庭终极抗辩',
-    desc: '某西方财团勾结境外仲裁机构，恶意滥用长臂管辖冻结我国出海龙头产业百亿海外资产，距离强制拍卖裁决生效仅剩最后七天：',
-    choices: [
-      {
-        text: "亲赴海牙与伦敦法庭舌战群儒 · 出具三千页穿透式证据链当庭揭穿管辖权欺诈",
-        outcomeText: "国际法庭全票裁定撤销冻结令并判令对方巨额赔偿！一战成名，铸就涉外法治不朽传奇！",
-        effects: { iq: 9, rep: 10, courage: 8 },
-        tag: '公义利剑'
-      },
-      {
-        text: "依法启动国家反外国制裁对等反制法律程序 · 迫使跨国财团在48小时内无条件和解",
-        outcomeText: "雷霆万钧的大国法理反制令对手胆寒，百亿国有与民族资产完好归来！清廉+9，声誉+10！",
-        effects: { clean: 9, rep: 10, capital: 22000 },
-        tag: '铁肩卫国'
-      }
-    ]
-  },
-  education: {
-    id: 'magnum_education',
-    title: '🎓 【杏坛大考】国家基础科学十年潜心问道特区与拔尖人才大考',
-    desc: '面对全球科技竞争进入无人区，急功近利的短期论文指标束缚了青年学者的原创力。作为执掌名校与国家教改的领军者，你在全国科教大会上力推十年破壁计划：',
-    choices: [
-      {
-        text: "以校长与学术泰斗声誉作保 · 为百名寒门青年奇才设立十年免考核基础攻关特区",
-        outcomeText: "十年磨一剑！特区连出三项改写世界教科书的重大原创突破，桃李满天下，尊为百世师表！",
-        effects: { rep: 10, clean: 9, eq: 8 },
-        tag: '百世师表'
-      },
-      {
-        text: "领衔重编全套大中小学贯通式数理与工程经典教材 · 无偿向全国城乡学校开源",
-        outcomeText: "润物细无声，托举起千万中国青少年的科学脊梁，获颁国家最高教育荣誉勋章！",
-        effects: { iq: 9, rep: 10, clean: 8 },
-        tag: '大先生风范'
-      }
-    ]
-  }
-};
-TRACK_MAGNUM_OPUS_DATABASE.corp = TRACK_MAGNUM_OPUS_DATABASE.industry;
-TRACK_MAGNUM_OPUS_DATABASE.sci = TRACK_MAGNUM_OPUS_DATABASE.tech;
-TRACK_MAGNUM_OPUS_DATABASE.diplo = TRACK_MAGNUM_OPUS_DATABASE.trade;
-TRACK_MAGNUM_OPUS_DATABASE.cult = TRACK_MAGNUM_OPUS_DATABASE.art;
+// 5. 十二大赛道专属终身大考 (Track-Specific Magnum Opus Crossroads — 抽离至 src/data/magnumOpus.js)
+const _magnumOpusMod = _loadModule('./src/data/magnumOpus.js', false) || {};
+const TRACK_MAGNUM_OPUS_DATABASE = _magnumOpusMod.TRACK_MAGNUM_OPUS_DATABASE || {};
 
 
 // 1. 家族传世祖训谱牒数据库 (Ancestral Precepts Database)
@@ -7054,6 +6839,9 @@ function inscribePlayerToClanGenealogy(s, arch) {
     recordedTimestamp: Date.now()
   };
 
+  if (clanSystem && typeof clanSystem.recordAncestorToGenealogy === 'function') {
+    clanSystem.recordAncestorToGenealogy(fam, ancestorRecord);
+  }
   if (_familySystemMod && typeof _familySystemMod.recordAncestorToGenealogy === 'function') {
     _familySystemMod.recordAncestorToGenealogy(fam, ancestorRecord);
   } else {
@@ -11426,25 +11214,29 @@ function executeDiceChoice(choiceOrIdx, baseRate) {
   let roll = seededRandom() * 100;
   let finalRate = resolvedBaseRate;
 
-  // 兑现界面“成算在胸 · 稳操胜券 ✓”承诺：属性达标、常规基础胜率>=80%或无门槛选项强制 100% 确定成功
+  // 机制校准：常规属性达标封顶 92%，保留博弈紧张感与历史不可控风险；
+  // 零门槛保底选项（isGuaranteed）、属性碾压（超出门槛20+）或洞察神技（insightBuff）方可达 100%
   const statKey = choice.statReq || 'iq';
   const pVal = getStat(statKey, 50, state);
   const rawReq = typeof choice.reqVal === 'number' ? choice.reqVal : 55;
-  const isGuaranteedSuccess = (typeof choice.reqVal === 'number' && choice.reqVal <= 0) || (pVal >= rawReq) || (resolvedBaseRate >= 80) || (choice.isGuaranteed === true);
-  if (isGuaranteedSuccess) {
+  const isFreeOrGuaranteed = (typeof choice.reqVal === 'number' && choice.reqVal <= 0) || (choice.isGuaranteed === true);
+  if (isFreeOrGuaranteed || pVal >= rawReq + 20) {
     finalRate = 100;
+  } else if (pVal >= rawReq || resolvedBaseRate >= 80) {
+    finalRate = Math.min(92, Math.max(resolvedBaseRate, 85));
   }
 
   const wv = state.worldVolatility || {};
   const rawSectorOffset = (wv.sectorBias && typeof wv.sectorBias[state.track] === 'number') ? wv.sectorBias[state.track] : 0;
   const trackMult = Math.max(0.75, Math.min(1.30, 1.0 + rawSectorOffset));
 
-  if (!isGuaranteedSuccess && state.insightBuff) {
-    finalRate = Math.min(94, finalRate + 15);
+  // 韬略神技「洞察先机」冲破常规上限直至 100% 必胜
+  if (state.insightBuff) {
+    finalRate = Math.min(100, finalRate + 15);
     state.insightBuff = false;
   }
-  if (!isGuaranteedSuccess && hasTalent('breakthrough') && typeof baseRate === 'number') {
-    finalRate = Math.min(91, finalRate + 2);
+  if (hasTalent('breakthrough') && typeof baseRate === 'number') {
+    finalRate = Math.min(95, finalRate + 2);
   }
 
   const isCrit = roll <= (finalRate * 0.22);
@@ -14479,327 +14271,10 @@ const VICISSITUDES_OF_LIFE_ENGINE = {
 
 
 // ==========================================
-// 🦋 V22 乾坤化境 · 三阶连锁蝴蝶因果网 (Cascading Butterfly Nexus)
+// 🦋 V22 乾坤化境 · 三阶连锁蝴蝶因果网 (Cascading Butterfly Nexus — 抽离至 src/data/butterflyNexus.js)
 // ==========================================
-const CASCADING_BUTTERFLY_NEXUS = {
-  chains: [
-    {
-      id: 'chain_classmate_aid',
-      name: '同窗之谊 · 义薄云天',
-      icon: '🤝',
-      color: '#38bdf8',
-      stage1: {
-        minAge: 21, maxAge: 29,
-        title: '🌱 青年种因 · 同窗突遭家变几近辍学',
-        desc: '大学同窗家中突遭火灾、家徒四壁面临退学困境，独自在操场角落落泪。你手头仅有积攒半年的津贴与粮票：',
-        choices: [
-          {
-            text: '倾尽全部积蓄与粮票塞给同窗 · 坚信同舟共济定能渡过难关',
-            outcomeText: '同窗泪如雨下紧握你的双手：‘此恩同再生，来日必以涌泉报之！’心性沉毅，种下一生挚友因果！',
-            effects: { resilience: 25, eq: 25, capital: -2000 },
-            tag: '义薄云天'
-          },
-          {
-            text: '发起班级义务勤工俭学帮扶小组 · 带领同窗自食其力重整旗鼓',
-            outcomeText: '全班动员起来开展义卖与辅导，同窗重燃斗志顺利毕业！组织能力大展，领袖威望卓著！',
-            effects: { resilience: 20, rep: 30, eq: 20 },
-            tag: '同舟共济'
-          }
-        ]
-      },
-      stage2: {
-        minAge: 42, maxAge: 51,
-        title: '⚡ 中年回响 · 遭遇外部断供危机与特区同窗连夜驰援',
-        desc: '你主持的国家重点攻坚项目突遇海外关键零部件断供，整条装配线面临停摆；此时昔日同窗已在深圳创立高新企业，闻讯立刻包机赶赴现场：',
-        choices: [
-          {
-            text: '连夜并肩开辟国产高精备用供应链 · 攻关48小时全线贯通',
-            outcomeText: '昔日同窗调集全厂精锐产能为你特制高精度配件，供应链危机彻底化解！滴水之恩终成定海神针！',
-            effects: { resilience: 35, rep: 40, capital: 120000 },
-            tag: '涌泉相报'
-          },
-          {
-            text: '与同窗企业签署联合自主创新战略协议 · 携手打造全国产化产业联盟',
-            outcomeText: '两大团队深度融合，孵化出享誉业界的自主创新标杆！智谋与声望跃升！',
-            effects: { resilience: 30, iq: 40, rep: 35 },
-            tag: '金兰同心'
-          }
-        ]
-      },
-      stage3: {
-        minAge: 62, maxAge: 69,
-        title: '👑 晚年大成 · 同窗后辈登门拜师与世纪工程薪火传承',
-        desc: '昔日同窗的后代作为海外学成归国的青年拔尖青年科学家，手捧当年父辈亲笔信登门拜访，恳请拜入你的师门担纲国家大工程：',
-        choices: [
-          {
-            text: '倾囊相授平生所学 · 托付国家重大战略工程接班总师重任',
-            outcomeText: '新一代青年科学家顺利掌舵大国重器，老友后辈传承薪火！晚年家国大成，百世流芳！',
-            effects: { resilience: 40, rep: 50, clean: 30 },
-            tag: '薪火赓续'
-          },
-          {
-            text: '联合老同窗出资设立‘赤子报国青年科技奖励基金’',
-            outcomeText: '基金每年扶持百名青年科技新星走向世界前沿，桃李满天下！一代宗师典范！',
-            effects: { resilience: 35, rep: 45, eq: 35 },
-            tag: '立德树人'
-          }
-        ]
-      }
-    },
-    {
-      id: 'chain_quality_standard',
-      name: '铁面匠心 · 玉汝于成',
-      icon: '⚖️',
-      color: '#fbbf24',
-      stage1: {
-        minAge: 23, maxAge: 30,
-        title: '🌱 青年种因 · 面对老乡供应商说情坚决退回缺陷配件',
-        desc: '初入重点制造一线负责质量抽检，老家同乡办的配套小厂送来的核心轴承公差超标千分之二，老乡拎着厚礼苦苦求情放行：',
-        choices: [
-          {
-            text: '铁面无私贴上大红退货单 · 严肃指出差之毫厘谬以千里',
-            outcomeText: '你顶住人情压力坚守质检底线！老乡厂长虽一时愤懑，但质量红线震动全厂！清廉声誉立地生根！',
-            effects: { resilience: 25, clean: 35, rep: 20 },
-            tag: '铁面无私'
-          },
-          {
-            text: '退回产品同时自费买下缺陷件 · 连夜画出冷拔模具改良图纸相赠',
-            outcomeText: '老乡厂长看到浸透汗水的图纸老泪纵横，连夜停产整改！仁义与原则并重！',
-            effects: { resilience: 25, clean: 30, eq: 25 },
-            tag: '德化人心'
-          }
-        ]
-      },
-      stage2: {
-        minAge: 44, maxAge: 52,
-        title: '⚡ 中年回响 · 昔日小厂卧薪尝胆蜕变为国家级专精特新首供',
-        desc: '国家重大工程急需超极限公差精密锻件，该配套厂经过二十年技术积累脱胎换骨，厂长主动将首批最优产品优先直供你的攻坚项目：',
-        choices: [
-          {
-            text: '亲自带队进驻现场验收 · 见证当年缺陷厂蜕变全国行业标杆',
-            outcomeText: '产品精度超国际标准一倍，重大工程如虎添翼！当年严苛把关终结出大国良材硕果！',
-            effects: { resilience: 30, rep: 40, iq: 30 },
-            tag: '玉汝于成'
-          },
-          {
-            text: '推荐该厂申报国家工匠示范基地 · 提炼总结‘零缺陷质量体系’',
-            outcomeText: '全行业推行该标准，彻底打破国外进口垄断！声誉大圆满！',
-            effects: { resilience: 25, clean: 35, rep: 35 },
-            tag: '标准立国'
-          }
-        ]
-      },
-      stage3: {
-        minAge: 62, maxAge: 68,
-        title: '👑 晚年大成 · 百年老字号自传尊你为‘一生唯一的良心引路人’',
-        desc: '该企业成长为享誉海内外的百年隐形冠军，老厂长出版口述史，开篇第一章便整版刊印当年你的退货单，尊你为一生良心引路人：',
-        choices: [
-          {
-            text: '应邀出席企业百年华诞 · 共同敲响崇尚实业与诚信质量的世纪金钟',
-            outcomeText: '金石齐鸣，全场千名工匠起立致敬！你的清廉操守成为大国制造的精神航标！',
-            effects: { resilience: 40, clean: 50, rep: 45 },
-            tag: '德音孔昭'
-          },
-          {
-            text: '提字‘大工至至，诚心致远’相赠 · 将稿酬全数设立工匠学徒助学金',
-            outcomeText: '大音希声，大德无疆！家风与师德交口传颂！',
-            effects: { resilience: 35, clean: 45, eq: 40 },
-            tag: '万世师表'
-          }
-        ]
-      }
-    },
-    {
-      id: 'chain_mountain_lamp',
-      name: '大山星火 · 桃李天下',
-      icon: '🏔️',
-      color: '#10b981',
-      stage1: {
-        minAge: 22, maxAge: 28,
-        title: '🌱 青年种因 · 赴偏远山区巡回支教并捐建星火阅览室',
-        desc: '青年时期响应号召奔赴深山老区开展科普与支教，目睹农家娃因缺书而求知若渴，你省吃俭用捐建了第一座山村星火阅览室：',
-        choices: [
-          {
-            text: '捐出全部津贴订购两百册科普丛书与地球仪 · 播撒科学启蒙火种',
-            outcomeText: '孩子们眼里闪烁着对星辰大海的向往，紧紧簇拥着你！大山深处点亮一盏长明之灯！',
-            effects: { resilience: 25, eq: 30, clean: 20 },
-            tag: '大山点灯'
-          },
-          {
-            text: '利用业余时间在山村小学土操场设立‘土木小能手实验角’',
-            outcomeText: '孩子们学会了辨识矿石、组装水车模型，动手能力与探索欲空前高涨！',
-            effects: { resilience: 20, iq: 25, eq: 25 },
-            tag: '格物致知'
-          }
-        ]
-      },
-      stage2: {
-        minAge: 42, maxAge: 50,
-        title: '⚡ 中年回响 · 当年山村放羊娃博士毕业入组担当科研主力',
-        desc: '你主持的前沿重大实验室迎来新批博士后，其中一位青年以第一作者身份发表多篇顶刊，见到你时深深鞠躬：‘老师，我是当年大山阅览室里的放羊娃！’',
-        choices: [
-          {
-            text: '激动相拥热泪盈眶 · 委以最关键的核心子系统攻坚重担',
-            outcomeText: '青年学者夜以继日奋战，带领青年组突破世界级技术壁垒！山村火种终成燎原烈火！',
-            effects: { resilience: 35, rep: 40, iq: 35 },
-            tag: '星火燎原'
-          },
-          {
-            text: '勉励其不忘初心扎根土地 · 共同攻坚适合基层应用的惠民科技',
-            outcomeText: '师徒携手推出低成本高效新技术，惠及百万乡民！时代丰碑巍然耸立！',
-            effects: { resilience: 30, clean: 35, eq: 35 },
-            tag: '惠民济世'
-          }
-        ]
-      },
-      stage3: {
-        minAge: 63, maxAge: 69,
-        title: '👑 晚年大成 · 师徒携手发起大国科教星火基金资助万千寒门学子',
-        desc: '古稀之年，你与当年的放羊娃如今的国家杰青学者共同发起‘星火科教公益基金’，资助万名大山学子步入现代科学殿堂：',
-        choices: [
-          {
-            text: '重返当年支教的山村小学 · 见证新一代数字化未来教室揭牌',
-            outcomeText: '曾经的泥草房已化作现代化科教中心，千名学子齐声呼喊恩师！桃李满神州，一生足矣！',
-            effects: { resilience: 45, rep: 50, eq: 40 },
-            tag: '桃李满门'
-          },
-          {
-            text: '编写《写给乡村少年的科学通识讲义》· 终身无偿版权公开',
-            outcomeText: '讲义被全国万所乡村小学定为必读书，润物细无声，功在千秋！',
-            effects: { resilience: 40, clean: 45, iq: 40 },
-            tag: '功在千秋'
-          }
-        ]
-      }
-    },
-    {
-      id: 'chain_sand_oasis',
-      name: '绿染黄沙 · 青山常在',
-      icon: '🌾',
-      color: '#84cc16',
-      stage1: {
-        minAge: 25, maxAge: 32,
-        title: '🌱 青年种因 · 深入风沙前线研发麦草方格低成本锁沙新法',
-        desc: '风沙肆虐吞噬农田与铁路线，常规治沙成本高昂难以推广。青年时期的你顶风冒雪扎进沙海，研制低成本草方格扎设新技术：',
-        choices: [
-          {
-            text: '风餐露宿连续扎根沙丘两月 · 独创梯级阻沙耐旱麦草方格网',
-            outcomeText: '草方格成功固定流动沙丘，首批耐旱梭梭成活率超90%！体魄磨砺如钢，种下生态福缘！',
-            effects: { resilience: 30, courage: 25, health: 15 },
-            tag: '绿染黄沙'
-          },
-          {
-            text: '走访沙漠周边老牧民总结本土植被特性 · 编写本土化固沙速查表',
-            outcomeText: '因地制宜结合乡土智慧，治沙成本立降六成！深受基层乡民爱戴！',
-            effects: { resilience: 25, eq: 25, iq: 25 },
-            tag: '沙海同心'
-          }
-        ]
-      },
-      stage2: {
-        minAge: 45, maxAge: 53,
-        title: '⚡ 中年回响 · 昔日梭梭林连片成海抵御特大沙暴并孵化沙产业',
-        desc: '罕见特大沙暴席卷北方，唯独你当年治沙的县域生态屏障固若金汤；不仅如此，林下肉苁蓉中药材产业年产值达数十亿元：',
-        choices: [
-          {
-            text: '主持全流域生态综合水土平衡规划 · 推动由‘防沙治沙’走向‘沙海淘金’',
-            outcomeText: '数万沙漠农牧民增收致富，风沙线后退三百里！荣立国家生态文明特等功！',
-            effects: { resilience: 35, rep: 45, capital: 150000 },
-            tag: '沙海成金'
-          },
-          {
-            text: '坚持将生态收益全额注入荒漠水源涵养基金 · 绝不盲目过度商业化',
-            outcomeText: '守住了大漠纯净的生态原色，地下水位二十年来首次回升！清廉自律受万人景仰！',
-            effects: { resilience: 30, clean: 40, rep: 35 },
-            tag: '青山自守'
-          }
-        ]
-      },
-      stage3: {
-        minAge: 62, maxAge: 68,
-        title: '👑 晚年大成 · 治沙奇迹入选全球可持续典范登上联合国峰会',
-        desc: '你带领团队开创的中国草方格与绿色沙产业模式，被联合国环境规划署评为全球荒漠化治理最佳实践，受邀发表主题演讲：',
-        choices: [
-          {
-            text: '在世界讲坛讲述中国人民艰苦卓绝的造林史诗 · 彰显大国生态智慧',
-            outcomeText: '全场起立鼓掌长达五分钟！全世界见证了中国工匠将黄沙化为绿洲的旷世奇迹！',
-            effects: { resilience: 45, rep: 50, courage: 35 },
-            tag: '山川永驻'
-          },
-          {
-            text: '向全球发展中国家无偿共享全套防沙治沙数字化工具箱',
-            outcomeText: '中国方案惠及非洲绿墙与中亚荒漠，人类命运共同体理念深入人心！',
-            effects: { resilience: 40, clean: 50, eq: 40 },
-            tag: '大美无疆'
-          }
-        ]
-      }
-    },
-    {
-      id: 'chain_machine_tool',
-      name: '自力更生 · 工业母机',
-      icon: '⚙️',
-      color: '#a855f7',
-      stage1: {
-        minAge: 26, maxAge: 33,
-        title: '🌱 青年种因 · 面对昂贵进口机床土法攻关手工研磨精密基准件',
-        desc: '工厂引进外国机床受阻，核心零件精度不足。面对天价要价与苛刻协议，你带领老钳工用废旧铸件手工配磨，写下三本精密公差手稿：',
-        choices: [
-          {
-            text: '日夜坚守车间用红丹粉反复刮研 · 徒手磨出微米级平整度基准板',
-            outcomeText: '凭借出神入化的手感磨出比原厂更精准的基准平板！外国专家瞠目结舌！工匠之志不可辱！',
-            effects: { resilience: 30, iq: 30, courage: 25 },
-            tag: '自力更生'
-          },
-          {
-            text: '将手工研磨数据与微震动参数全部系统量化为第一代数字公差表',
-            outcomeText: '为后来的全数字控制埋下了第一块基石！智谋与技术底蕴空前深厚！',
-            effects: { resilience: 25, iq: 35, clean: 20 },
-            tag: '数智奠基'
-          }
-        ]
-      },
-      stage2: {
-        minAge: 47, maxAge: 54,
-        title: '⚡ 中年回响 · 外部突然断供刀具两周自研替代突破卡脖子',
-        desc: '国际跨国寡头突然全面停售超硬切削刀具与高精度光栅尺，企图逼停大国新型装备装配；你凭借当年整理的底层微观力学手稿披甲上阵：',
-        choices: [
-          {
-            text: '启动备用自研材料与自制超精夹具 · 两周内实现百分百自主平替',
-            outcomeText: '不仅全面恢复量产，更反向迫使外国厂商大幅降价！自主可控定海神针坚不可摧！',
-            effects: { resilience: 35, rep: 45, capital: 130000 },
-            tag: '定海神针'
-          },
-          {
-            text: '趁势整合全产业链组建国家级高精数控机床协同攻关联合体',
-            outcomeText: '变危机为契机，打造出首条全自主高端工业母机生产线！大国脊梁！',
-            effects: { resilience: 30, rep: 40, iq: 40 },
-            tag: '举国攻坚'
-          }
-        ]
-      },
-      stage3: {
-        minAge: 64, maxAge: 70,
-        title: '👑 晚年大成 · 自主五轴联动数控工业母机正式列装大国重器',
-        desc: '由你主持研制的完全自主知识产权高端五轴联动数控加工中心，在国家航天与大国重器核心总装车间成功切削出首件巨型整体叶盘：',
-        choices: [
-          {
-            text: '手抚轰鸣运转的国产母机热泪盈眶 · 见证数十年强基梦想照进现实',
-            outcomeText: '金石齐鸣！三代工匠的心血终铸就先进制造之魂！荣获国家科技进步特等奖！',
-            effects: { resilience: 50, rep: 50, iq: 45 },
-            tag: '工业基石'
-          },
-          {
-            text: '将全部原始设计图纸与核心代码正式移交国家工业博物馆永久典藏',
-            outcomeText: '大国重器万年大计，后人站在你的肩膀上继续攀登世界科学之巅！',
-            effects: { resilience: 45, clean: 50, rep: 45 },
-            tag: '大器流芳'
-          }
-        ]
-      }
-    }
-  ]
-};
+const _butterflyNexusMod = _loadModule('./src/data/butterflyNexus.js', false) || {};
+const CASCADING_BUTTERFLY_NEXUS = _butterflyNexusMod.CASCADING_BUTTERFLY_NEXUS || { chains: [] };
 
 
 // ==========================================
@@ -17330,13 +16805,13 @@ function checkAndProgressGenerationalVow(s) {
 // ==========================================
 const HAN_WEI_ANNUAL_OMENS = [
   { id: 'harvest', title: '岁时丰稔', text: '春雨润泽，宿麦两熟，仓廪殷实', float: '🌾 丰稔大吉 · 进粟+15斛', color: '#34d399', stat: 'capital', val: 80, pulse: 'capital' },
-  { id: 'silk_road', title: '丝路商潮', text: '凉州通衢，西域胡商互市，五铢流转', float: '🪙 丝路商潮 · 租利+150铢', color: '#f59e0b', stat: 'capital', val: 150, pulse: 'capital' },
+  { id: 'drought', title: '春旱微歉', text: '孟春亢旱，宿麦稍减，平籴散粟救济邻里', float: '🍂 春旱微歉 · 耗资-50铢', color: '#f87171', stat: 'capital', val: -50, pulse: 'capital' },
   { id: 'shilin', title: '士林清议', text: '月旦清谈，名士品题，天下瞩目', float: '📜 士林清议 · 声望+1', color: '#60a5fa', stat: 'rep', val: 1, pulse: 'rep' },
+  { id: 'rain', title: '秋霖水患', text: '季秋连阴，河渠溢溃，族中出资修葺陂塘', float: '🌧️ 秋霖水潦 · 疏浚-60铢', color: '#94a3b8', stat: 'capital', val: -60, pulse: 'capital' },
   { id: 'taixue', title: '经明行修', text: '太学诸生负笈，名儒开讲郑氏古经', float: '📖 经明行修 · 智略+1', color: '#38bdf8', stat: 'iq', val: 1, pulse: 'iq' },
-  { id: 'harmony', title: '四时调和', text: '阴阳调匀，身无沉疴，精神饱满', float: '🌿 四时调和 · 体魄+1', color: '#a7f3d0', stat: 'health', val: 1, pulse: 'health' },
-  { id: 'reclaim', title: '拓荒经野', text: '坞壁招徕流民辟荒，人丁日盛', float: '🏛️ 拓荒经野 · 操守+1', color: '#fde047', stat: 'clean', val: 1, pulse: 'clean' },
+  { id: 'peace', title: '四时平和', text: '阴阳调匀，风调雨顺，四序平泰无虞', float: '🍃 岁序安和 · 阖族康泰', color: '#a7f3d0', stat: 'health', val: 0, pulse: 'health' },
   { id: 'fortify', title: '弓马严整', text: '边防部曲操练严整，宵小敛迹', float: '⚔️ 弓马严整 · 魄力+1', color: '#fb923c', stat: 'courage', val: 1, pulse: 'courage' },
-  { id: 'frost', title: '围炉校雠', text: '朔风凛冽，名士围炉校书，经事从容', float: '❄️ 围炉校雠 · 坚韧+1', color: '#c084fc', stat: 'resilience', val: 1, pulse: 'resilience' }
+  { id: 'frost', title: '朔雪藏精', text: '朔风凛冽，族人休养生息，经事从容', float: '❄️ 朔雪藏精 · 坚韧+1', color: '#c084fc', stat: 'resilience', val: 1, pulse: 'resilience' }
 ];
 
 function triggerAnnualRealmOmen(year, age, track, s) {
@@ -17344,7 +16819,7 @@ function triggerAnnualRealmOmen(year, age, track, s) {
   const omen = HAN_WEI_ANNUAL_OMENS[hash];
 
   if (omen.stat === 'capital') {
-    s.capital = (s.capital || 0) + omen.val;
+    s.capital = Math.max(0, (s.capital || 0) + omen.val);
   } else if (typeof addStat === 'function') {
     addStat(omen.stat, omen.val);
   }
@@ -17623,7 +17098,11 @@ function tickOneYear() {
       const nextLvl = Math.min(5, curLvl + 1);
       const reqRep = (nextLvl - 1) * 16 + 20;
       const reqClean = 60 + nextLvl * 3;
-      if (getStat('rep', 0) >= reqRep && getStat('clean', 0) >= reqClean && (state.capital || 0) >= (nextLvl - 1) * 2000) {
+      // 宿敌卡位零和竞争：若宿敌气势压制我方，名额竞争加剧（声望门槛需+6）
+      const rivalPressure = (state.rivalMomentum || 50) > (state.playerMomentum || 50) + 15;
+      const effectiveReqRep = rivalPressure ? reqRep + 6 : reqRep;
+      const curRep = getStat('rep', 0);
+      if (curRep >= effectiveReqRep && getStat('clean', 0) >= reqClean && (state.capital || 0) >= (nextLvl - 1) * 2000) {
         syncRankProgression(nextLvl, state);
         const nextRankObj = ladder[nextLvl] || ladder[ladder.length - 1];
         if (nextRankObj) {
@@ -17632,9 +17111,16 @@ function tickOneYear() {
         }
         addStat('rep', 3);
         state.talentPoints = (state.talentPoints || 0) + 1;
+        if (rivalPressure) {
+          state.playerMomentum = Math.min(95, (state.playerMomentum || 50) + 12);
+          state.rivalMomentum = Math.max(5, (state.rivalMomentum || 50) - 10);
+        }
         playSoundEffect('fanfare');
-        showToast(`🏛️ 察举拔擢！履新【${state.rankName}】（品秩升阶）！`, 'gold');
+        showToast(rivalPressure ? `🏛️ 冲破宿敌卡位！拔擢履新【${state.rankName}】！` : `🏛️ 察举拔擢！履新【${state.rankName}】（品秩升阶）！`, 'gold');
         addChronicleItem(age, yr, `【察举拔擢】州郡中正官与士林清议品题卓异，拔擢受任【${state.rankName}】，名显州闾。`, '察举除官', 'promo');
+      } else if (rivalPressure && curRep >= reqRep && curRep < effectiveReqRep) {
+        showToast('〔 察举受挫 〕宿敌豪阀抢先递交奏表占得名额，本轮未能除官！', 'alert');
+        addChronicleItem(age, yr, '【察举受挫】宿敌名阀暗结中正抢先表奏，察举名额见夺，尚待来年。', '士林争胜', 'career');
       }
     }
     return;
@@ -29601,13 +29087,13 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
           action: () => {
             if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
             state.ap -= 1;
-            addStat('iq', 8);
-            addStat('rep', 5);
+            addStat('iq', 4);
+            addStat('rep', 3);
             progressThreeYearPact(25, '校勘经义');
             playSoundEffect('paper');
             triggerHaptic('medium');
-            addFloatingText('+8 智谋 / +5 声望', undefined, undefined, '#34d399');
-            showToast('〔 经学纯正 〕校理经传章句，考订脱误，智谋+8，声望+5！', 'good');
+            addFloatingText('+4 智谋 / +3 声望', undefined, undefined, '#34d399');
+            showToast('〔 经学纯正 〕校理经传章句，考订脱误，智谋+4，声望+3！', 'good');
             requestRender();
           }
         },
@@ -29619,13 +29105,13 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
           action: () => {
             if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
             state.ap -= 1;
-            addStat('rep', 12);
-            addStat('eq', 4);
+            addStat('rep', 5);
+            addStat('eq', 3);
             progressThreeYearPact(25, '升堂讲学');
             playSoundEffect('fanfare');
             triggerHaptic('medium');
-            addFloatingText('+12 声望 / +4 练达', undefined, undefined, '#f59e0b');
-            showToast('〔 桃李满门 〕开坛授徒论辩，远近学子负笈来听，声望+12，情商+4！', 'gold');
+            addFloatingText('+5 声望 / +3 练达', undefined, undefined, '#f59e0b');
+            showToast('〔 桃李满门 〕开坛授徒论辩，远近学子负笈来听，声望+5，情商+3！', 'gold');
             requestRender();
           }
         },
@@ -29639,13 +29125,13 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             if ((state.capital || 0) < 300) { showToast('〔 五铢不足 〕购置竹帛抄录需 300 五铢钱！', 'alert'); return; }
             state.ap -= 1;
             state.capital -= 300;
-            addStat('iq', 10);
-            addStat('clean', 5);
+            addStat('iq', 5);
+            addStat('clean', 3);
             progressThreeYearPact(30, '兰台典藏');
             playSoundEffect('fanfare');
             triggerHaptic('medium');
-            addFloatingText('+10 智谋 / +5 清廉', undefined, undefined, '#34d399');
-            showToast('〔 文渊广博 〕受邀修撰东观兰台藏书，智谋+10，清廉+5！', 'good');
+            addFloatingText('+5 智谋 / +3 清廉', undefined, undefined, '#34d399');
+            showToast('〔 文渊广博 〕受邀修撰东观兰台藏书，智谋+5，清廉+3！', 'good');
             requestRender();
           }
         }
@@ -29729,15 +29215,15 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
             state.ap -= 1;
             if (state.manor) {
-              state.manor.armedRetainers = (state.manor.armedRetainers || 30) + 6;
+              state.manor.armedRetainers = (state.manor.armedRetainers || 30) + 4;
             }
-            addStat('courage', 8);
-            addStat('health', 4);
+            addStat('courage', 4);
+            addStat('health', 2);
             progressThreeYearPact(25, '操演部曲');
             playSoundEffect('drum_battle_charge');
             triggerHaptic('heavy');
-            addFloatingText('+6 部曲 / +8 魄力 / +4 体魄', undefined, undefined, '#f59e0b');
-            showToast('〔 纪律森严 〕校场大阅，部曲私兵+6，胆魄+8，体魄+4！', 'good');
+            addFloatingText('+4 部曲 / +4 魄力 / +2 体魄', undefined, undefined, '#f59e0b');
+            showToast('〔 纪律森严 〕校场大阅，部曲私兵+4，胆魄+4，体魄+2！', 'good');
             requestRender();
           }
         },
@@ -29749,13 +29235,13 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
           action: () => {
             if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
             state.ap -= 1;
-            addStat('resilience', 8);
-            addStat('courage', 4);
+            addStat('resilience', 4);
+            addStat('courage', 2);
             progressThreeYearPact(25, '巡防关防');
             playSoundEffect('drum_battle_charge');
             triggerHaptic('medium');
-            addFloatingText('+8 抗逆 / +4 魄力', undefined, undefined, '#34d399');
-            showToast('〔 金城汤池 〕巡视坞壁关隘烽燧，哨戒严备，抗逆+8，胆魄+4！', 'good');
+            addFloatingText('+4 抗逆 / +2 魄力', undefined, undefined, '#34d399');
+            showToast('〔 金城汤池 〕巡视坞壁关隘烽燧，哨戒严备，抗逆+4，胆魄+2！', 'good');
             requestRender();
           }
         },
@@ -29769,13 +29255,13 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
             if ((state.capital || 0) < 500) { showToast('〔 五铢不足 〕采购精铁锻打需 500 五铢钱！', 'alert'); return; }
             state.ap -= 1;
             state.capital -= 500;
-            addStat('courage', 10);
-            addStat('rep', 8);
+            addStat('courage', 5);
+            addStat('rep', 3);
             progressThreeYearPact(30, '督造军械');
             playSoundEffect('fanfare');
             triggerHaptic('medium');
-            addFloatingText('+10 魄力 / +8 军功', undefined, undefined, '#f59e0b');
-            showToast('〔 兵甲犀利 〕督造百炼环首神刀与连弩，胆魄+10，军功声望+8！', 'gold');
+            addFloatingText('+5 魄力 / +3 军功', undefined, undefined, '#f59e0b');
+            showToast('〔 兵甲犀利 〕督造百炼环首神刀与连弩，胆魄+5，军功声望+3！', 'gold');
             requestRender();
           }
         }
@@ -29791,13 +29277,13 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
           action: () => {
             if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
             state.ap -= 1;
-            addStat('health', 6);
-            addStat('resilience', 6);
+            addStat('health', 3);
+            addStat('resilience', 3);
             progressThreeYearPact(25, '采药修真');
             playSoundEffect('potion_drink');
             triggerHaptic('light');
-            addFloatingText('+6 体魄 / +6 心性', undefined, undefined, '#34d399');
-            showToast('〔 灵台澄澈 〕终南深山采撷黄精何首乌，调和鼎炉，体魄+6，心性+6！', 'good');
+            addFloatingText('+3 体魄 / +3 心性', undefined, undefined, '#34d399');
+            showToast('〔 灵台澄澈 〕终南深山采撷黄精何首乌，调和鼎炉，体魄+3，心性+3！', 'good');
             requestRender();
           }
         },
@@ -29809,13 +29295,13 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
           action: () => {
             if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
             state.ap -= 1;
-            addStat('clean', 8);
-            addStat('rep', 10);
+            addStat('clean', 4);
+            addStat('rep', 5);
             progressThreeYearPact(25, '悬壶义诊');
             playSoundEffect('fanfare');
             triggerHaptic('medium');
-            addFloatingText('+8 操守 / +10 声望', undefined, undefined, '#f59e0b');
-            showToast('〔 仁心妙手 〕设案施药救助贫疾乡民，清廉操守+8，乡党声望+10！', 'gold');
+            addFloatingText('+4 操守 / +5 声望', undefined, undefined, '#f59e0b');
+            showToast('〔 仁心妙手 〕设案施药救助贫疾乡民，清廉操守+4，乡党声望+5！', 'gold');
             requestRender();
           }
         },
@@ -29827,14 +29313,14 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
           action: () => {
             if ((state.ap || 0) < 1) { showToast('〔 筹码用尽 〕当年身心精力已耗尽，请点击下方推进一载！', 'alert'); return; }
             state.ap -= 1;
-            addStat('resilience', 10);
-            addStat('eq', 6);
+            addStat('resilience', 5);
+            addStat('eq', 3);
             state.san = Math.min(100, (state.san || 80) + 15);
             progressThreeYearPact(25, '竹林清谈');
             playSoundEffect('guqin_string_pluck');
             triggerHaptic('light');
-            addFloatingText('+10 心性 / +6 练达', undefined, undefined, '#34d399');
-            showToast('〔 超然物外 〕竹林抚琴清谈，七弦古意，抗逆心性+10，心境通达！', 'good');
+            addFloatingText('+5 心性 / +3 练达', undefined, undefined, '#34d399');
+            showToast('〔 超然物外 〕竹林抚琴清谈，七弦古意，抗逆心性+5，心境通达！', 'good');
             requestRender();
           }
         }
@@ -29850,11 +29336,11 @@ function drawDeskCoreCommandSection(curY, isDeskCardVisible) {
           if ((state.capital || 0) < 500) { showToast('〔 五铢不足 〕察举俊彦置办行装需 500 五铢钱！', 'alert'); return; }
           state.ap -= 1;
           state.capital -= 500;
-          addStat('rep', 15);
+          addStat('rep', 6);
           playSoundEffect('fanfare');
           triggerHaptic('medium');
-          addFloatingText('+15 家族声望', undefined, undefined, '#f59e0b');
-          showToast('〔 辟举得贤 〕察举俊彦为孝廉，士林传颂，家族声望+15！', 'gold');
+          addFloatingText('+6 家族声望', undefined, undefined, '#f59e0b');
+          showToast('〔 辟举得贤 〕察举俊彦为孝廉，士林传颂，家族声望+6！', 'gold');
           requestRender();
         } }
       ];
