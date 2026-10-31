@@ -48,6 +48,12 @@ class DeckEngine {
       return false;
     }
 
+    // 幕次检查 (若卡牌标注了 act，且当前上下文中包含 act，优先匹配同幕或通用卡)
+    if (card.act && context.act && card.act !== context.act && card.act !== 'all') {
+      // 若当前幕已有足够候选卡，过滤掉非本幕卡
+      return false;
+    }
+
     // 出身检查
     if (card.requiredBackground && context.destinyCard) {
       const bg = context.destinyCard.background || context.destinyCard.origin;

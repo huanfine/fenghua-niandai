@@ -141,6 +141,7 @@ class RoundRunner {
 
     // 牌库抽取 3 张机缘牌
     const context = {
+      act: this.currentAct,
       currentRound: this.totalRoundsRun,
       currentYear: this.currentYear,
       meters: { ...this.meters },
@@ -245,6 +246,8 @@ class RoundRunner {
       chosenCard,
       checkResult,
       outcomeImpact,
+      chronicleText: chosenCard.chronicleText || '世事如棋，岁月荏苒，宗族履历又添一笔。',
+      historicalSource: chosenCard.historicalSource || null,
       meters: { ...this.meters },
       bagStatus: this.bagEngine.getStatus(),
       isDead: this.isDead,
