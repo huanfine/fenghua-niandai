@@ -100,6 +100,24 @@ class PosthumousEngine {
     // D
     return '命舛数奇，兵燹及门。栋折榱崩，宗祠蒙尘。覆巢之痛，千古长叹。';
   }
+
+  static generateEpitaph(params = {}) {
+    const runEvaluation = params.runEvaluation || { grade: params.grade || 'A', score: 85 };
+    const context = params.context || {
+      age: params.age || 70,
+      meters: params.meters || {},
+      isDead: Boolean(params.deathReason),
+      isRetired: Boolean(params.isRetired)
+    };
+    const res = PosthumousEngine.evaluatePosthumous({ runEvaluation, context });
+    return {
+      posthumousTitle: res.posthumousTitle,
+      posthumousComment: res.definition,
+      genealogyEpitaph: res.genealogyEpitaph,
+      fourCharEpitaph: res.genealogyEpitaph,
+      summary: res.definition
+    };
+  }
 }
 
 module.exports = PosthumousEngine;

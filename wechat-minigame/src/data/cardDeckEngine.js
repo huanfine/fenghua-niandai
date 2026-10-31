@@ -9,6 +9,14 @@
  */
 
 const _clanRankMod = (typeof require !== 'undefined') ? require('./clanRankLadderEngine.js') : null;
+let _simCoreAdapter = null;
+try {
+  _simCoreAdapter = require('../core/SimCoreAdapter.js');
+} catch (e) {
+  try {
+    _simCoreAdapter = require('../../../sim-core/index.js');
+  } catch (e2) {}
+}
 
 const HAN_WEI_METERS = {
   prestige: {
@@ -1259,6 +1267,28 @@ function initCardRun(state, destinyId = 'destiny_wubi_lord') {
 
   state._usedFortressLifeline = false;
   state._usedSkillRescue = false;
+
+  // 华夏世家 · v3 纯逻辑内核会话联动
+  if (_simCoreAdapter && _simCoreAdapter.simCore && _simCoreAdapter.simCore.RoundRunner && !state.v3Session) {
+    try {
+      const cardPool = (_simCoreAdapter.content && _simCoreAdapter.content.cardsHanwei) || [];
+      const v3Runner = new _simCoreAdapter.simCore.RoundRunner({
+        seed: Date.now(),
+        cardPool,
+        destinyCard: { id: destinyId, initialMeters: state.meters },
+        surname: (state.familyProfile && state.familyProfile.surname) || '陈'
+      });
+      const rData = v3Runner.beginRound();
+      state.v3Session = {
+        runner: v3Runner,
+        roundData: rData,
+        selectedCardIdx: 0,
+        willpowerAllocation: { officialdom: 1, commerce: 0, military: 1, scholarship: 1 },
+        revealedSecretCards: {},
+        rodRerollsRemaining: 3
+      };
+    } catch (e) {}
+  }
 
   state.activeCard = getNextSwipeCard(state);
   return state;
