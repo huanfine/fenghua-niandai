@@ -76,27 +76,40 @@ class BalanceSimulator {
 
           const roundState = runner.beginRound();
 
+          // 族人议事派驻 (每回合)
+          if (strategyPolicy === 'smart') {
+            // 依据大劫方向与四维偏好合理派遣族人
+            const calType = roundState.upcomingCalamity?.type;
+            const duty = (calType === 'war' ? 'military' : (calType === 'slander' ? 'officialdom' : 'cultivation'));
+            runner.assignKinsfolk({
+              kin_head: duty,
+              kin_brother: 'military',
+              kin_spouse: 'management',
+              kin_junior: duty,
+              kin_retainer: 'officialdom'
+            });
+          }
+
           // 第 9 回合传嗣
           if (roundState.isSuccessionRound) {
             const succChoice = strategyPolicy === 'smart' ? 'worthy' : 'primogeniture';
             runner.resolveSuccessionEvent(succChoice);
           }
 
-          // 大考回合
-          if (roundState.isClashRound) {
-            // 智能克制决策 vs 随机瞎选
-            let tactic = 'strike';
+          // 大考 / 幕终大劫回合
+          if (roundState.isCalamityRound || roundState.isClashRound) {
+            let choice = 'defend';
             if (strategyPolicy === 'smart') {
-              const trial = runner.clashEngine.generateClashTrial(r);
-              // 克制关系
-              if (trial.enemyTactic === 'strike') tactic = 'disperse';
-              else if (trial.enemyTactic === 'defence') tactic = 'strike';
-              else tactic = 'defence';
+              const calType = roundState.upcomingCalamity?.type;
+              if (calType === 'war') choice = 'defend';
+              else if (calType === 'slander') choice = 'ally';
+              else if (calType === 'plague') choice = 'evade';
+              else choice = 'disperse';
             } else {
-              const tactics = ['strike', 'defence', 'disperse'];
-              tactic = tactics[prng.nextInt(0, 2)];
+              const allChoices = ['defend', 'relocate', 'ally', 'disperse', 'evade'];
+              choice = allChoices[prng.nextInt(0, 4)];
             }
-            runner.resolveClashEvent(tactic);
+            runner.resolveCalamityEvent(choice);
           }
 
           // 选牌与心力

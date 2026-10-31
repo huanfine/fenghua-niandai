@@ -68,10 +68,11 @@ class ScoreEngine {
     } = input;
 
     // 1. 存续寿数 (满分 20)
-    // 活到 75 岁且健康收官得 14 分；若有特殊养生或高修身才可突破 17 分
+    // 一代当家人汉末 36 年 (20岁及冠入世，至 56 岁)
+    // 活满 36 年且健康收官得 14 分；若早夭中道崩殂按实际执掌年限折算
     const tenureYears = Math.max(0, age - 20);
-    let lifespanScore = Math.min(12, (tenureYears / 55) * 12);
-    if (healthyRetirement && tenureYears >= 45) {
+    let lifespanScore = Math.min(10, (tenureYears / 36) * 10);
+    if (healthyRetirement && tenureYears >= 30) {
       lifespanScore += 4;
     } else if (healthyRetirement) {
       lifespanScore += 2;
@@ -79,27 +80,27 @@ class ScoreEngine {
     lifespanScore = Math.round(Math.min(20, Math.max(0, lifespanScore)) * 10) / 10;
 
     // 2. 门第官阶 / 四维综合 (满分 25)
-    // 门槛梯级：平庸四维(45~55)得 8~12 分；优秀四维(70+)得 15~18 分；极盛(85+)得 22~25 分
+    // 门槛梯级：平庸四维(45~55)得 8~10 分；优秀四维(70+)得 12~16 分；极盛(85+)得 18~22 分
     const meterValues = Object.values(meters);
     const avgMeter = meterValues.reduce((a, b) => a + b, 0) / Math.max(1, meterValues.length);
     let meterRankScore = 0;
     if (avgMeter >= 85) {
-      meterRankScore = 20 + ((avgMeter - 85) / 15) * 5;
+      meterRankScore = 18.5 + ((avgMeter - 85) / 15) * 6.5;
     } else if (avgMeter >= 70) {
-      meterRankScore = 14 + ((avgMeter - 70) / 15) * 6;
+      meterRankScore = 13 + ((avgMeter - 70) / 15) * 5.5;
     } else if (avgMeter >= 50) {
-      meterRankScore = 8 + ((avgMeter - 50) / 20) * 6;
+      meterRankScore = 7 + ((avgMeter - 50) / 20) * 6;
     } else {
-      meterRankScore = Math.max(0, (avgMeter / 50) * 8);
+      meterRankScore = Math.max(0, (avgMeter / 50) * 7);
     }
     meterRankScore = Math.round(Math.min(25, Math.max(0, meterRankScore)) * 10) / 10;
 
-    // 3. 历史大考 (满分 25)
-    // 4 次大考，每次大胜得 5 分，4场全胜得 20 分，极致克制斩获 25 分
+    // 3. 历史大考 / 幕终大劫 (满分 25)
+    // 3 次大劫，全大胜得 21 分，极致料敌机先全胜可达 25 分
     const clashFinalScore = Math.min(25, Math.max(0, Math.round(clashScore * 10) / 10));
 
     // 4. 传嗣与家业 (满分 20)
-    // 基础 8~10 分，家业丰饶时 13~16 分，盛世突破 18 分
+    // 基础 8~10 分，家业丰饶时 12~15 分，盛世突破 18 分
     const successionScore = Math.min(20, Math.max(0, Math.round(estateScore * 10) / 10));
 
     // 5. 家训誓愿 (满分 10)

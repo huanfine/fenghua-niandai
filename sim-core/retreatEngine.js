@@ -50,7 +50,10 @@ class RetreatEngine {
   static executeRetreat({ currentRawScore, currentRound, bagChests = [] }) {
     const offer = RetreatEngine.calculateRetreatOffer({ currentRawScore, currentRound, bagChests });
     if (!offer.available) {
-      throw new Error(offer.reason);
+      return {
+        retired: false,
+        reason: offer.reason
+      };
     }
 
     return {
