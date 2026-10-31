@@ -27,7 +27,7 @@ module.exports = {
       weekRange: [5, 8],
       yearRange: [146, 190],
       tagline: '梁冀跋扈，两度党锢士人蒙难，黄巾烽燧燃九州，世家部曲初试锋芒。',
-      historicalBackground: '外戚宦官轮番擅权，桓灵之世卖官鬻爵。士林清议奋起抗争，两度陷于党锢之狱；张角太平道揭竿而起，乱世大幕轰然揭开。'
+      historicalBackground: '外戚宦官轮番擅权，桓灵之世纲纪废弛。士林清议奋起抗争，两度陷于党锢之狱；张角太平道揭竿而起，乱世大幕轰然揭开。'
     },
     {
       chapterIndex: 3,

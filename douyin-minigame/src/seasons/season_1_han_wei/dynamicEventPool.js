@@ -203,7 +203,7 @@ const HAN_WEI_DYNAMIC_EVENT_POOL = [
     id: "dyn_region_central_taixue_qingyi",
     category: "geo_regional",
     title: "〔 宗 〕 洛下清议 · 太学生三万联署与权奸对峙",
-    desc: "洛阳南宫之外，太学生三万人拥堵御道，抗议中官擅权卖官鬻爵。领袖郭泰、贾彪持公车上书竹简，亲临你族中原别馆，恳请名门列名领衔：",
+    desc: "洛阳南宫之外，太学生三万人拥堵御道，抗议宦官擅权任人唯亲。领袖郭泰、贾彪持公车上书竹简，亲临你族中原别馆，恳请名门列名领衔：",
     historicalSource: "《后汉书·卷六十七·党锢列传·郭泰贾彪》",
     trigger: {
       regionTypes: ["central_plains"],
