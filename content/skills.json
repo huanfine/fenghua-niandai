@@ -1,0 +1,95 @@
+[
+  {
+    "id": "skill_desperate_hold",
+    "name": "绝境死守",
+    "faction": "military",
+    "quality": "legendary",
+    "cost": 3,
+    "trigger": "on_fatal_damage",
+    "maxTriggersPerRun": 1,
+    "chainMultiplier": 1.2,
+    "desc": "【单局至多1次】四维任一项濒死归零时强行免死，回复至20点并激发反噬战意",
+    "tag": "绝品金技"
+  },
+  {
+    "id": "skill_iron_cavalry",
+    "name": "横扫六合",
+    "faction": "military",
+    "quality": "epic",
+    "cost": 2,
+    "trigger": "on_check_start",
+    "chainMultiplier": 1.35,
+    "maxTriggersPerRun": 3,
+    "desc": "武备检定暴击率 +15%，暴击时连锁倍率提升至 1.35 倍",
+    "tag": "极品紫技"
+  },
+  {
+    "id": "skill_court_machination",
+    "name": "舌战群儒",
+    "faction": "officialdom",
+    "quality": "epic",
+    "cost": 2,
+    "trigger": "on_check_start",
+    "chainMultiplier": 1.3,
+    "maxTriggersPerRun": 4,
+    "desc": "仕进检定成功率 +12%，大考交锋战术克制效果提升 50%",
+    "tag": "极品紫技"
+  },
+  {
+    "id": "skill_imperial_seal",
+    "name": "代汉密谋",
+    "faction": "officialdom",
+    "quality": "legendary",
+    "cost": 3,
+    "trigger": "on_check_start",
+    "chainMultiplier": 1.45,
+    "maxTriggersPerRun": 2,
+    "desc": "高门权术终极秘法，门望与官阶加权提升 20%，连锁倍率逼近极限",
+    "tag": "绝品金技"
+  },
+  {
+    "id": "skill_abundant_granary",
+    "name": "积粟万钟",
+    "faction": "management",
+    "quality": "fine",
+    "cost": 1,
+    "trigger": "on_check_start",
+    "chainMultiplier": 1.15,
+    "desc": "经营与粮储检定门槛降低 10 点，平稳守成",
+    "tag": "良品蓝技"
+  },
+  {
+    "id": "skill_silk_road_trade",
+    "name": "贯通商道",
+    "faction": "management",
+    "quality": "epic",
+    "cost": 2,
+    "trigger": "on_check_start",
+    "chainMultiplier": 1.3,
+    "maxTriggersPerRun": 3,
+    "desc": "遭遇西域商旅时收益提升 30%，额外获得战利品宝箱线索",
+    "tag": "极品紫技"
+  },
+  {
+    "id": "skill_dock_fortress",
+    "name": "坞壁深垒",
+    "faction": "cultivation",
+    "quality": "fine",
+    "cost": 1,
+    "trigger": "on_check_start",
+    "chainMultiplier": 1.15,
+    "desc": "家族坞壁深池，大失手受创伤害减少 30%",
+    "tag": "良品蓝技"
+  },
+  {
+    "id": "skill_family_code",
+    "name": "积善传家",
+    "faction": "cultivation",
+    "quality": "common",
+    "cost": 1,
+    "trigger": "on_check_start",
+    "chainMultiplier": 1.1,
+    "desc": "修身沉淀，每回合有概率自然回复 2 点门望与粮谷",
+    "tag": "凡品白技"
+  }
+]
