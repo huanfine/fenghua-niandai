@@ -37,6 +37,13 @@ class CalamityEngine {
    * @param {number} actIndex 幕次 (1, 2, 3)
    */
   generateCalamity(actIndex = 1) {
+    // 随机确定本次大劫所需的两种印 (兵 military, 财 wealth, 名 prestige 各 2 枚)
+    const sealTypes = ['military', 'wealth', 'prestige'];
+    const p1 = (actIndex - 1) % 3;
+    const p2 = actIndex % 3;
+    const reqA = sealTypes[p1];
+    const reqB = sealTypes[p2];
+
     const actConfigs = {
       1: {
         act: 1,
@@ -44,7 +51,11 @@ class CalamityEngine {
         title: '第一幕大劫 · 黄巾烽火与大旱蝗灾',
         type: 'war',
         threatLevel: 60,
-        hintText: '【风闻探报】西方烽烟蔽日，贼渠聚众数万裹挟饥民，粮道断绝，刀兵在即！',
+        requiredSeals: { [reqA]: 2, [reqB]: 2 },
+        sealA: reqA,
+        sealB: reqB,
+        isScouted: false,
+        hintText: '【风闻探报】西方烽烟蔽日，贼渠聚众数万裹挟饥民，刀兵在即，急需备印应对！',
         recommendedPreparedness: { military: 2, grain: 2 },
         lootChest: {
           id: `calamity_chest_act1_${this.prng.nextInt(100, 999)}`,
@@ -58,6 +69,10 @@ class CalamityEngine {
         title: '第二幕大劫 · 权臣擅权与党锢罗织',
         type: 'slander',
         threatLevel: 75,
+        requiredSeals: { [reqA]: 2, [reqB]: 2 },
+        sealA: reqA,
+        sealB: reqB,
+        isScouted: false,
         hintText: '【风闻探报】朝堂权臣当道，缇骑四出勾检门阀私蓄，朝臣交相弹劾，危如累卵！',
         recommendedPreparedness: { officialdom: 2, prestige: 2 },
         lootChest: {
@@ -72,7 +87,11 @@ class CalamityEngine {
         title: '第三幕大劫 · 鼎革风暴与建安大疫',
         type: 'plague',
         threatLevel: 88,
-        hintText: '【风闻探报】荆扬战火连天，疫疠暴兴，户户号哭，海内鼎革，存亡绝续！',
+        requiredSeals: { [reqA]: 2, [reqB]: 2 },
+        sealA: reqA,
+        sealB: reqB,
+        isScouted: false,
+        hintText: '【风闻探报】荆扬战火连天，疫疠暴兴，海内鼎革，存亡绝续！',
         recommendedPreparedness: { cultivation: 2, defence: 2 },
         lootChest: {
           id: `calamity_chest_act3_${this.prng.nextInt(100, 999)}`,
@@ -83,6 +102,79 @@ class CalamityEngine {
     };
 
     return actConfigs[actIndex] || actConfigs[1];
+  }
+
+  /**
+   * 探报下一次大劫需求
+   */
+  scoutCalamity(calamity) {
+    if (!calamity) return null;
+    calamity.isScouted = true;
+    return {
+      calamityId: calamity.id,
+      title: calamity.title,
+      requiredSeals: calamity.requiredSeals,
+      sealA: calamity.sealA,
+      sealB: calamity.sealB
+    };
+  }
+
+  /**
+   * 使用势印应对大劫 (需交付两种印各 2 枚，付不起即全面崩溃)
+   * @param {Object} params
+   * @param {Object} params.calamity
+   * @param {Object} params.seals 势印背包 { military, wealth, prestige }
+   * @param {Object} params.meters 家族四维
+   */
+  resolveWithSeals({ calamity, seals = {}, meters = {} }) {
+    const reqA = calamity.sealA;
+    const reqB = calamity.sealB;
+    const countA = seals[reqA] || 0;
+    const countB = seals[reqB] || 0;
+
+    const hasEnough = (countA >= 2 && countB >= 2);
+
+    if (hasEnough) {
+      // 成功交付：扣除两类印各 2 枚
+      seals[reqA] -= 2;
+      seals[reqB] -= 2;
+
+      // 渡劫大捷反馈
+      const meterDelta = {
+        prestige: 15,
+        wealth: 10,
+        force: 10,
+        grain: 10
+      };
+
+      return {
+        survived: true,
+        collapsed: false,
+        isAnticipated: true,
+        usedSeals: { [reqA]: 2, [reqB]: 2 },
+        meterDelta,
+        narrative: `【平定大劫】宗门交付【${reqA}×2 + ${reqB}×2】两色完备势印，料敌机先，威加海内！`,
+        rewardChest: calamity.lootChest
+      };
+    } else {
+      // 付不起：全面崩溃！
+      const meterDelta = {
+        prestige: -28,
+        wealth: -28,
+        force: -28,
+        grain: -28
+      };
+
+      return {
+        survived: false,
+        collapsed: true,
+        isAnticipated: false,
+        usedSeals: {},
+        meterDelta,
+        narrative: `【大劫溃败】宗门势印不足（需【${reqA}×2 + ${reqB}×2】，实有【${reqA}×${countA} + ${reqB}×${countB}】），大劫全面崩溃！`,
+        rewardChest: null
+      };
+    }
   }
 
   /**

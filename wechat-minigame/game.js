@@ -30854,6 +30854,10 @@ function getV3CalculatedWinRate(card, willpower, kinsfolk) {
 /**
  * 舞台一：【天命】—— 核心抉择行动层 (v3 机缘牌三选一 + 族人心力 + 算筹决断)
  */
+/**
+ * wechat-minigame 客户端：新循环完整渲染与交互层 (v3 备印与大劫)
+ */
+
 function drawDynastyCardStageScreen() {
   ctx.save();
   const padX = 12;
@@ -30861,102 +30865,124 @@ function drawDynastyCardStageScreen() {
 
   // 1. 保障 v3 纯逻辑会话就绪
   const v3 = ensureV3SessionInitialized();
+  const runner = v3 ? v3.runner : null;
 
   // 统一顶栏与四大悬丝动态平衡槽
   let curY = drawDynastyHeaderAndMeters(ctx, padX, w, null);
 
-  const meters = (v3 && v3.runner && v3.runner.meters) || state.meters || { prestige: 50, wealth: 50, force: 50, grain: 50 };
+  const meters = (runner && runner.meters) || state.meters || { prestige: 50, wealth: 50, force: 50, grain: 50 };
   state.meters = meters;
 
-  // 2. 状态微章：探报风闻提示 + 遗产行囊
-  const statusRowH = 24;
-  const statusGap = 8;
-  const perkPillW = Math.floor((w - statusGap) * 0.52);
-  const lootPillW = w - statusGap - perkPillW;
+  // 2. 新循环核心状态条：心力 (3点) + 势印锦盒 (兵印, 财印, 名印)
+  const seals = (runner && runner.seals) || { military: 0, wealth: 0, prestige: 0 };
+  const willpowerRem = (runner && runner.willpowerRemaining !== undefined) ? runner.willpowerRemaining : 3;
+  const upcomingCalamity = (runner && runner.upcomingCalamity) || (v3 && v3.roundData && v3.roundData.upcomingCalamity) || { title: '黄巾烽火', sealA: 'military', sealB: 'wealth' };
+  const isScouted = Boolean(upcomingCalamity.isScouted);
 
-  const upcomingTitle = (v3 && v3.roundData && v3.roundData.upcomingCalamity) ? v3.roundData.upcomingCalamity.title : '世局承平';
-  const chestList = (v3 && v3.runner && v3.runner.bagEngine && v3.runner.bagEngine.chests) || state.chestInventory || [];
-  const chestCount = chestList.length;
-
-  // 左微章：大劫探报风闻预警
-  drawElevatedCard(ctx, padX, curY, perkPillW, statusRowH, {
-    elevation: 1,
+  const statusRowH = 26;
+  drawElevatedCard(ctx, padX, curY, w, statusRowH, {
+    elevation: 2,
     radius: 4,
-    fill: 'rgba(28, 20, 22, 0.94)',
-    borderColor: '#856447',
-    borderWidth: 1
+    fill: 'rgba(28, 18, 22, 0.96)',
+    borderColor: '#d97706',
+    borderWidth: 1.2
   });
+
+  // 左侧：心力显示
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.font = '10px ' + FONT_CHRONICLE;
+  ctx.font = 'bold 11px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#fde047';
-  ctx.fillText(`📜 探报: ${fitText(upcomingTitle, perkPillW - 30, '10px ' + FONT_CHRONICLE)}`, padX + 6, curY + statusRowH / 2);
+  const dots = '●'.repeat(willpowerRem) + '○'.repeat(Math.max(0, 3 - willpowerRem));
+  ctx.fillText(`⚡ 心力: ${dots} (${willpowerRem}/3)`, padX + 8, curY + statusRowH / 2);
 
+  // 右侧：势印行囊
   ctx.textAlign = 'right';
+  ctx.font = 'bold 10.5px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#fef08a';
-  ctx.fillText('预警 ➔', padX + perkPillW - 6, curY + statusRowH / 2);
-
-  drawTactileButton(ctx, {
-    id: 'btn_v3_calamity_intel_tip',
-    x: padX,
-    y: curY,
-    w: perkPillW,
-    h: statusRowH,
-    bg: 'transparent',
-    border: null,
-    priority: 12,
-    onClick: () => {
-      playSoundEffect('paper');
-      triggerHaptic('light');
-      showToast(`【探报风闻】${upcomingTitle}：务必蓄积部曲粮草，择相克之策！`, 'gold');
-    }
-  });
-
-  // 右微章：遗产行囊
-  const lootPillX = padX + perkPillW + statusGap;
-  drawElevatedCard(ctx, lootPillX, curY, lootPillW, statusRowH, {
-    elevation: 1,
-    radius: 4,
-    fill: chestCount > 0 ? 'rgba(42, 26, 18, 0.95)' : 'rgba(22, 18, 22, 0.85)',
-    borderColor: chestCount > 0 ? '#f59e0b' : '#5c4538',
-    borderWidth: 1
-  });
-
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.font = 'bold 10px ' + FONT_CHRONICLE;
-  ctx.fillStyle = chestCount > 0 ? '#fde047' : '#94a3b8';
-  ctx.fillText(`🎒 行囊: ${chestCount}件`, lootPillX + 6, curY + statusRowH / 2);
-
-  ctx.textAlign = 'right';
-  ctx.font = '9.5px ' + FONT_CHRONICLE;
-  ctx.fillStyle = chestCount > 0 ? '#fef08a' : '#cbd5e1';
-  ctx.fillText(chestCount > 0 ? '检阅 ➔' : '空囊 ➔', lootPillX + lootPillW - 6, curY + statusRowH / 2);
-
-  drawTactileButton(ctx, {
-    id: 'dynasty_chest_loot_bag_btn',
-    x: lootPillX,
-    y: curY,
-    w: lootPillW,
-    h: statusRowH,
-    bg: 'transparent',
-    border: null,
-    priority: 12,
-    onClick: () => {
-      playSoundEffect('paper');
-      triggerHaptic('light');
-      state.activeModal = 'chest_inventory_detail';
-      requestRender();
-    }
-  });
+  ctx.fillText(`锦盒: ⚔️${seals.military || 0}  🪙${seals.wealth || 0}  🏛️${seals.prestige || 0}`, padX + w - 8, curY + statusRowH / 2);
 
   curY += statusRowH + 6;
 
-  // 3. 核心舞台区：【机缘牌三选一】阵列
+  // 2.5 特殊战略动作双按钮：【🔍 探报 (耗1心力)】与【🏛️ 经营 (耗2心力)】
+  const actionRowH = 30;
+  const halfBtnW = Math.floor((w - 8) / 2);
+
+  // 动作一：探报
+  drawTactileButton(ctx, {
+    id: 'btn_v3_action_scout',
+    x: padX,
+    y: curY,
+    w: halfBtnW,
+    h: actionRowH,
+    radius: 4,
+    bg: isScouted ? '#1e293b' : '#281a18',
+    border: isScouted ? '#38bdf8' : '#f59e0b',
+    borderWidth: 1,
+    priority: 15,
+    onClick: () => {
+      if (isScouted) {
+        showToast(`【大劫探报】${upcomingCalamity.title}：需备【${upcomingCalamity.sealA === 'military' ? '兵印' : (upcomingCalamity.sealA === 'wealth' ? '财印' : '名印')}×2 + ${upcomingCalamity.sealB === 'military' ? '兵印' : (upcomingCalamity.sealB === 'wealth' ? '财印' : '名印')}×2】！`, 'gold');
+      } else if (runner && runner.willpowerRemaining >= 1) {
+        runner.scoutUpcomingCalamity();
+        playSoundEffect('paper');
+        triggerHaptic('medium');
+        showToast(`🔍 探报成功！看清下一次大劫需要【${upcomingCalamity.sealA === 'military' ? '兵印' : (upcomingCalamity.sealA === 'wealth' ? '财印' : '名印')}×2 + ${upcomingCalamity.sealB === 'military' ? '兵印' : (upcomingCalamity.sealB === 'wealth' ? '财印' : '名印')}×2】`, 'gold');
+        requestRender();
+      } else {
+        showToast('心力不足，探报需消耗 1 点心力！', 'alert');
+      }
+    },
+    renderContent: (c) => {
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.font = 'bold 10.5px ' + FONT_CHRONICLE;
+      c.fillStyle = isScouted ? '#7dd3fc' : '#fde047';
+      const scoutText = isScouted
+        ? `⚠️大劫需: ${upcomingCalamity.sealA === 'military' ? '兵' : (upcomingCalamity.sealA === 'wealth' ? '财' : '名')}2+${upcomingCalamity.sealB === 'military' ? '兵' : (upcomingCalamity.sealB === 'wealth' ? '财' : '名')}2`
+        : '🔍 探报 (耗1心力看大劫)';
+      c.fillText(scoutText, padX + halfBtnW / 2, curY + actionRowH / 2);
+    }
+  });
+
+  // 动作二：经营 (花 2 点心力直接得 1 枚指定的印，深度的来源不能删)
+  drawTactileButton(ctx, {
+    id: 'btn_v3_action_manage',
+    x: padX + halfBtnW + 8,
+    y: curY,
+    w: halfBtnW,
+    h: actionRowH,
+    radius: 4,
+    bg: '#1e1c28',
+    border: '#a855f7',
+    borderWidth: 1.2,
+    priority: 15,
+    onClick: () => {
+      if (runner && runner.willpowerRemaining >= 2) {
+        state.activeModal = 'manage_seal_selector_modal';
+        playSoundEffect('paper');
+        triggerHaptic('light');
+        requestRender();
+      } else {
+        showToast('心力不足，经营需消耗 2 点心力！', 'alert');
+      }
+    },
+    renderContent: (c) => {
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.font = 'bold 10.5px ' + FONT_CHRONICLE;
+      c.fillStyle = '#e9d5ff';
+      c.fillText('🏛️ 经营 (耗2心力自选造印)', padX + halfBtnW + 8 + halfBtnW / 2, curY + actionRowH / 2);
+    }
+  });
+
+  curY += actionRowH + 6;
+
+  // 3. 核心舞台区：【机缘牌三选一】阵列 (标出产出印与未处理立刻扣损)
   const offeredCards = (v3 && v3.roundData && v3.roundData.offeredCards) || [];
   const cardGap = 6;
   const trioCardW = Math.floor((w - cardGap * 2) / 3);
-  const trioCardH = 155;
+  const trioCardH = 158;
 
   for (let i = 0; i < 3; i++) {
     const c = offeredCards[i];
@@ -30964,9 +30990,10 @@ function drawDynastyCardStageScreen() {
     const cy = curY;
     const isSelected = (v3 && v3.selectedCardIdx === i);
     const isSecretCovered = (i === 2 && v3 && !v3.revealedSecretCards[2]);
+    const isHandled = (runner && runner.handledCardIdsInRound && runner.handledCardIdsInRound.has(c ? c.id : ''));
 
     if (isSecretCovered) {
-      // 背面暗牌 (朱金暗置)
+      // 背面暗牌
       drawElevatedCard(ctx, cx, cy, trioCardW, trioCardH, {
         elevation: isSelected ? 4 : 2,
         radius: 6,
@@ -30977,20 +31004,20 @@ function drawDynastyCardStageScreen() {
 
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.font = '26px sans-serif';
-      ctx.fillText('🔮', cx + trioCardW / 2, cy + 38);
+      ctx.font = '24px sans-serif';
+      ctx.fillText('🔮', cx + trioCardW / 2, cy + 36);
 
-      ctx.font = 'bold 12px ' + FONT_CHRONICLE;
+      ctx.font = 'bold 11px ' + FONT_CHRONICLE;
       ctx.fillStyle = '#fde047';
-      ctx.fillText('窥探天机', cx + trioCardW / 2, cy + 74);
+      ctx.fillText('窥探天机', cx + trioCardW / 2, cy + 68);
 
-      ctx.font = '10px ' + FONT_CHRONICLE;
+      ctx.font = '9.5px ' + FONT_CHRONICLE;
       ctx.fillStyle = '#cbd5e1';
-      ctx.fillText('机缘暗藏', cx + trioCardW / 2, cy + 96);
+      ctx.fillText('机缘暗藏', cx + trioCardW / 2, cy + 88);
 
       ctx.fillStyle = '#fbbf24';
       ctx.font = 'bold 10px ' + FONT_CHRONICLE;
-      ctx.fillText('〔 点击揭晓 〕', cx + trioCardW / 2, cy + 128);
+      ctx.fillText('〔 点击翻开 〕', cx + trioCardW / 2, cy + 124);
 
       drawTactileButton(ctx, {
         id: `btn_v3_card_pick_${i}`,
@@ -31014,64 +31041,66 @@ function drawDynastyCardStageScreen() {
         }
       });
     } else if (c) {
-      // 明牌卡片 (正史主线 / 家学支线)
-      const isMain = Boolean(c.isMainline || c.act || i === 0);
-      const winRateInfo = getV3CalculatedWinRate(c, v3.willpowerAllocation, v3.kinsfolk);
+      // 明牌卡片 (标出产出印 + 未处理扣损)
+      const sealTag = c.sealTag || (c.category === 'military' ? 'military' : (c.category === 'management' ? 'wealth' : 'prestige'));
+      const sealName = sealTag === 'military' ? '⚔️兵印' : (sealTag === 'wealth' ? '🪙财印' : '🏛️名印');
+      const penaltyDim = sealTag === 'military' ? '部曲' : (sealTag === 'wealth' ? '族产' : '门望');
 
       drawElevatedCard(ctx, cx, cy, trioCardW, trioCardH, {
         elevation: isSelected ? 4 : 2,
         radius: 6,
-        fill: isSelected ? 'rgba(34, 20, 24, 0.98)' : 'rgba(22, 16, 18, 0.94)',
-        borderColor: isSelected ? '#fbbf24' : (isMain ? '#b91c1c' : '#854d0e'),
+        fill: isHandled ? 'rgba(16, 24, 18, 0.94)' : (isSelected ? 'rgba(34, 20, 24, 0.98)' : 'rgba(22, 16, 18, 0.94)'),
+        borderColor: isHandled ? '#10b981' : (isSelected ? '#fbbf24' : '#854d0e'),
         borderWidth: isSelected ? 2 : 1
       });
 
-      // 顶部标签
+      // 顶部：产出印徽标
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
       ctx.font = 'bold 9.5px ' + FONT_CHRONICLE;
-      ctx.fillStyle = isMain ? '#f87171' : '#34d399';
-      ctx.fillText(isMain ? '🔥正史主线' : '🏛️宗门家学', cx + 6, cy + 6);
+      ctx.fillStyle = '#fde047';
+      ctx.fillText(`得 ${sealName}`, cx + 5, cy + 5);
 
       ctx.textAlign = 'right';
-      ctx.fillStyle = '#fde047';
-      ctx.fillText(`胜率${winRateInfo.rate}%`, cx + trioCardW - 6, cy + 6);
+      ctx.font = '9px ' + FONT_CHRONICLE;
+      ctx.fillStyle = isHandled ? '#86efac' : '#cbd5e1';
+      ctx.fillText(isHandled ? '已处理' : '耗1心力', cx + trioCardW - 5, cy + 5);
 
       // 卡牌标题
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      ctx.font = 'bold 12px ' + FONT_CHRONICLE;
+      ctx.font = 'bold 11.5px ' + FONT_CHRONICLE;
       ctx.fillStyle = '#fef08a';
-      const cTitle = fitText(c.name || c.title || '东汉名士', trioCardW - 10, 'bold 12px ' + FONT_CHRONICLE);
-      ctx.fillText(cTitle, cx + trioCardW / 2, cy + 24);
+      const cTitle = fitText(c.name || c.title || '东汉名士', trioCardW - 10, 'bold 11.5px ' + FONT_CHRONICLE);
+      ctx.fillText(cTitle, cx + trioCardW / 2, cy + 22);
 
       // 头像立绘
-      ctx.font = '24px sans-serif';
+      ctx.font = '22px sans-serif';
       ctx.textBaseline = 'middle';
-      ctx.fillText(c.avatar || (isMain ? '📜' : '🏛️'), cx + trioCardW / 2, cy + 64);
+      ctx.fillText(c.avatar || '📜', cx + trioCardW / 2, cy + 58);
 
-      // 考证典籍
+      // 考据典籍
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      ctx.font = '9px ' + FONT_CHRONICLE;
+      ctx.font = '8.5px ' + FONT_CHRONICLE;
       ctx.fillStyle = '#d1d5db';
       const srcAbbr = c.historicalSource ? c.historicalSource.replace(/《|》/g, '').slice(0, 6) : '后汉书';
-      ctx.fillText(`《${srcAbbr}》`, cx + trioCardW / 2, cy + 86);
+      ctx.fillText(`《${srcAbbr}》`, cx + trioCardW / 2, cy + 78);
 
-      // 难度星级与属性
-      ctx.font = '9px ' + FONT_CHRONICLE;
-      ctx.fillStyle = '#fbbf24';
-      const stars = '⭐'.repeat(Math.min(5, Math.max(1, Math.round((c.difficulty || 45) / 20))));
-      ctx.fillText(stars, cx + trioCardW / 2, cy + 104);
+      // ⚠️ 核心警示：不处理立刻扣损！
+      ctx.font = 'bold 8.5px ' + FONT_CHRONICLE;
+      ctx.fillStyle = isHandled ? '#6ee7b7' : '#f87171';
+      const penText = isHandled ? '✅ 危机已化解' : `⚠️弃之损:${penaltyDim}-6`;
+      ctx.fillText(penText, cx + trioCardW / 2, cy + 96);
 
-      // 选中状态标牌
-      ctx.fillStyle = isSelected ? '#f59e0b' : 'rgba(255,255,255,0.1)';
-      roundRect(ctx, cx + 8, cy + 124, trioCardW - 16, 20, 3, true, false);
+      // 选中/处理状态标牌
+      ctx.fillStyle = isHandled ? '#065f46' : (isSelected ? '#f59e0b' : 'rgba(255,255,255,0.1)');
+      roundRect(ctx, cx + 6, cy + 120, trioCardW - 12, 22, 3, true, false);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = 'bold 10px ' + FONT_CHRONICLE;
-      ctx.fillStyle = isSelected ? '#181114' : '#94a3b8';
-      ctx.fillText(isSelected ? '已选定' : '点击择选', cx + trioCardW / 2, cy + 134);
+      ctx.fillStyle = isHandled ? '#a7f3d0' : (isSelected ? '#181114' : '#cbd5e1');
+      ctx.fillText(isHandled ? '已得印' : (isSelected ? '已选定' : '择取处理'), cx + trioCardW / 2, cy + 131);
 
       drawTactileButton(ctx, {
         id: `btn_v3_card_pick_${i}`,
@@ -31109,7 +31138,7 @@ function drawDynastyCardStageScreen() {
   ctx.textBaseline = 'top';
   ctx.font = 'bold 10.5px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#fde047';
-  ctx.fillText(`📜 正史考据：${selectedCard.historicalSource || '《后汉书·卷六十七·党锢列传》'}`, padX + 8, curY + 6);
+  ctx.fillText(`📜 正史考据：${selectedCard.historicalSource || '《后汉书·百官志》'}`, padX + 8, curY + 6);
 
   ctx.font = '10px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#e5e7eb';
@@ -31118,130 +31147,41 @@ function drawDynastyCardStageScreen() {
 
   curY += detailBoxH + 6;
 
-  // 5. 五大族人派遣与 3 点心力分配区
-  const councilBoxH = 68;
+  // 5. 五大族人议事微章
+  const councilBoxH = 34;
   drawElevatedCard(ctx, padX, curY, w, councilBoxH, {
-    elevation: 2,
-    radius: 5,
-    fill: 'rgba(20, 16, 18, 0.96)',
+    elevation: 1,
+    radius: 4,
+    fill: 'rgba(20, 16, 18, 0.94)',
     borderColor: '#854d0e',
     borderWidth: 1
   });
 
-  // 第一行：5名族人头像
   const kinsList = [
-    { name: '家督', role: '当家人', duty: '仕' },
-    { name: '主母', role: '贤内助', duty: '商' },
-    { name: '胞弟', role: '手足', duty: '武' },
-    { name: '长子', role: '宗子', duty: '学' },
-    { name: '门客', role: '参谋', duty: '守' }
+    { name: '家督', duty: '仕' },
+    { name: '主母', duty: '商' },
+    { name: '手足', duty: '武' },
+    { name: '宗子', duty: '学' },
+    { name: '门客', duty: '守' }
   ];
   const kinW = Math.floor((w - 16) / 5);
   for (let ki = 0; ki < 5; ki++) {
     const kItem = kinsList[ki];
     const kx = padX + 8 + ki * kinW;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.font = 'bold 9.5px ' + FONT_CHRONICLE;
-    ctx.fillStyle = '#fde047';
-    ctx.fillText(`${kItem.name}·${kItem.duty}`, kx + kinW / 2, curY + 4);
-    ctx.font = '8.5px ' + FONT_CHRONICLE;
-    ctx.fillStyle = '#94a3b8';
-    ctx.fillText(kItem.role, kx + kinW / 2, curY + 16);
-  }
-
-  // 第二行：心力调配器 (4 维：仕进、经商、武备、修身)
-  const dims = [
-    { key: 'officialdom', name: '仕进' },
-    { key: 'commerce', name: '经商' },
-    { key: 'military', name: '武备' },
-    { key: 'scholarship', name: '修身' }
-  ];
-  const wpSlotW = Math.floor((w - 16) / 4);
-  const curAllocation = (v3 && v3.willpowerAllocation) || { officialdom: 1, commerce: 0, military: 1, scholarship: 1 };
-  const totalAllocated = Object.values(curAllocation).reduce((a, b) => a + b, 0);
-
-  for (let di = 0; di < 4; di++) {
-    const dItem = dims[di];
-    const dx = padX + 8 + di * wpSlotW;
-    const dy = curY + 34;
-    const val = curAllocation[dItem.key] || 0;
-
-    // 绘制微型调整盘
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-    roundRect(ctx, dx, dy, wpSlotW - 4, 26, 3, true, true, '#5c3a21', 1);
-
-    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.font = 'bold 9.5px ' + FONT_CHRONICLE;
-    ctx.fillStyle = '#fef08a';
-    ctx.fillText(`${dItem.name}:${val}`, dx + 4, dy + 13);
-
-    // [-] 与 [+] 触控按钮
-    const btnSize = 18;
-    const subX = dx + wpSlotW - 44;
-    const addX = dx + wpSlotW - 24;
-
-    ctx.fillStyle = val > 0 ? '#b91c1c' : '#4b5563';
-    roundRect(ctx, subX, dy + 4, btnSize, btnSize, 2, true, false);
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 11px sans-serif';
-    ctx.fillStyle = '#fff';
-    ctx.fillText('-', subX + btnSize / 2, dy + 13);
-
-    ctx.fillStyle = totalAllocated < 3 ? '#047857' : '#4b5563';
-    roundRect(ctx, addX, dy + 4, btnSize, btnSize, 2, true, false);
-    ctx.fillText('+', addX + btnSize / 2, dy + 13);
-
-    drawTactileButton(ctx, {
-      id: `btn_v3_wp_sub_${dItem.key}`,
-      x: subX,
-      y: dy + 4,
-      w: btnSize,
-      h: btnSize,
-      bg: 'transparent',
-      border: null,
-      priority: 18,
-      onClick: () => {
-        if (v3 && curAllocation[dItem.key] > 0) {
-          curAllocation[dItem.key]--;
-          playSoundEffect('click');
-          triggerHaptic('light');
-          requestRender();
-        }
-      }
-    });
-
-    drawTactileButton(ctx, {
-      id: `btn_v3_wp_add_${dItem.key}`,
-      x: addX,
-      y: dy + 4,
-      w: btnSize,
-      h: btnSize,
-      bg: 'transparent',
-      border: null,
-      priority: 18,
-      onClick: () => {
-        if (v3 && totalAllocated < 3) {
-          curAllocation[dItem.key] = (curAllocation[dItem.key] || 0) + 1;
-          playSoundEffect('click');
-          triggerHaptic('light');
-          requestRender();
-        } else {
-          showToast('心力已满3点！可先减少其他项', 'alert');
-        }
-      }
-    });
+    ctx.font = 'bold 10px ' + FONT_CHRONICLE;
+    ctx.fillStyle = '#fde047';
+    ctx.fillText(`🏛️ ${kItem.name}·${kItem.duty}`, kx + kinW / 2, curY + councilBoxH / 2);
   }
 
   curY += councilBoxH + 8;
 
-  // 6. 底部古典操作台：【🧮 掷筹决断】与【🎲 重筹】与【📜 致仕还乡】
-  const btnH = 50;
+  // 6. 底部古典操作台：【🧮 掷筹处理卡牌】与【📜 致仕还乡】
+  const btnH = 48;
   const canRetreat = (v3 && v3.roundData && v3.roundData.round >= 8);
-  const mainBtnW = canRetreat ? Math.floor((w - 16) * 0.58) : Math.floor((w - 8) * 0.68);
-  const subBtnW = canRetreat ? Math.floor((w - 16) * 0.22) : (w - 8 - mainBtnW);
-  const retreatBtnW = canRetreat ? (w - 16 - mainBtnW - subBtnW) : 0;
+  const mainBtnW = canRetreat ? Math.floor((w - 8) * 0.72) : w;
+  const retreatBtnW = canRetreat ? (w - 8 - mainBtnW) : 0;
 
   // 主按钮：【🧮 掷筹决断】
   drawTactileButton(ctx, {
@@ -31267,49 +31207,19 @@ function drawDynastyCardStageScreen() {
       c.textBaseline = 'top';
       c.font = 'bold 15px ' + FONT_CHRONICLE;
       c.fillStyle = '#fde047';
-      c.fillText('🧮 掷筹决断', padX + mainBtnW / 2, curY + 10);
+      c.fillText('🧮 掷筹决断 · 备印', padX + mainBtnW / 2, curY + 8);
 
       c.font = '10px ' + FONT_CHRONICLE;
       c.fillStyle = '#cbd5e1';
-      const winRateInfo = getV3CalculatedWinRate(selectedCard, v3 ? v3.willpowerAllocation : null, v3 ? v3.kinsfolk : null);
-      c.fillText(`投入心力 · 推演胜率 ${winRateInfo.rate}%`, padX + mainBtnW / 2, curY + 30);
+      const sealTag = selectedCard.sealTag || 'military';
+      const sName = sealTag === 'military' ? '兵印' : (sealTag === 'wealth' ? '财印' : '名印');
+      c.fillText(`消耗 1 心力 · 成功获【${sName} +1】· 未处理牌将扣损`, padX + mainBtnW / 2, curY + 28);
     }
   });
 
-  // 副按钮：【🎲 重筹】
-  const rerollsRem = (v3 && v3.rodRerollsRemaining !== undefined) ? v3.rodRerollsRemaining : 3;
-  drawTactileButton(ctx, {
-    id: 'btn_v3_rod_reroll',
-    x: padX + mainBtnW + 8,
-    y: curY,
-    w: subBtnW,
-    h: btnH,
-    radius: 6,
-    bg: '#181e28',
-    border: '#3b82f6',
-    borderWidth: 1.5,
-    priority: 25,
-    onClick: () => {
-      playSoundEffect('paper');
-      triggerHaptic('light');
-      showToast(`【算筹重筹】剩余 ${rerollsRem} 次！若检定失手可在弹窗中逆天改命！`, 'gold');
-    },
-    renderContent: (c, isPressed) => {
-      c.textAlign = 'center';
-      c.textBaseline = 'top';
-      c.font = 'bold 12px ' + FONT_CHRONICLE;
-      c.fillStyle = '#93c5fd';
-      c.fillText('🎲 重筹', padX + mainBtnW + 8 + subBtnW / 2, curY + 10);
-
-      c.font = '10px ' + FONT_CHRONICLE;
-      c.fillStyle = '#cbd5e1';
-      c.fillText(`余 ${rerollsRem} 次`, padX + mainBtnW + 8 + subBtnW / 2, curY + 30);
-    }
-  });
-
-  // 致仕按钮：【📜 急流勇退·致仕还乡】
+  // 致仕按钮
   if (canRetreat) {
-    const rx = padX + mainBtnW + 8 + subBtnW + 8;
+    const rx = padX + mainBtnW + 8;
     drawTactileButton(ctx, {
       id: 'btn_v3_retreat_early',
       x: rx,
@@ -31324,15 +31234,15 @@ function drawDynastyCardStageScreen() {
       onClick: () => {
         handleV3Retreat();
       },
-      renderContent: (c, isPressed) => {
+      renderContent: (c) => {
         c.textAlign = 'center';
         c.textBaseline = 'top';
         c.font = 'bold 11px ' + FONT_CHRONICLE;
         c.fillStyle = '#6ee7b7';
-        c.fillText('📜 致仕', rx + retreatBtnW / 2, curY + 10);
-        c.font = '9.5px ' + FONT_CHRONICLE;
+        c.fillText('📜 致仕', rx + retreatBtnW / 2, curY + 9);
+        c.font = '9px ' + FONT_CHRONICLE;
         c.fillStyle = '#a7f3d0';
-        c.fillText('保全宗产', rx + retreatBtnW / 2, curY + 30);
+        c.fillText('保全宗产', rx + retreatBtnW / 2, curY + 27);
       }
     });
   }
@@ -31341,8 +31251,9 @@ function drawDynastyCardStageScreen() {
 }
 
 /**
- * 执行算筹决断
+ * 算筹弹窗与收官推进
  */
+
 function handleV3ExecuteCheck() {
   const v3 = ensureV3SessionInitialized();
   if (!v3 || !v3.runner) return;
@@ -31356,7 +31267,7 @@ function handleV3ExecuteCheck() {
 
   const res = v3.runner.playRoundDecision({
     cardId: chosenCard.id,
-    willpowerAllocation: v3.willpowerAllocation || { officialdom: 1, commerce: 0, military: 1, scholarship: 1 },
+    willpowerAllocation: { [chosenCard.category || 'cultivation']: 1 },
     offeredCards: v3.roundData.offeredCards || []
   });
 
@@ -31367,18 +31278,14 @@ function handleV3ExecuteCheck() {
   state.timeline.unshift({
     year: state.year,
     age: state.age,
-    text: `【${chosenCard.name || chosenCard.title}】筹谋：${res.checkResult.outcome === 'success' ? '功成身退' : (res.checkResult.outcome === 'critical_success' ? '万全大捷' : '稍有失策')}。${res.chronicleText || ''}`,
+    text: `【${chosenCard.name || chosenCard.title}】决断：${res.checkResult.outcome === 'success' ? '功成身退' : (res.checkResult.outcome === 'critical_success' ? '万全大捷' : '稍有失策')}。${res.chronicleText || ''}`,
     type: 'card'
   });
 
-  // 打开算筹落盘检定弹窗
   state.activeModal = 'counting_rods_modal';
   requestRender();
 }
 
-/**
- * 处理致仕还乡
- */
 function handleV3Retreat() {
   const v3 = ensureV3SessionInitialized();
   if (!v3 || !v3.runner) return;
@@ -31394,10 +31301,6 @@ function handleV3Retreat() {
   requestRender();
 }
 
-// ==========================================
-// 弹窗一：【算筹落盘检定】弹窗
-// ==========================================
-
 function drawCountingRodsModal() {
   const v3 = state.v3Session;
   const outcomeData = v3 ? v3.lastCheckOutcome : null;
@@ -31409,11 +31312,9 @@ function drawCountingRodsModal() {
   const mx = (screenWidth - modalW) / 2;
   const my = Math.max(20, (screenHeight - modalH) / 2);
 
-  // 遮罩
   ctx.fillStyle = 'rgba(0, 0, 0, 0.82)';
   ctx.fillRect(0, 0, screenWidth, screenHeight);
 
-  // 弹窗宣纸锦帛底板
   drawElevatedCard(ctx, mx, my, modalW, modalH, {
     elevation: 5,
     radius: 8,
@@ -31426,7 +31327,6 @@ function drawCountingRodsModal() {
 
   let curY = my + 16;
 
-  // 1. 标题
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   ctx.font = 'bold 16px ' + FONT_CHRONICLE;
@@ -31435,12 +31335,10 @@ function drawCountingRodsModal() {
 
   curY += 28;
 
-  // 2. 算筹落盘展示盘
   const boardH = 80;
   ctx.fillStyle = 'rgba(12, 8, 10, 0.85)';
   roundRect(ctx, mx + 16, curY, modalW - 32, boardH, 6, true, true, '#78350f', 1);
 
-  // 绘制散落算筹棒
   const rodColors = ['#f59e0b', '#dc2626', '#fef08a', '#d97706', '#b45309'];
   for (let ri = 0; ri < 5; ri++) {
     const rx = mx + 36 + ri * ((modalW - 72) / 4);
@@ -31453,14 +31351,12 @@ function drawCountingRodsModal() {
     ctx.stroke();
   }
 
-  // 算筹点数居中说明
   ctx.font = 'bold 13px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#fef08a';
   ctx.fillText(`🧮 算筹得分: ${checkRes.rodScore || 68}  (难度阈值: ${card.difficulty || 50})`, mx + modalW / 2, curY + 54);
 
   curY += boardH + 12;
 
-  // 3. 判定等级印章
   const isCrit = (checkRes.outcome === 'critical_success');
   const isSucc = (checkRes.outcome === 'success' || isCrit);
   const isCritFail = (checkRes.outcome === 'critical_failure');
@@ -31484,7 +31380,6 @@ function drawCountingRodsModal() {
 
   curY += 26;
 
-  // 4. 正史典籍引文长卷与起居注铭刻
   const loreBoxH = 160;
   ctx.fillStyle = 'rgba(20, 14, 18, 0.9)';
   roundRect(ctx, mx + 16, curY, modalW - 32, loreBoxH, 6, true, true, '#5c3a21', 1);
@@ -31501,110 +31396,38 @@ function drawCountingRodsModal() {
   const postText = (outcomeData && outcomeData.chronicleText) || '君以大智慧周旋于庙堂与乡野，青史铭记此段波澜！';
   wrapText(ctx, postText, mx + 26, curY + 30, modalW - 52, 16);
 
-  // 四维损益动态汇总
   ctx.font = 'bold 11px ' + FONT_CHRONICLE;
   ctx.fillStyle = isSucc ? '#86efac' : '#fca5a5';
-  const effSummary = isSucc ? '✦ 门望跃升 · 宗族资财充盈 · 部曲振奋' : '✦ 资财稍损 · 门望受挫 · 戒急用忍';
+  const sealGained = (outcomeData && outcomeData.gainedSeal) || (card && card.sealTag);
+  const sealName = sealGained === 'military' ? '兵印' : (sealGained === 'wealth' ? '财印' : '名印');
+  const effSummary = isSucc ? `✦ 备印大成：【${sealName} +1】· 门望资财巩固` : '✦ 势印未得 · 未处理牌扣损 · 戒急用忍';
   ctx.fillText(effSummary, mx + 26, curY + loreBoxH - 24);
 
   curY += loreBoxH + 16;
 
-  // 5. 底部按钮：【🎲 消耗重筹再掷】与【📜 合卷承继】
-  const canReroll = (!isSucc && v3 && v3.rodRerollsRemaining > 0);
   const actionBtnH = 44;
-
-  if (canReroll) {
-    const halfW = (modalW - 40) / 2;
-    // 重筹按钮
-    drawTactileButton(ctx, {
-      id: 'btn_modal_use_reroll',
-      x: mx + 16,
-      y: curY,
-      w: halfW,
-      h: actionBtnH,
-      radius: 5,
-      bg: '#1e293b',
-      border: '#38bdf8',
-      borderWidth: 1.5,
-      priority: 30,
-      onClick: () => {
-        if (v3 && v3.rodRerollsRemaining > 0) {
-          v3.rodRerollsRemaining--;
-          playSoundEffect('stamp');
-          triggerHaptic('heavy');
-          if (typeof triggerScreenShake === 'function') triggerScreenShake(8, 200);
-
-          // 重新掷筹
-          const checkConfig = {
-            difficulty: card.difficulty || 45,
-            dimension: card.category || 'cultivation',
-            meterValue: 50,
-            willpowerInvested: 1,
-            kinsmanBonus: 0.15
-          };
-          const rerollRes = v3.runner.checkEngine.castCountingRods(checkConfig);
-          v3.lastCheckOutcome.checkResult = rerollRes;
-          showToast(`逆天改命！新算筹得分: ${rerollRes.rodScore}`, 'gold');
-          requestRender();
-        }
-      },
-      renderContent: (c) => {
-        c.textAlign = 'center';
-        c.textBaseline = 'middle';
-        c.font = 'bold 12.5px ' + FONT_CHRONICLE;
-        c.fillStyle = '#7dd3fc';
-        c.fillText(`🎲 重筹 (余${v3.rodRerollsRemaining})`, mx + 16 + halfW / 2, curY + actionBtnH / 2);
-      }
-    });
-
-    // 合卷按钮
-    drawTactileButton(ctx, {
-      id: 'btn_modal_finish_check_half',
-      x: mx + 24 + halfW,
-      y: curY,
-      w: halfW,
-      h: actionBtnH,
-      radius: 5,
-      bg: '#27171e',
-      border: '#f59e0b',
-      borderWidth: 1.5,
-      priority: 30,
-      onClick: () => {
-        handleModalAdvanceRound();
-      },
-      renderContent: (c) => {
-        c.textAlign = 'center';
-        c.textBaseline = 'middle';
-        c.font = 'bold 12.5px ' + FONT_CHRONICLE;
-        c.fillStyle = '#fde047';
-        c.fillText('📜 合卷承继', mx + 24 + halfW + halfW / 2, curY + actionBtnH / 2);
-      }
-    });
-  } else {
-    // 唯有一枚【📜 合卷承继】大按钮
-    drawTactileButton(ctx, {
-      id: 'btn_modal_finish_check_full',
-      x: mx + 16,
-      y: curY,
-      w: modalW - 32,
-      h: actionBtnH,
-      radius: 6,
-      bg: '#27171e',
-      border: '#f59e0b',
-      borderWidth: 1.8,
-      priority: 30,
-      onClick: () => {
-        handleModalAdvanceRound();
-      },
-      renderContent: (c) => {
-        c.textAlign = 'center';
-        c.textBaseline = 'middle';
-        c.font = 'bold 14px ' + FONT_CHRONICLE;
-        c.fillStyle = '#fde047';
-        c.fillText('📜 合卷承继 · 推进春秋', mx + modalW / 2, curY + actionBtnH / 2);
-      }
-    });
-  }
+  drawTactileButton(ctx, {
+    id: 'btn_modal_finish_check_full',
+    x: mx + 16,
+    y: curY,
+    w: modalW - 32,
+    h: actionBtnH,
+    radius: 6,
+    bg: '#27171e',
+    border: '#f59e0b',
+    borderWidth: 1.8,
+    priority: 30,
+    onClick: () => {
+      handleModalAdvanceRound();
+    },
+    renderContent: (c) => {
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.font = 'bold 14px ' + FONT_CHRONICLE;
+      c.fillStyle = '#fde047';
+      c.fillText('📜 合卷承继 · 推进春秋', mx + modalW / 2, curY + actionBtnH / 2);
+    }
+  });
 }
 
 function handleModalAdvanceRound() {
@@ -31627,7 +31450,7 @@ function handleModalAdvanceRound() {
     return;
   }
 
-  // 2. 若当前为大劫节点 (第3、6、9回合末)
+  // 2. 若当前为大劫节点 (第4、8、12回合末)
   if (v3.roundData && v3.roundData.isCalamityRound) {
     state.activeModal = 'calamity_stage_modal';
     requestRender();
@@ -31643,7 +31466,6 @@ function handleModalAdvanceRound() {
     v3.selectedCardIdx = 0;
     v3.revealedSecretCards = {};
   } catch (e) {
-    // 收官
     state.endgameSettled = true;
     state.activeModal = 'posthumous_epitaph_modal';
   }
@@ -31651,21 +31473,137 @@ function handleModalAdvanceRound() {
   requestRender();
 }
 
-// ==========================================
-// 弹窗二：【幕终大劫 Boss 三步法】全屏交互舞台
-// ==========================================
 
+/**
+ * 经营造印选择弹窗
+ */
+function drawManageSealSelectorModal() {
+  const modalW = Math.min(320, screenWidth - 36);
+  const modalH = 260;
+  const mx = (screenWidth - modalW) / 2;
+  const my = (screenHeight - modalH) / 2;
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+  ctx.fillRect(0, 0, screenWidth, screenHeight);
+
+  drawElevatedCard(ctx, mx, my, modalW, modalH, {
+    elevation: 6,
+    radius: 8,
+    fill: 'rgba(26, 18, 24, 0.98)',
+    borderColor: '#a855f7',
+    borderWidth: 2,
+    hasCornerOrnaments: true,
+    cornerColor: '#c084fc'
+  });
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.font = 'bold 15px ' + FONT_CHRONICLE;
+  ctx.fillStyle = '#e9d5ff';
+  ctx.fillText('🏛️ 宗门经营 · 定向造印', mx + modalW / 2, my + 16);
+
+  ctx.font = '10.5px ' + FONT_CHRONICLE;
+  ctx.fillStyle = '#cbd5e1';
+  ctx.fillText('消耗 2 点心力，为大劫倒推造得 1 枚指定印', mx + modalW / 2, my + 38);
+
+  const sealChoices = [
+    { key: 'military', name: '⚔️ 铸造【兵印】', desc: '用于平定兵戈战阵之劫' },
+    { key: 'wealth', name: '🪙 聚敛【财印】', desc: '用于化解赋税流民之劫' },
+    { key: 'prestige', name: '🏛️ 刊印【名印】', desc: '用于破除清议党锢之劫' }
+  ];
+
+  const optH = 42;
+  for (let oi = 0; oi < 3; oi++) {
+    const opt = sealChoices[oi];
+    const oy = my + 66 + oi * (optH + 8);
+
+    drawTactileButton(ctx, {
+      id: `btn_choose_manage_seal_${opt.key}`,
+      x: mx + 16,
+      y: oy,
+      w: modalW - 32,
+      h: optH,
+      radius: 5,
+      bg: '#25182a',
+      border: '#a855f7',
+      borderWidth: 1.2,
+      priority: 35,
+      onClick: () => {
+        const v3 = state.v3Session;
+        if (v3 && v3.runner) {
+          v3.runner.manageSeal(opt.key);
+          playSoundEffect('stamp');
+          triggerHaptic('heavy');
+          showToast(`经营得当！已获得【${opt.name} +1】！`, 'gold');
+          state.activeModal = null;
+          requestRender();
+        }
+      },
+      renderContent: (c) => {
+        c.textAlign = 'left';
+        c.textBaseline = 'middle';
+        c.font = 'bold 12px ' + FONT_CHRONICLE;
+        c.fillStyle = '#fde047';
+        c.fillText(opt.name, mx + 26, oy + optH / 2);
+
+        c.textAlign = 'right';
+        c.font = '9.5px ' + FONT_CHRONICLE;
+        c.fillStyle = '#94a3b8';
+        c.fillText(opt.desc, mx + modalW - 26, oy + optH / 2);
+      }
+    });
+  }
+
+  // 关闭按钮
+  drawTactileButton(ctx, {
+    id: 'btn_close_manage_modal',
+    x: mx + modalW - 28,
+    y: my + 8,
+    w: 20,
+    h: 20,
+    bg: 'transparent',
+    border: null,
+    priority: 36,
+    onClick: () => {
+      state.activeModal = null;
+      requestRender();
+    },
+    renderContent: (c) => {
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.font = '14px sans-serif';
+      c.fillStyle = '#94a3b8';
+      c.fillText('✕', mx + modalW - 18, my + 18);
+    }
+  });
+}
+
+/**
+ * 幕终大劫全屏舞台：以势印应对大劫 (需 2 种印各 2 枚，付不起即全面崩溃)
+ */
 function drawCalamityStageModal() {
   const v3 = state.v3Session;
-  const calamity = (v3 && v3.roundData && v3.roundData.upcomingCalamity) || {
-    title: '公元184年 · 黄巾三十六方大暴动',
-    leader: '大贤良师 · 张角',
-    description: '苍天已死，黄天当立！数十万流民裹挟四州，兵锋直逼坞堡！',
-    bestChoice: 'disperse'
+  const runner = v3 ? v3.runner : null;
+  const seals = (runner && runner.seals) || { military: 0, wealth: 0, prestige: 0 };
+  const calamity = (runner && runner.upcomingCalamity) || (v3 && v3.roundData && v3.roundData.upcomingCalamity) || {
+    title: '第一幕大劫 · 黄巾烽火',
+    sealA: 'military',
+    sealB: 'wealth',
+    description: '三十六方暴民蜂起，势如破竹，唯有备齐军政势印方可破局！'
   };
 
+  const reqA = calamity.sealA || 'military';
+  const reqB = calamity.sealB || 'wealth';
+  const countA = seals[reqA] || 0;
+  const countB = seals[reqB] || 0;
+  const isReady = (countA >= 2 && countB >= 2);
+
+  const nameMap = { military: '⚔️兵印', wealth: '🪙财印', prestige: '🏛️名印' };
+  const nameA = nameMap[reqA] || '兵印';
+  const nameB = nameMap[reqB] || '财印';
+
   const modalW = Math.min(356, screenWidth - 20);
-  const modalH = Math.min(540, screenHeight - 40);
+  const modalH = Math.min(520, screenHeight - 40);
   const mx = (screenWidth - modalW) / 2;
   const my = (screenHeight - modalH) / 2;
 
@@ -31678,150 +31616,158 @@ function drawCalamityStageModal() {
     elevation: 6,
     radius: 8,
     fill: 'rgba(28, 12, 16, 0.98)',
-    borderColor: '#dc2626',
+    borderColor: isReady ? '#d97706' : '#dc2626',
     borderWidth: 2,
     hasCornerOrnaments: true,
-    cornerColor: '#ef4444'
+    cornerColor: isReady ? '#f59e0b' : '#ef4444'
   });
 
-  let curY = my + 14;
+  let curY = my + 16;
 
   // 标题
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   ctx.font = 'bold 16px ' + FONT_CHRONICLE;
-  ctx.fillStyle = '#f87171';
-  ctx.fillText('⚔️ 幕终大劫 · 阵前大考', mx + modalW / 2, curY);
+  ctx.fillStyle = isReady ? '#fde047' : '#f87171';
+  ctx.fillText('⚔️ 幕终历史大劫 · 势印应对', mx + modalW / 2, curY);
 
-  curY += 26;
+  curY += 28;
 
-  // 步一【探】：大劫探报长卷
-  const intelH = 110;
+  // 大劫战报长卷
+  const intelH = 100;
   ctx.fillStyle = 'rgba(40, 14, 20, 0.85)';
   roundRect(ctx, mx + 12, curY, modalW - 24, intelH, 5, true, true, '#991b1b', 1);
 
   ctx.textAlign = 'left';
   ctx.font = 'bold 12.5px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#fef08a';
-  ctx.fillText(`【探报】${calamity.title}`, mx + 20, curY + 8);
-
-  ctx.font = '10.5px ' + FONT_CHRONICLE;
-  ctx.fillStyle = '#fca5a5';
-  ctx.fillText(`敌军领袖：${calamity.leader || '乱世枭雄'}`, mx + 20, curY + 28);
+  ctx.fillText(`【大劫】${calamity.title}`, mx + 20, curY + 8);
 
   ctx.font = '10px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#f3f4f6';
-  wrapText(ctx, calamity.description || '四方云动，烽烟蔽日！稍有不慎即阖族覆灭！', mx + 20, curY + 46, modalW - 40, 15);
+  wrapText(ctx, calamity.description || '天下大乱，四方板荡！唯有以势印化解，付不起即全面崩溃！', mx + 20, curY + 28, modalW - 40, 16);
 
-  curY += intelH + 10;
+  curY += intelH + 14;
 
-  // 步二【备】：坞壁部曲与粮草调动
-  const prepH = 46;
-  ctx.fillStyle = 'rgba(24, 16, 20, 0.9)';
-  roundRect(ctx, mx + 12, curY, modalW - 24, prepH, 4, true, true, '#78350f', 1);
+  // 核心：势印核验展示区
+  const sealBoxH = 120;
+  ctx.fillStyle = 'rgba(22, 14, 18, 0.92)';
+  roundRect(ctx, mx + 12, curY, modalW - 24, sealBoxH, 6, true, true, isReady ? '#f59e0b' : '#b91c1c', 1.5);
 
   ctx.textAlign = 'center';
-  ctx.font = 'bold 11px ' + FONT_CHRONICLE;
+  ctx.font = 'bold 12px ' + FONT_CHRONICLE;
   ctx.fillStyle = '#fde047';
-  ctx.fillText('🛡️【备战充裕度】部曲披甲 · 仓廪深实 · 先锋迎击', mx + modalW / 2, curY + 12);
-  ctx.font = '10px ' + FONT_CHRONICLE;
-  ctx.fillStyle = '#a7f3d0';
-  ctx.fillText('兵势已全，决胜在于相克生发之道！', mx + modalW / 2, curY + 28);
+  ctx.fillText('〔 应对大劫：需交付两类势印各 2 枚 〕', mx + modalW / 2, curY + 12);
 
-  curY += prepH + 12;
+  // 印 A 槽
+  const slotW = (modalW - 40) / 2;
+  const slotH = 64;
+  const s1x = mx + 16;
+  const s2x = mx + 24 + slotW;
+  const sy = curY + 36;
 
-  // 步三【断】：五大相克对策令符
+  // 卡槽 A
+  ctx.fillStyle = countA >= 2 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+  roundRect(ctx, s1x, sy, slotW, slotH, 4, true, true, countA >= 2 ? '#10b981' : '#ef4444', 1.2);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.font = 'bold 13px ' + FONT_CHRONICLE;
+  ctx.fillStyle = countA >= 2 ? '#a7f3d0' : '#fca5a5';
+  ctx.fillText(nameA, s1x + slotW / 2, sy + 10);
+  ctx.font = 'bold 16px ' + FONT_CHRONICLE;
+  ctx.fillText(`${countA} / 2`, s1x + slotW / 2, sy + 32);
+
+  // 卡槽 B
+  ctx.fillStyle = countB >= 2 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+  roundRect(ctx, s2x, sy, slotW, slotH, 4, true, true, countB >= 2 ? '#10b981' : '#ef4444', 1.2);
+  ctx.font = 'bold 13px ' + FONT_CHRONICLE;
+  ctx.fillStyle = countB >= 2 ? '#a7f3d0' : '#fca5a5';
+  ctx.fillText(nameB, s2x + slotW / 2, sy + 10);
+  ctx.font = 'bold 16px ' + FONT_CHRONICLE;
+  ctx.fillText(`${countB} / 2`, s2x + slotW / 2, sy + 32);
+
+  curY += sealBoxH + 16;
+
+  // 判定状态描述
   ctx.textAlign = 'center';
   ctx.font = 'bold 12.5px ' + FONT_CHRONICLE;
-  ctx.fillStyle = '#fef08a';
-  ctx.fillText('〔 步三 · 相克定策 〕', mx + modalW / 2, curY);
-
-  curY += 20;
-
-  const strategies = [
-    { key: 'strike', name: '⚔️ 进击掩杀 (攻)', desc: '克制敌军分散掠夺' },
-    { key: 'defend', name: '🛡️ 深沟固垒 (守)', desc: '克制敌军狂猛强攻' },
-    { key: 'disperse', name: '🌪️ 分兵化险 (分)', desc: '克制大军蜂拥合围' },
-    { key: 'unite', name: '🤝 结盟诸侯 (合)', desc: '克制流寇分进合击' },
-    { key: 'spy', name: '🕵️ 反间刺探 (间)', desc: '克制敌后连环设伏' }
-  ];
-
-  const stratH = 44;
-  for (let si = 0; si < 5; si++) {
-    const sItem = strategies[si];
-    const sy = curY + si * (stratH + 5);
-
-    drawTactileButton(ctx, {
-      id: `btn_calamity_strat_${sItem.key}`,
-      x: mx + 16,
-      y: sy,
-      w: modalW - 32,
-      h: stratH,
-      radius: 5,
-      bg: '#231218',
-      border: '#dc2626',
-      borderWidth: 1.2,
-      priority: 35,
-      onClick: () => {
-        handleCalamityChoice(sItem.key);
-      },
-      renderContent: (c, isPressed) => {
-        c.textAlign = 'left';
-        c.textBaseline = 'middle';
-        c.font = 'bold 12px ' + FONT_CHRONICLE;
-        c.fillStyle = '#fef08a';
-        c.fillText(sItem.name, mx + 26, sy + stratH / 2);
-
-        c.textAlign = 'right';
-        c.font = '10px ' + FONT_CHRONICLE;
-        c.fillStyle = '#94a3b8';
-        c.fillText(sItem.desc, mx + modalW - 26, sy + stratH / 2);
-      }
-    });
+  if (isReady) {
+    ctx.fillStyle = '#86efac';
+    ctx.fillText('✅ 势印已备齐！可从容换取破局应对，料敌机先！', mx + modalW / 2, curY);
+  } else {
+    ctx.fillStyle = '#f87171';
+    ctx.fillText('⚠️ 势印匮乏！付不起势印将触发【全面崩溃】！', mx + modalW / 2, curY);
   }
+
+  curY += 28;
+
+  // 底部决策按钮
+  const actBtnH = 46;
+  drawTactileButton(ctx, {
+    id: 'btn_resolve_calamity_with_seals',
+    x: mx + 16,
+    y: curY,
+    w: modalW - 32,
+    h: actBtnH,
+    radius: 6,
+    bg: isReady ? '#2a161e' : '#3b1216',
+    border: isReady ? '#f59e0b' : '#ef4444',
+    borderWidth: 2,
+    priority: 35,
+    onClick: () => {
+      handleCalamityWithSealsDecision();
+    },
+    renderContent: (c) => {
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.font = 'bold 14px ' + FONT_CHRONICLE;
+      c.fillStyle = isReady ? '#fde047' : '#fca5a5';
+      const label = isReady ? '🛡️ 交付势印 · 平定大劫 (料敌机先)' : '💥 势印不足 · 承担全面崩溃！';
+      c.fillText(label, mx + modalW / 2, curY + actBtnH / 2);
+    }
+  });
 }
 
-function handleCalamityChoice(choiceKey) {
+function handleCalamityWithSealsDecision() {
   const v3 = state.v3Session;
   if (!v3 || !v3.runner) return;
 
-  const res = v3.runner.resolveCalamityEvent(choiceKey);
+  const res = v3.runner.resolveCalamityEvent('seals');
   const calRes = res.calamityResult;
 
-  if (calRes.isAnticipated || calRes.survived) {
-    // 达成料敌机先！金色暴击
+  if (calRes && calRes.survived) {
+    // 成功平定大劫
     playSoundEffect('fanfare');
     triggerHaptic('heavy');
     if (typeof triggerScreenShake === 'function') triggerScreenShake(14, 450);
     if (typeof spawnGoldSpiral === 'function') spawnGoldSpiral(screenWidth / 2, screenHeight / 2, 45);
 
-    showToast('⚡ 料敌机先！破敌大捷，稀世秘匣飞入行囊！', 'gold');
+    showToast('⚡ 料敌机先！以势印破敌大捷，稀世秘匣飞入行囊！', 'gold');
 
-    // 塞入宝箱
-    const rewardChest = { name: '【汉末大劫·破军宝匣】', tier: 'epic', desc: '阵前料敌机先，缴获敌军帅帐稀世珍宝！' };
+    const rewardChest = { name: '【汉末大劫·破军宝匣】', tier: 'epic', desc: '完备交付势印，料敌机先破敌大捷！' };
     state.chestInventory = state.chestInventory || [];
     state.chestInventory.push(rewardChest);
 
-    // 起居注
     state.timeline = state.timeline || [];
     state.timeline.unshift({
       year: state.year,
       age: state.age,
-      text: `【幕终大考】统领部曲以相克兵法力破敌阵！平定大劫，威震海内！`,
+      text: `【平定大劫】宗门交付两色完备势印破敌，威震海内！`,
       type: 'anchor'
     });
   } else {
+    // 全面崩溃
     playSoundEffect('alert');
     triggerHaptic('heavy');
-    if (typeof triggerScreenShake === 'function') triggerScreenShake(10, 300);
-    showToast('兵法相抵，虽遭重创，然坞壁犹存！', 'alert');
+    if (typeof triggerScreenShake === 'function') triggerScreenShake(14, 450);
+    showToast('势印不足！大劫全面崩溃，宗族基业惨遭浩劫！', 'alert');
   }
 
-  // 关闭大劫，推进回合
+  // 关闭弹窗并检查推进
   state.activeModal = null;
   if (v3.runner.isDead) {
     state.endgameSettled = true;
-    state.deathReason = '大劫兵祸破城，宗族悲壮绝嗣';
+    state.deathReason = '大劫势印溃竭，宗族悲壮绝嗣';
     state.activeModal = 'posthumous_epitaph_modal';
   } else {
     try {
@@ -31840,9 +31786,6 @@ function handleCalamityChoice(choiceKey) {
   requestRender();
 }
 
-// ==========================================
-// 弹窗三：【终局专属谥号与家谱四言长卷】弹窗
-// ==========================================
 
 function drawPosthumousEpitaphModal() {
   const v3 = state.v3Session;
@@ -45223,6 +45166,8 @@ function drawActiveModal() {
     drawCalamityStageModal();
   } else if (state.activeModal === 'posthumous_epitaph_modal') {
     drawPosthumousEpitaphModal();
+  } else if (state.activeModal === 'manage_seal_selector_modal') {
+    drawManageSealSelectorModal();
   }
   ctx.restore();
 
@@ -52913,6 +52858,7 @@ if (typeof global !== 'undefined' && __DEV__) {
   global.drawCountingRodsModal = drawCountingRodsModal;
   global.drawCalamityStageModal = drawCalamityStageModal;
   global.drawPosthumousEpitaphModal = drawPosthumousEpitaphModal;
+  global.drawManageSealSelectorModal = drawManageSealSelectorModal;
 }
 
 

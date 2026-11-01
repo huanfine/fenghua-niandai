@@ -76,6 +76,13 @@ class RoundRunner {
     this.successionResult = null;
     this.vowProgress = { completed: false, count: 0 };
     this.decisionLogs = [];
+
+    // 新循环：势印行囊 (兵印, 财印, 名印) 与每回合 3 点心力
+    this.seals = { military: 0, wealth: 0, prestige: 0 };
+    this.willpowerRemaining = 3;
+    this.handledCardIdsInRound = new Set();
+    this.currentOfferedCards = [];
+    this.upcomingCalamity = this.calamityEngine.generateCalamity(this.currentAct);
   }
 
   get currentRound() {
@@ -116,7 +123,7 @@ class RoundRunner {
   }
 
   /**
-   * 开启下一岁月回合 (每幕 3 回合)
+   * 开启下一岁月回合 (一局 12 回合，每 4 回合一次大劫)
    */
   beginRound() {
     if (this.isCompleted) {
@@ -128,16 +135,23 @@ class RoundRunner {
     this.currentAge += RUN_RULES.YEARS_PER_ROUND;
     this.currentYear += RUN_RULES.YEARS_PER_ROUND;
 
-    // 检查本回合是否为大劫节点 (每幕第 3 回合末触发大劫)
-    const isCalamityRound = (this.actRound === 3);
-    const isSuccessionRound = (this.currentAct === 3 && this.actRound >= 2);
+    // 每回合心力点数重置为 3 点，清空本回合处理记录
+    this.willpowerRemaining = 3;
+    this.handledCardIdsInRound = new Set();
+
+    // 检查本回合是否为大劫节点 (每幕第 4 回合末触发大劫)
+    const isCalamityRound = (this.actRound === 4 || this.totalRoundsRun === 4 || this.totalRoundsRun === 8 || this.totalRoundsRun === 12);
+    const isSuccessionRound = (this.currentAct === 3 && this.actRound >= 3);
     const canRetreat = RetreatEngine.isRetreatAvailable(this.totalRoundsRun);
 
     // 族人岁月微变
     this.kinsfolkEngine.advanceRound({ disasterHappened: false });
 
     // 风闻与下一次大劫探报
-    const upcomingCalamity = this.calamityEngine.generateCalamity(this.currentAct);
+    if (!this.upcomingCalamity || this.upcomingCalamity.act !== this.currentAct) {
+      this.upcomingCalamity = this.calamityEngine.generateCalamity(this.currentAct);
+    }
+    const upcomingCalamity = this.upcomingCalamity;
 
     // 牌库抽取 3 张机缘牌
     const context = {
@@ -148,6 +162,20 @@ class RoundRunner {
       destinyCard: this.destinyCard
     };
     const offeredCards = this.deckEngine.drawTrio(context);
+
+    // 确保每张牌具备印章标签 (兵印, 财印, 名印) 与未处理扣损
+    for (const c of offeredCards) {
+      if (!c.sealTag) {
+        if (c.category === 'military') c.sealTag = 'military';
+        else if (c.category === 'management') c.sealTag = 'wealth';
+        else c.sealTag = 'prestige';
+      }
+      if (!c.unattendedPenalty) {
+        const dim = c.sealTag === 'military' ? 'force' : (c.sealTag === 'wealth' ? 'wealth' : 'prestige');
+        c.unattendedPenalty = { [dim]: 6 };
+      }
+    }
+    this.currentOfferedCards = offeredCards;
 
     return {
       act: this.currentAct,
@@ -163,7 +191,56 @@ class RoundRunner {
       isSuccessionRound,
       canRetreat,
       kinsfolk: this.kinsfolkEngine.getActiveKinsfolk(),
-      bagStatus: this.bagEngine.getStatus()
+      bagStatus: this.bagEngine.getStatus(),
+      willpower: this.willpowerRemaining,
+      seals: { ...this.seals }
+    };
+  }
+
+  /**
+   * 特殊动作一：「探报」—— 消耗 1 点心力提前看清下一次大劫所需的两种印
+   */
+  scoutUpcomingCalamity() {
+    if (this.willpowerRemaining < 1) {
+      return { success: false, reason: '心力不足，无法探报 (需 1 点心力)' };
+    }
+    this.willpowerRemaining -= 1;
+    const scoutData = this.calamityEngine.scoutCalamity(this.upcomingCalamity);
+    this.decisionLogs.push({
+      action: 'scout',
+      round: this.totalRoundsRun,
+      calamityId: this.upcomingCalamity.id,
+      requiredSeals: this.upcomingCalamity.requiredSeals
+    });
+    return {
+      success: true,
+      willpowerRemaining: this.willpowerRemaining,
+      scoutData,
+      upcomingCalamity: this.upcomingCalamity
+    };
+  }
+
+  /**
+   * 特殊动作二：「经营」—— 消耗 2 点心力直接获得 1 枚指定的印 (战略深度来源，不能删)
+   * @param {'military'|'wealth'|'prestige'} sealType
+   */
+  manageSeal(sealType = 'military') {
+    if (this.willpowerRemaining < 2) {
+      return { success: false, reason: '心力不足，无法经营 (需 2 点心力)' };
+    }
+    this.willpowerRemaining -= 2;
+    this.seals[sealType] = (this.seals[sealType] || 0) + 1;
+    this.decisionLogs.push({
+      action: 'manage',
+      round: this.totalRoundsRun,
+      sealType,
+      sealsAfter: { ...this.seals }
+    });
+    return {
+      success: true,
+      willpowerRemaining: this.willpowerRemaining,
+      addedSeal: sealType,
+      seals: { ...this.seals }
     };
   }
 
@@ -214,8 +291,33 @@ class RoundRunner {
       }
     }
 
+    // 消耗 1 点心力并记录已处理
+    this.willpowerRemaining = Math.max(0, this.willpowerRemaining - 1);
+    this.handledCardIdsInRound.add(chosenCard.id);
+
+    // 备印机制：成功处理卡牌即获得 1 枚对应标签的「印」
+    let gainedSeal = null;
+    const isSuccess = (checkResult.outcome === 'success' || checkResult.outcome === 'critical_success');
+    if (isSuccess) {
+      const sealTag = chosenCard.sealTag || (chosenCard.category === 'military' ? 'military' : (chosenCard.category === 'management' ? 'wealth' : 'prestige'));
+      this.seals[sealTag] = (this.seals[sealTag] || 0) + 1;
+      gainedSeal = sealTag;
+    }
+
     // 结算奖励与衰减
     const outcomeImpact = this._applyCardOutcome(chosenCard, checkResult, preCheckSkills.chainMultiplier);
+
+    // 核心惩罚机制：不处理的牌立刻扣资源！
+    const unattendedLosses = [];
+    if (this.currentOfferedCards && this.currentOfferedCards.length > 0) {
+      for (const card of this.currentOfferedCards) {
+        if (!this.handledCardIdsInRound.has(card.id)) {
+          const pen = card.unattendedPenalty || { [card.sealTag === 'military' ? 'force' : (card.sealTag === 'wealth' ? 'wealth' : 'prestige')]: 6 };
+          this._applyMeterDelta(Object.fromEntries(Object.entries(pen).map(([k, v]) => [k, -Math.abs(v)])));
+          unattendedLosses.push({ cardId: card.id, cardName: card.name, penalty: pen });
+        }
+      }
+    }
 
     // 誓愿检查
     this._checkVowProgress(chosenCard, checkResult);
@@ -230,6 +332,9 @@ class RoundRunner {
       cardId: chosenCard.id,
       cardName: chosenCard.name,
       willpower: validWillpower,
+      gainedSeal,
+      seals: { ...this.seals },
+      unattendedLosses,
       checkResult: {
         rodScore: checkResult.rodScore,
         outcome: checkResult.outcome,
@@ -246,6 +351,10 @@ class RoundRunner {
       chosenCard,
       checkResult,
       outcomeImpact,
+      gainedSeal,
+      seals: { ...this.seals },
+      willpowerRemaining: this.willpowerRemaining,
+      unattendedLosses,
       chronicleText: chosenCard.chronicleText || '世事如棋，岁月荏苒，宗族履历又添一笔。',
       historicalSource: chosenCard.historicalSource || null,
       meters: { ...this.meters },
@@ -256,24 +365,35 @@ class RoundRunner {
   }
 
   /**
-   * 执行大劫决断 (大劫 Boss 三步法之「断」)
-   * @param {'defend'|'relocate'|'ally'|'disperse'|'evade'} choice 玩家应对策略
+   * 执行大劫决断 (需交付两种印各 2 枚，付不起即全面崩溃)
+   * @param {'defend'|'relocate'|'ally'|'disperse'|'evade'|'seals'} choice 玩家应对策略
    */
   resolveCalamityEvent(choice = 'defend') {
-    const calamity = this.calamityEngine.generateCalamity(this.currentAct);
+    const calamity = this.upcomingCalamity || this.calamityEngine.generateCalamity(this.currentAct);
 
-    // 计算备战值 (族人派遣协同 + 四维充裕度)
-    const dutyMap = { war: 'military', slander: 'officialdom', plague: 'defence', famine: 'management', debt: 'management' };
-    const dutyType = dutyMap[calamity.type] || 'military';
-    const kinsmanDutyBonus = this.kinsfolkEngine.getDutyModifier(dutyType) * 100;
-    const preparednessScore = Math.min(25, Math.round(kinsmanDutyBonus + (this.meters[this._mapDimensionToMeter(dutyType)] / 10)));
+    // 优先执行势印应对核验 (需两种印各 2 枚)
+    let calamityResult = null;
+    if (this.calamityEngine && typeof this.calamityEngine.resolveWithSeals === 'function') {
+      calamityResult = this.calamityEngine.resolveWithSeals({
+        calamity,
+        seals: this.seals,
+        meters: this.meters
+      });
+    }
 
-    const calamityResult = this.calamityEngine.resolveCalamity({
-      calamity,
-      choice,
-      preparednessScore,
-      meters: this.meters
-    });
+    // 兼容传统对策分支
+    if (!calamityResult) {
+      const dutyMap = { war: 'military', slander: 'officialdom', plague: 'defence', famine: 'management', debt: 'management' };
+      const dutyType = dutyMap[calamity.type] || 'military';
+      const kinsmanDutyBonus = this.kinsfolkEngine.getDutyModifier(dutyType) * 100;
+      const preparednessScore = Math.min(25, Math.round(kinsmanDutyBonus + (this.meters[this._mapDimensionToMeter(dutyType)] / 10)));
+      calamityResult = this.calamityEngine.resolveCalamity({
+        calamity,
+        choice,
+        preparednessScore,
+        meters: this.meters
+      });
+    }
 
     this.calamityResults.push(calamityResult);
 
@@ -292,10 +412,11 @@ class RoundRunner {
     this.kinsfolkEngine.advanceRound({ disasterHappened: !calamityResult.survived });
     this._checkSurvival();
 
-    // 幕次推进
+    // 幕次推进 (重置幕内回合)
     if (this.currentAct < RUN_RULES.TOTAL_ACTS) {
       this.currentAct++;
-      this.actRound = 0; // 重置幕内回合
+      this.actRound = 0;
+      this.upcomingCalamity = this.calamityEngine.generateCalamity(this.currentAct);
     }
 
     this.decisionLogs.push({
@@ -303,13 +424,15 @@ class RoundRunner {
       act: calamity.act,
       choice,
       survived: calamityResult.survived,
-      isAnticipated: calamityResult.isAnticipated
+      isAnticipated: calamityResult.isAnticipated,
+      sealsRemaining: { ...this.seals }
     });
 
     return {
       calamityResult,
       chestOutcome,
       meters: { ...this.meters },
+      seals: { ...this.seals },
       bagStatus: this.bagEngine.getStatus()
     };
   }

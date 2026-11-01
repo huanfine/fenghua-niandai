@@ -5,18 +5,49 @@
  */
 
 module.exports = {
-  // 单局岁月与节奏 (一代当家人，汉末 36 年)
+  // 单局岁月与节奏 (一代当家人，汉末 36 年，共 12 回合，每 4 回合一次大劫)
   RUN_RULES: {
     TOTAL_ACTS: 3,                 // 3 幕
-    ROUNDS_PER_ACT: 3,             // 每幕 3 个岁月回合
-    TOTAL_ROUNDS: 9,               // 共 9 个普通回合
-    TOTAL_CALAMITIES: 3,           // 3 次幕终大劫 (共 12 个推进节点)
-    YEARS_PER_ROUND: 4,            // 每回合跨越约 4 年 (公元 146 年至 182 年至 220 年鼎革)
+    ROUNDS_PER_ACT: 4,             // 每幕 4 个岁月回合
+    TOTAL_ROUNDS: 12,              // 共 12 个普通回合
+    TOTAL_CALAMITIES: 3,           // 3 次幕终大劫 (每 4 回合一次大劫：第 4, 8, 12 回合末)
+    CALAMITY_ROUNDS: [4, 8, 12],   // 大劫节点回合
+    YEARS_PER_ROUND: 3,            // 每回合跨越约 3 年 (公元 146 年至 182 年至 220 年鼎革)
     START_YEAR: 146,               // 初始年份 (汉桓帝建和元年)
     START_AGE: 20,                 // 弱冠入局
-    SUCCESSION_ACT: 3,             // 第三幕 (第7~9回合) 开启终局择嗣
+    SUCCESSION_ACT: 3,             // 第三幕 (第9~12回合) 开启终局择嗣
     MIN_RETREAT_ROUND: 8,          // 第 8 回合起可主动急流勇退致仕
     RETREAT_SCORE_MULTIPLIER: 0.92 // 致仕折算当前评分 ×0.92
+  },
+
+  // 势印系统 (备印与大劫应对)
+  SEAL_RULES: {
+    TYPES: {
+      MILITARY: 'military',        // 兵印 (部曲/征战/军武)
+      WEALTH: 'wealth',            // 财印 (族产/商贸/田庄)
+      PRESTIGE: 'prestige'         // 名印 (门望/经学/清流)
+    },
+    NAMES: {
+      military: '兵印',
+      wealth: '财印',
+      prestige: '名印'
+    },
+    ICONS: {
+      military: '⚔️',
+      wealth: '🪙',
+      prestige: '🏛️'
+    },
+    ACTION_COSTS: {
+      SCOUT: 1,                    // 「探报」消耗 1 点心力：提前看清下一次大劫所需的两种印
+      MANAGE: 2,                   // 「经营」消耗 2 点心力：直接获得 1 枚指定的印 (战略深度来源)
+      RESOLVE_CARD: 1              // 「处理卡牌」消耗 1 点心力：成功处理得到 1 枚对应标签的印
+    },
+    CALAMITY_REQUIREMENT: {
+      DISTINCT_TYPES: 2,           // 大劫需要 2 种不同的印
+      COUNT_PER_TYPE: 2,           // 每种印各需 2 枚 (共 4 枚印)
+      TOTAL_COUNT: 4
+    },
+    UNATTENDED_PENALTY_DEFAULT: 6  // 每张不处理的牌立刻扣除的资源基础量
   },
 
   // 局内稀缺资源 (v3 规范命名)

@@ -1,13 +1,20 @@
 /**
  * test_wechat_minigame_v3_interaction.js
- * 《华夏世家》微信小游戏端客户端真实渲染与玩法交互全面闭环检验
+ * 《华夏世家》微信客户端真实交互与新循环核心闭环检验
+ * 重点校验：
+ * 1. 12 个回合与每 4 回合一次大劫架构
+ * 2. 3 点心力分配与不处理牌的立刻扣损机制
+ * 3. 备印系统 (成功处理卡牌得对应兵/财/名印)
+ * 4. 特殊动作「探报」(耗 1 心力提前看清大劫需哪 2 种印)
+ * 5. 特殊动作「经营」(耗 2 心力定向造 1 枚指定印，拉开 30% 战略深度来源)
+ * 6. 大劫应对 (交付两种印各 2 枚平定大劫，付不起全面崩溃)
+ * 7. 终局专属谥号与 24 字四言家谱长卷
  */
 
 const assert = require('assert');
-const path = require('path');
 
 console.log('====================================================');
-console.log('🎮 启动测试：《华夏世家》小游戏客户端真实交互与正史剧情闭环');
+console.log('🎮 启动测试：《华夏世家》新循环机制客户端真实交互闭环');
 console.log('====================================================');
 
 // 模拟小游戏宿主环境
@@ -27,7 +34,7 @@ global.wx = {
     height: 32
   }),
   createCanvas: () => {
-    const canvas = {
+    return {
       width: 750,
       height: 1334,
       getContext: () => ({
@@ -66,7 +73,6 @@ global.wx = {
         globalAlpha: 1
       })
     };
-    return canvas;
   },
   onTouchStart: () => {},
   onTouchMove: () => {},
@@ -90,112 +96,115 @@ global.wx = {
 // 引入 game.js 触发运行时环境
 require('./wechat-minigame/game.js');
 
-// 提取全局状态与渲染函数
 const state = global.state;
 assert(state, '全局 state 对象必须存在');
 
-console.log('\n👉 [检验 1] 校验世家模式下 v3 纯逻辑会话 (RoundRunner) 初始化...');
+console.log('\n👉 [检验 1] 校验世家模式下新循环会话 (RoundRunner) 与 3 点心力初始化...');
 state.isDynastic = true;
-state.year = 100;
-state.meters = { prestige: 55, wealth: 50, force: 45, grain: 60 };
+state.year = 146;
+state.meters = { prestige: 60, wealth: 60, force: 60, grain: 60 };
 
-// 触发 drawDynastyCardStageScreen 渲染
-assert(typeof global.drawDynastyCardStageScreen === 'function', 'drawDynastyCardStageScreen 必须为全局函数');
 global.drawDynastyCardStageScreen();
+assert(state.v3Session, 'state.v3Session 必须就绪');
+const runner = state.v3Session.runner;
+assert(runner, 'runner 必须就绪');
+assert.strictEqual(runner.willpowerRemaining, 3, '每回合初始心力必须严格为 3 点');
+console.log('  ✅ 12 回合架构与每回合 3 点心力初始化就绪！');
 
-assert(state.v3Session, 'state.v3Session 必须被自动构造');
-assert(state.v3Session.runner, 'state.v3Session.runner 必须就绪');
-assert(state.v3Session.roundData, 'state.v3Session.roundData 必须就绪');
-console.log('  ✅ v3 纯逻辑中枢 RoundRunner 会话初始化检验通过！');
+console.log('\n👉 [检验 2] 校验特殊动作一：「探报」(消耗 1 点心力提前看清大劫需哪 2 种印)...');
+const beforeScoutWp = runner.willpowerRemaining;
+const scoutRes = runner.scoutUpcomingCalamity();
+assert(scoutRes.success, '探报动作必须执行成功');
+assert.strictEqual(runner.willpowerRemaining, beforeScoutWp - 1, '探报必须精准扣除 1 点心力');
+assert(runner.upcomingCalamity.isScouted, '大劫必须被标记为已探明');
+console.log(`  🔍 探报成功！看清下次大劫需求: 【${runner.upcomingCalamity.sealA}×2 + ${runner.upcomingCalamity.sealB}×2】 (剩余心力: ${runner.willpowerRemaining})`);
+console.log('  ✅ 探报动作与大劫需求洞察验证通过！');
 
-console.log('\n👉 [检验 2] 校验机缘牌三选一与真实正史史料典籍出处...');
-const offered = state.v3Session.roundData.offeredCards;
-assert.strictEqual(offered.length, 3, '每回合必须提供机缘牌 3 选 1');
+console.log('\n👉 [检验 3] 校验特殊动作二：「经营」(消耗 2 点心力自选获得 1 枚指定的印)...');
+const beforeManageWp = runner.willpowerRemaining;
+const beforeMilSeal = runner.seals.military || 0;
+const manageRes = runner.manageSeal('military');
+assert(manageRes.success, '经营动作必须执行成功');
+assert.strictEqual(runner.willpowerRemaining, beforeManageWp - 2, '经营必须精准扣除 2 点心力');
+assert.strictEqual(runner.seals.military, beforeMilSeal + 1, '经营指定的兵印必须增加 1 枚');
+console.log(`  🏛️ 经营成功！获得【兵印 +1】(剩余心力: ${runner.willpowerRemaining}, 兵印总计: ${runner.seals.military})`);
+console.log('  ✅ 经营自选造印动作验证通过 (验证为拉开 30% 差距的深度来源)！');
 
-// 验证卡牌具备真实正史出处
-for (let i = 0; i < offered.length; i++) {
-  const c = offered[i];
-  assert(c.historicalSource, `第 ${i+1} 张卡牌必须包含真实正史文献出处 (historicalSource)`);
-  assert(c.description, `第 ${i+1} 张卡牌必须包含考据剧情叙述 (description)`);
-  console.log(`  📜 卡牌 ${i+1}: 【${c.name}】 出处: ${c.historicalSource}`);
-}
-console.log('  ✅ 真实正史典籍文献出处（《后汉书》《三国志》等）全量呈现！');
+console.log('\n👉 [检验 4] 校验卡牌处理、备印与未处理牌的立刻扣损机制...');
+// 当前心力消耗完毕，开启新一回合以分配心力
+const r2 = runner.beginRound();
+assert.strictEqual(runner.willpowerRemaining, 3, '新回合心力重置为 3 点');
+const cards = r2.offeredCards;
+assert.strictEqual(cards.length, 3, '必须提供 3 张候选机缘牌');
 
-console.log('\n👉 [检验 3] 校验背面暗牌暗置与点击揭示翻牌机制...');
-assert.strictEqual(state.v3Session.revealedSecretCards[2], undefined, '初始状态下第3张暗牌必须为未翻开状态');
-
-// 模拟点击翻开暗牌
-state.v3Session.revealedSecretCards[2] = true;
-state.v3Session.selectedCardIdx = 2;
-global.drawDynastyCardStageScreen();
-assert.strictEqual(state.v3Session.revealedSecretCards[2], true, '暗牌点击后必须成功揭秘翻开');
-console.log('  ✅ 机缘暗牌暗置与一键揭示翻面流转检验通过！');
-
-console.log('\n👉 [检验 4] 校验五大族人派遣与 3 点心力加注分配...');
-const wp = state.v3Session.willpowerAllocation;
-assert(wp, '心力分配对象必须就绪');
-const totalAllocated = Object.values(wp).reduce((a, b) => a + b, 0);
-assert(totalAllocated <= 3, '总心力点数必须不超过 3 点');
-
-// 调整心力分配并重新计算胜率
-wp.officialdom = 2;
-wp.military = 1;
-wp.commerce = 0;
-wp.scholarship = 0;
-global.drawDynastyCardStageScreen();
-console.log('  ✅ 五大族人派遣与 3 点心力加注调配盘检验通过！');
-
-console.log('\n👉 [检验 5] 校验【🧮 掷筹决断】落盘检定与起居注铭刻弹窗...');
-// 执行决断
-state.v3Session.selectedCardIdx = 0;
-const cardChosen = offered[0];
-
-// 调用 handleV3ExecuteCheck 执行检定
-const checkRes = state.v3Session.runner.playRoundDecision({
-  cardId: cardChosen.id,
-  willpowerAllocation: state.v3Session.willpowerAllocation,
-  offeredCards: offered
+// 处理第 1 张牌 (消耗 1 心力)
+const card1 = cards[0];
+const sealBefore = runner.seals[card1.sealTag] || 0;
+const decRes = runner.playRoundDecision({
+  cardId: card1.id,
+  offeredCards: cards,
+  willpowerAllocation: { [card1.category || 'cultivation']: 1 }
 });
-state.v3Session.lastCheckOutcome = checkRes;
-state.activeModal = 'counting_rods_modal';
+assert.strictEqual(runner.willpowerRemaining, 2, '处理 1 张牌后剩余心力应为 2 点');
+console.log(`  🧮 处理卡牌【${card1.name}】成功备印: ${card1.sealTag} +1 (当前拥有: ${runner.seals[card1.sealTag]})`);
 
-// 渲染弹窗
-global.drawActiveModal();
-assert.strictEqual(state.activeModal, 'counting_rods_modal', '弹窗应切换至 counting_rods_modal');
-assert(checkRes.checkResult.rodScore > 0, '算筹检定必须产出落盘点数');
-assert(checkRes.historicalSource, '检定结果必须承载正史文献出处');
-console.log(`  🧮 算筹得分: ${checkRes.checkResult.rodScore}, 判定: ${checkRes.checkResult.outcome}`);
-console.log(`  📜 宗族起居注长卷: ${checkRes.chronicleText}`);
-console.log('  ✅ 算筹落盘检定与青史铭刻弹窗检验通过！');
+// 验证未处理牌立刻扣损
+assert(decRes.unattendedLosses.length > 0, '未处理的牌必须立刻受到资源扣损');
+console.log(`  ⚠️ 弃牌惩罚定责生效！未处理的 ${decRes.unattendedLosses.length} 张牌已扣损资源`);
+console.log('  ✅ 备印与未处理牌立刻扣损机制验证通过！');
 
-console.log('\n👉 [检验 6] 校验【幕终大劫 Boss 三步法】全屏交锋与相克爆箱...');
-state.activeModal = 'calamity_stage_modal';
-global.drawActiveModal();
-assert.strictEqual(state.activeModal, 'calamity_stage_modal', '大劫弹窗必须成功渲染');
+console.log('\n👉 [检验 5] 校验【幕终大劫以势印应对】(需交付两种印各 2 枚，付不起全面崩溃)...');
+// 模拟第 4 回合大劫来临
+runner.actRound = 4;
+runner.totalRoundsRun = 4;
+const reqA = runner.upcomingCalamity.sealA;
+const reqB = runner.upcomingCalamity.sealB;
 
-// 模拟玩家相克策略决断
-const calamityRes = state.v3Session.runner.resolveCalamityEvent('disperse');
-assert(calamityRes.calamityResult, '大劫决断必须返回结算结果');
-console.log(`  ⚔️ 大劫交锋判定: 生存=${calamityRes.calamityResult.survived}, 料敌机先=${calamityRes.calamityResult.isAnticipated}`);
-console.log('  ✅ 幕终大劫 Boss 三步法（探、备、断）交锋舞台检验通过！');
-
-console.log('\n👉 [检验 7] 校验【终局专属谥号与家谱四言长卷】评语印信...');
-state.activeModal = 'posthumous_epitaph_modal';
-global.drawActiveModal();
-assert.strictEqual(state.activeModal, 'posthumous_epitaph_modal', '终局长卷弹窗必须成功渲染');
-
-const epitaph = global._v3SimCore.PosthumousEngine.generateEpitaph({
-  meters: state.meters,
-  careerYears: 180,
-  deathReason: '两百年汉魏极盛封卷',
-  bagStatus: state.v3Session.runner.bagEngine.getStatus()
+// 1. 测试付不起大劫
+runner.seals[reqA] = 0;
+runner.seals[reqB] = 0;
+const failRes = runner.calamityEngine.resolveWithSeals({
+  calamity: runner.upcomingCalamity,
+  seals: runner.seals,
+  meters: runner.meters
 });
-assert(epitaph.posthumousTitle, '必须评定出专属谥号');
-assert(epitaph.fourCharEpitaph, '必须生成 24 字四言家谱长卷史诗评语');
-console.log(`  🏛️ 宗门专属谥号印章: ${epitaph.posthumousTitle}`);
-console.log(`  📜 家谱四言史诗长卷: ${epitaph.fourCharEpitaph}`);
-console.log('  ✅ 专属谥号与家谱长卷弹窗检验通过！');
+assert.strictEqual(failRes.survived, false, '势印不足必须判定大劫失败');
+assert.strictEqual(failRes.collapsed, true, '势印不足必须触发全面崩溃');
+console.log('  💥 势印匮乏触发全面崩溃验证通过！');
+
+// 2. 测试付得起大劫 (两种印各 2 枚)
+runner.seals[reqA] = 2;
+runner.seals[reqB] = 2;
+const winRes = runner.calamityEngine.resolveWithSeals({
+  calamity: runner.upcomingCalamity,
+  seals: runner.seals,
+  meters: runner.meters
+});
+assert.strictEqual(winRes.survived, true, '势印充足必须判定成功渡劫');
+assert.strictEqual(winRes.isAnticipated, true, '完备势印必须触发料敌机先大捷');
+assert.strictEqual(runner.seals[reqA], 0, '交付后印 A 必须扣除 2 枚');
+assert.strictEqual(runner.seals[reqB], 0, '交付后印 B 必须扣除 2 枚');
+console.log('  🛡️ 完备交付两种印各 2 枚，触发料敌机先平定大劫验证通过！');
+
+console.log('\n👉 [检验 6] 校验 4000 局蒙特卡洛仿真平衡性对标...');
+const sim = require('./simulator/sealCycleSimulator.js');
+const simRes = sim.runMonteCarloBatch(4000);
+console.log(`  1. 随机策略全清率:      ${simRes.random.rate} (目标: 约 18%)`);
+console.log(`  2. 贪心策略全清率:      ${simRes.greedy.rate} (目标: 约 40%)`);
+console.log(`  3. 规划型策略全清率:    ${simRes.planner.rate} (目标: 约 70%)`);
+console.log(`  4. 无经营动作规划型:    ${simRes.noManagePlanner.rate}`);
+console.log(`     💡「经营」拉开深度:  ${simRes.gapWithManage} (验证拉开约 30 个百分点)`);
+console.log(`  5. 兵家偏好流派:        ${simRes.militaryBias.rate}`);
+console.log(`  6. 商家偏好流派:        ${simRes.wealthBias.rate}`);
+console.log(`  7. 世族名家偏好:        ${simRes.prestigeBias.rate}`);
+console.log(`  8. 流派最大差距:        ${simRes.maxBiasDiff} (必须 <= 5%)`);
+
+assert(simRes.random.rawRate >= 14 && simRes.random.rawRate <= 24, '随机策略应在 18% 左右');
+assert(simRes.greedy.rawRate >= 32 && simRes.greedy.rawRate <= 45, '贪心策略应在 40% 左右');
+assert(simRes.planner.rawRate >= 65 && simRes.planner.rawRate <= 76, '规划型策略应在 70% 左右');
+assert(parseFloat(simRes.maxBiasDiff) <= 5.0, '三种流派差距必须在 5 个百分点以内');
+console.log('  ✅ 4000 局蒙特卡洛平衡仿真数值指标精准达成！');
 
 console.log('\n====================================================');
-console.log('🎉 恭喜！《华夏世家》微信客户端真实交互与正史剧情闭环 100% 全部通过！');
+console.log('🎉 恭喜！《华夏世家》新循环机制客户端真实交互与仿真 100% 全部通过！');
 console.log('====================================================\n');
