@@ -156,6 +156,14 @@ function playOneGame(runIndex, clanProfile = { hallName: '颍川堂', surname: '
     global.hitboxes.length = 0;
     global.drawDynastyCardStageScreen();
 
+    // 若首次渲染弹出了新手速懂弹窗，模拟玩家点击【懂了！去带领家族破局 ➔】
+    if (state.activeModal === 'game_guide_quick_modal') {
+      global.drawGameGuideQuickModal();
+      tapHitbox('btn_dismiss_quick_guide');
+      global.hitboxes.length = 0;
+      global.drawDynastyCardStageScreen();
+    }
+
     const act = runner.currentAct;
     const actRound = runner.actRound;
     const yr = runner.currentYear;
@@ -235,21 +243,16 @@ function playOneGame(runIndex, clanProfile = { hallName: '颍川堂', surname: '
       console.log(`   👉 [决策] 切换 Tab [${chosenCardIdx}] 并点击【🧮 算筹落盘 · 决断备印】: 【${targetCard.name}】...`);
       tapHitbox('btn_v3_cast_counting_rods');
 
-      // 验证算筹弹窗唤起与正史剧情呈现
-      assert.strictEqual(state.activeModal, 'counting_rods_modal', '算筹弹窗必须成功唤起');
-      global.hitboxes.length = 0;
-      global.drawCountingRodsModal();
-
+      // 验证决断备印成功执行，印章直接入库，心流不被黑弹窗打断
       const outcome = v3.lastCheckOutcome;
+      assert(outcome && outcome.checkResult, '决断备印必须产出判定结果');
       console.log(`      🧮 算筹得分: ${outcome.checkResult.rodScore} | 检定结果: ${outcome.checkResult.outcome}`);
       console.log(`      📜 正史记载: ${outcome.historicalSource || targetCard.historicalSource}`);
       console.log(`      ✍️ 剧情长卷: ${targetCard.description ? targetCard.description.slice(0, 48) : ''}...`);
 
-      // 承策归卷
-      tapHitbox('btn_modal_finish_check_full');
       global.hitboxes.length = 0;
       global.drawDynastyCardStageScreen();
-      console.log(`      ✅ 承策归卷！已备印【${targetCard.sealTag} +1】，剩余心力: ${runner.willpowerRemaining}`);
+      console.log(`      ✅ 决断落定！已备印【${targetCard.sealTag} +1】，剩余心力: ${runner.willpowerRemaining}`);
     }
 
     // 4. 倒推大劫核心动作：「经营造印」
