@@ -3,6 +3,24 @@
  * 《华夏世家》纯逻辑内核 sim-core / content / meta-service 与客户端微信环境的桥接适配器 (v3)
  */
 
+let simCoreMod = null;
+let contentMod = null;
+let metaServiceMod = null;
+
+try {
+  simCoreMod = require('../../sim-core/index.js');
+  contentMod = require('../../content/index.js');
+  metaServiceMod = require('../../meta-service/index.js');
+} catch (_) {
+  try {
+    simCoreMod = require('../../../sim-core/index.js');
+    contentMod = require('../../../content/index.js');
+    metaServiceMod = require('../../../meta-service/index.js');
+  } catch (e2) {
+    console.error('[SimCoreAdapter] 加载内核模块失败:', e2);
+  }
+}
+
 const {
   PRNG,
   rules,
@@ -23,7 +41,7 @@ const {
   ScoreEngine,
   PosthumousEngine,
   RoundRunner
-} = require('../../../sim-core/index.js');
+} = simCoreMod || {};
 
 const {
   cardsHanwei,
@@ -31,7 +49,7 @@ const {
   skills,
   vows,
   validateAllContent
-} = require('../../../content/index.js');
+} = contentMod || {};
 
 const {
   ClanRankLadder,
@@ -39,7 +57,7 @@ const {
   ChestUnboxingService,
   ClanTreasuryService,
   ReplayVerifier
-} = require('../../../meta-service/index.js');
+} = metaServiceMod || {};
 
 module.exports = {
   simCore: {

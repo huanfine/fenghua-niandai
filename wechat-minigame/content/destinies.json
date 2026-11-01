@@ -1,0 +1,90 @@
+[
+  {
+    "id": "destiny_golden_kirin",
+    "name": "颍川荀氏 · 经世麒麟",
+    "quality": "legendary",
+    "background": "di",
+    "originName": "高门嫡脉",
+    "initialMeters": { "prestige": 65, "wealth": 60, "force": 40, "grain": 55 },
+    "trait": "【王佐之才】局内仕进与朝堂议事区间 +20%，初始官声远播",
+    "flaw": "【名门重负】受天下名节严苛审视，终局评分 ×0.95，且不得行暗昧私贿",
+    "tag": "绝品金卡"
+  },
+  {
+    "id": "destiny_golden_warlord",
+    "name": "谯县曹氏 · 将阀巨擘",
+    "quality": "legendary",
+    "background": "wu",
+    "originName": "统军将门",
+    "initialMeters": { "prestige": 50, "wealth": 55, "force": 70, "grain": 50 },
+    "trait": "【治世能臣】武备算筹暴击率提升 15%，击溃强敌额外缴获宝箱",
+    "flaw": "【权贵之讥】士林风评受阻，门望上限被压制，终局评分 ×0.95",
+    "tag": "绝品金卡"
+  },
+  {
+    "id": "destiny_purple_gentry",
+    "name": "弘农杨氏 · 冠冕世族",
+    "quality": "epic",
+    "background": "di",
+    "originName": "冠冕世族",
+    "initialMeters": { "prestige": 58, "wealth": 52, "force": 38, "grain": 50 },
+    "trait": "【清谈领袖】朝堂议事必触发连锁，门望算筹区间 +15%",
+    "flaw": "【党锢余波】易遭权贵嫉恨，遭遇危机牌时受损额外加剧 10%",
+    "tag": "极品紫卡"
+  },
+  {
+    "id": "destiny_purple_merchant",
+    "name": "宛城富室 · 豪商巨贾",
+    "quality": "epic",
+    "background": "shang",
+    "originName": "豪商大贾",
+    "initialMeters": { "prestige": 35, "wealth": 68, "force": 42, "grain": 62 },
+    "trait": "【囤积居奇】商旅奇遇全额免损，族产每回合自然生息 +3",
+    "flaw": "【市井之讥】不入士流，入仕初选难度 +15%",
+    "tag": "极品紫卡"
+  },
+  {
+    "id": "destiny_blue_scholar",
+    "name": "东莱寒儒 · 笃学志士",
+    "quality": "fine",
+    "background": "han",
+    "originName": "清修寒士",
+    "initialMeters": { "prestige": 48, "wealth": 38, "force": 45, "grain": 45 },
+    "trait": "【悬梁刺股】修身心力每投入 1 点额外增益 15%，处变不惊",
+    "flaw": "【家无余财】起步族产微薄，应对兵荒粮草周转艰难",
+    "tag": "良品蓝卡"
+  },
+  {
+    "id": "destiny_blue_ranger",
+    "name": "河北豪杰 · 结客少年场",
+    "quality": "fine",
+    "background": "wu",
+    "originName": "乡邦豪侠",
+    "initialMeters": { "prestige": 42, "wealth": 40, "force": 56, "grain": 42 },
+    "trait": "【意气轻生】遭遇突袭大劫时初始胜率 +12%",
+    "flaw": "【任侠犯禁】不拘小节，官府门望检定受限",
+    "tag": "良品蓝卡"
+  },
+  {
+    "id": "destiny_white_drifter",
+    "name": "草莽布衣 · 田陇耕读",
+    "quality": "common",
+    "background": "han",
+    "originName": "田陇农桑",
+    "initialMeters": { "prestige": 38, "wealth": 35, "force": 40, "grain": 48 },
+    "trait": "【寒门逆袭】凡庶逆袭加护：终局评分全额 ×1.05，险胜检定收益提升",
+    "flaw": "【寒素无门】起步资源贫瘠，缺乏名门庇护",
+    "tag": "凡品白卡"
+  },
+  {
+    "id": "destiny_white_craftsman",
+    "name": "百工遗裔 · 梓匠巧手",
+    "quality": "common",
+    "background": "shang",
+    "originName": "坊肆工匠",
+    "initialMeters": { "prestige": 36, "wealth": 42, "force": 38, "grain": 44 },
+    "trait": "【格物致知】凡庶逆袭加护：终局评分全额 ×1.05，器物与建筑消耗 -20%",
+    "flaw": "【微末门第】初次入仕需积攒额外声望",
+    "tag": "凡品白卡"
+  }
+]

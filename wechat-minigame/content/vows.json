@@ -1,0 +1,29 @@
+[
+  {
+    "id": "vow_peaceful_lifespan",
+    "name": "安享遐龄",
+    "riskLevel": "low",
+    "scoreReward": 5,
+    "fragmentReward": 10,
+    "desc": "平稳渡过乱世，寿至六十以上且健康收官，不遭横祸。",
+    "targetCondition": "age >= 60 && !isDead"
+  },
+  {
+    "id": "vow_tri_clash_victory",
+    "name": "克敌制胜",
+    "riskLevel": "mid",
+    "scoreReward": 8,
+    "fragmentReward": 25,
+    "desc": "在岁月历程中击破至少两次历史大考敌酋，扬威当世。",
+    "targetCondition": "clashWins >= 2"
+  },
+  {
+    "id": "vow_supreme_clan",
+    "name": "冠绝郡国",
+    "riskLevel": "high",
+    "scoreReward": 10,
+    "fragmentReward": 50,
+    "desc": "门第声望或家族资财突破 85 点，并在第9回合贤能接祧完成立阀宏愿。",
+    "targetCondition": "meters.prestige >= 85 || meters.wealth >= 85"
+  }
+]
